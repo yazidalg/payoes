@@ -4,6 +4,7 @@ import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { wallets } from "@/lib/db/schema";
 import { fundTestnetAccount } from "@/lib/stellar/fund-account";
+import { ensureStablecoinTrustlines } from "@/lib/stellar/ensure-trustlines";
 import { createTurnkeyStellarWallet } from "@/lib/wallet/turnkey-service";
 
 export const runtime = "nodejs";
@@ -65,6 +66,17 @@ export async function POST() {
       funded = true;
     } catch (error) {
       console.error("Friendbot funding failed:", error);
+    }
+
+    if (funded) {
+      try {
+        await ensureStablecoinTrustlines(
+          turnkeyWallet.publicKey,
+          turnkeyWallet.turnkeyOrganizationId,
+        );
+      } catch (error) {
+        console.error("Trustline setup failed:", error);
+      }
     }
 
     const [wallet] = await db

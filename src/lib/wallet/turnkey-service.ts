@@ -2,7 +2,7 @@ import "server-only";
 
 import { DEFAULT_XLM_ACCOUNTS, Turnkey } from "@turnkey/sdk-server";
 
-function getTurnkeyClient() {
+export function getTurnkeyClient() {
   const apiPublicKey = process.env.TURNKEY_API_PUBLIC_KEY;
   const apiPrivateKey = process.env.TURNKEY_API_PRIVATE_KEY;
   const organizationId = process.env.TURNKEY_ORGANIZATION_ID;
