@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { usernameFromEmail } from "@/lib/auth/username";
+import { formatUsdDisplay } from "@/lib/wallet/format-balance";
 import DepositSheet from "./DepositSheet";
 
 const transactions = [
@@ -52,24 +53,35 @@ function formatAmount(amount: number) {
 }
 
 export default function WalletScreen() {
-  const { user, wallet, balances, signOut } = useAuth();
+  const { user, wallet, portfolio, signOut, setupTrustlines, refreshBalances } =
+    useAuth();
   const [depositOpen, setDepositOpen] = useState(false);
+  const [trustlineLoading, setTrustlineLoading] = useState(false);
+  const [trustlineError, setTrustlineError] = useState<string | null>(null);
 
   const username = user ? usernameFromEmail(user.email) : "@user";
   const depositAddress = wallet?.publicKey ?? "";
+  const totalUsd = portfolio?.totalUsd ?? 0;
+  const hasStablecoinBalance = (portfolio?.stablecoins.length ?? 0) > 0;
+  const stablecoinCodes =
+    portfolio?.stablecoins.map((s) => s.code).join(", ") || "USDC, EURC";
 
-  const hasUsdc = balances?.usdc != null;
-  const balanceValue = hasUsdc
-    ? parseFloat(balances!.usdc!)
-    : parseFloat(balances?.xlm ?? "0");
-  const balanceLabel = hasUsdc ? "USDC" : "XLM";
-  const formattedBalance = balanceValue.toLocaleString("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: hasUsdc ? 2 : 7,
-  });
+  const handleSetupTrustlines = async () => {
+    setTrustlineLoading(true);
+    setTrustlineError(null);
+    try {
+      await setupTrustlines();
+    } catch (error) {
+      setTrustlineError(
+        error instanceof Error ? error.message : "Gagal mengaktifkan stablecoin",
+      );
+    } finally {
+      setTrustlineLoading(false);
+    }
+  };
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#f4f6f8]">
+    <div className="flex min-h-screen flex-col bg-white">
       {/* Status bar spacer */}
       <div className="h-11 shrink-0" />
 
@@ -93,13 +105,50 @@ export default function WalletScreen() {
         <div className="rounded-3xl bg-[#1a56db] px-6 py-8 text-white shadow-lg shadow-[#1a56db]/20">
           <p className="text-sm font-medium text-white/70">Total Saldo</p>
           <p className="mt-2 text-4xl font-bold tracking-tight">
-            {hasUsdc ? `$${formattedBalance}` : formattedBalance}
+            {formatUsdDisplay(totalUsd)}
           </p>
           <p className="mt-1 text-sm text-white/60">
-            {balanceLabel} · Testnet
+            USD · {stablecoinCodes} · Testnet
           </p>
         </div>
       </section>
+
+      {!hasStablecoinBalance && (
+        <section className="px-5 pt-4">
+          <div className="rounded-2xl border border-[#fde68a] bg-[#fffbeb] px-4 py-4">
+            <p className="text-sm font-medium text-[#92400e]">
+              USDC & EURC belum aktif di wallet ini
+            </p>
+            <p className="mt-1 text-xs leading-relaxed text-[#b45309]">
+              Di Stellar, kamu perlu trustline dulu sebelum bisa terima USDC atau
+              EURC dari faucet Circle. Setelah trustline aktif, minta ulang di
+              faucet.circle.com.
+            </p>
+            {trustlineError && (
+              <p className="mt-2 text-xs font-medium text-[#dc2626]">
+                {trustlineError}
+              </p>
+            )}
+            <div className="mt-3 flex gap-2">
+              <button
+                type="button"
+                onClick={handleSetupTrustlines}
+                disabled={trustlineLoading}
+                className="flex-1 rounded-xl bg-[#1a56db] py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+              >
+                {trustlineLoading ? "Mengaktifkan..." : "Aktifkan USDC & EURC"}
+              </button>
+              <button
+                type="button"
+                onClick={refreshBalances}
+                className="rounded-xl border border-[#e5e7eb] bg-white px-4 py-2.5 text-sm font-semibold text-[#111827]"
+              >
+                Refresh
+              </button>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Actions */}
       <section className="grid grid-cols-2 gap-3 px-5 pt-6">
@@ -113,7 +162,7 @@ export default function WalletScreen() {
         </button>
         <button
           type="button"
-          className="flex items-center justify-center gap-2 rounded-2xl bg-[#111827] py-4 text-base font-semibold text-white transition active:scale-[0.98]"
+          className="flex items-center justify-center gap-2 rounded-2xl bg-[#1a56db] py-4 text-base font-semibold text-white transition active:scale-[0.98]"
         >
           <SendIcon />
           Kirim

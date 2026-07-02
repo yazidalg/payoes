@@ -13,18 +13,19 @@ import { SessionProvider, signOut as nextAuthSignOut, useSession } from "next-au
 import type {
   AuthStatus,
   AuthUser,
+  PortfolioBalance,
   StellarWallet,
-  WalletBalances,
 } from "@/lib/auth/types";
 
 type AuthContextValue = {
   status: AuthStatus;
   user: AuthUser | null;
   wallet: StellarWallet | null;
-  balances: WalletBalances | null;
+  portfolio: PortfolioBalance | null;
   error: string | null;
   signOut: () => Promise<void>;
   refreshBalances: () => Promise<void>;
+  setupTrustlines: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -32,7 +33,7 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 function AuthContextProvider({ children }: { children: ReactNode }) {
   const { data: session, status: sessionStatus } = useSession();
   const [wallet, setWallet] = useState<StellarWallet | null>(null);
-  const [balances, setBalances] = useState<WalletBalances | null>(null);
+  const [portfolio, setPortfolio] = useState<PortfolioBalance | null>(null);
   const [provisioning, setProvisioning] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -70,13 +71,31 @@ function AuthContextProvider({ children }: { children: ReactNode }) {
     if (!response.ok) return;
 
     const data = await response.json();
-    setBalances(data.balances);
+    setPortfolio(data.portfolio);
   }, []);
+
+  const setupTrustlines = useCallback(async () => {
+    const response = await fetch("/api/wallet/trustlines", { method: "POST" });
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error ?? "Failed to setup trustlines");
+    }
+
+    if (data.result?.failed?.length > 0) {
+      const message = data.result.failed
+        .map((item: { code: string; error: string }) => `${item.code}: ${item.error}`)
+        .join(", ");
+      throw new Error(message);
+    }
+
+    await refreshBalances();
+  }, [refreshBalances]);
 
   useEffect(() => {
     if (sessionStatus !== "authenticated" || !session?.user?.id) {
       setWallet(null);
-      setBalances(null);
+      setPortfolio(null);
       setProvisioning(false);
       return;
     }
@@ -99,7 +118,7 @@ function AuthContextProvider({ children }: { children: ReactNode }) {
         setWallet(nextWallet);
         setProvisioning(false);
 
-        await refreshBalances();
+        await setupTrustlines();
       } catch (err) {
         if (cancelled) return;
         setError(err instanceof Error ? err.message : "Wallet setup failed");
@@ -112,7 +131,7 @@ function AuthContextProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [sessionStatus, session?.user?.id, fetchWallet, provisionWallet, refreshBalances]);
+  }, [sessionStatus, session?.user?.id, fetchWallet, provisionWallet, setupTrustlines]);
 
   const status: AuthStatus = useMemo(() => {
     if (sessionStatus === "loading") return "loading";
@@ -123,7 +142,7 @@ function AuthContextProvider({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(async () => {
     setWallet(null);
-    setBalances(null);
+    setPortfolio(null);
     setError(null);
     await nextAuthSignOut({ callbackUrl: "/" });
   }, []);
@@ -133,12 +152,13 @@ function AuthContextProvider({ children }: { children: ReactNode }) {
       status,
       user,
       wallet,
-      balances,
+      portfolio,
       error,
       signOut,
       refreshBalances,
+      setupTrustlines,
     }),
-    [status, user, wallet, balances, error, signOut, refreshBalances],
+    [status, user, wallet, portfolio, error, signOut, refreshBalances, setupTrustlines],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
