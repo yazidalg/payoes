@@ -6,11 +6,14 @@ import SheetOption from "./SheetOption";
 import {
   AddressIcon,
   CopyIcon,
+  EurcIcon,
   LocalPaymentIcon,
   StellarIcon,
   UsdcIcon,
   WalletIcon,
 } from "./icons";
+
+type DepositAsset = "USDC" | "EURC";
 
 type DepositSheetProps = {
   open: boolean;
@@ -38,7 +41,7 @@ const depositOptions = [
   {
     id: "address",
     title: "Deposit to address",
-    description: "Send USDC directly to your deposit address",
+    description: "Send USDC or EURC directly to your deposit address",
     icon: AddressIcon,
   },
 ];
@@ -57,6 +60,7 @@ export default function DepositSheet({
   depositAddress,
 }: DepositSheetProps) {
   const [step, setStep] = useState<Step>("menu");
+  const [selectedAsset, setSelectedAsset] = useState<DepositAsset>("USDC");
   const [amount, setAmount] = useState("");
   const [copied, setCopied] = useState(false);
 
@@ -67,6 +71,7 @@ export default function DepositSheet({
   useEffect(() => {
     if (!open) {
       setStep("menu");
+      setSelectedAsset("USDC");
       setAmount("");
       setCopied(false);
     }
@@ -125,7 +130,21 @@ export default function DepositSheet({
               title="USDC"
               description="USD Coin"
               icon={UsdcIcon}
-              onClick={() => setStep("network")}
+              onClick={() => {
+                setSelectedAsset("USDC");
+                setStep("network");
+              }}
+            />
+          </li>
+          <li>
+            <SheetOption
+              title="EURC"
+              description="Euro Coin"
+              icon={EurcIcon}
+              onClick={() => {
+                setSelectedAsset("EURC");
+                setStep("network");
+              }}
             />
           </li>
         </ul>
@@ -164,7 +183,7 @@ export default function DepositSheet({
                 className="w-full bg-transparent text-2xl font-semibold text-[#111827] outline-none placeholder:text-[#d1d5db]"
               />
               <span className="shrink-0 text-sm font-semibold text-[#6b7280]">
-                USDC
+                {selectedAsset}
               </span>
             </div>
             <p className="mt-2 text-xs text-[#9ca3af]">
@@ -176,7 +195,7 @@ export default function DepositSheet({
             type="button"
             disabled={!isAmountValid}
             onClick={() => setStep("address")}
-            className="w-full rounded-2xl bg-[#111827] py-4 text-base font-semibold text-white transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
+            className="w-full rounded-2xl bg-[#1a56db] py-4 text-base font-semibold text-white transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
           >
             Continue
           </button>
@@ -185,7 +204,7 @@ export default function DepositSheet({
 
       {step === "address" && (
         <div className="space-y-5">
-          <div className="rounded-2xl bg-[#f4f6f8] px-4 py-5 text-center">
+          <div className="rounded-2xl bg-[#f9fafb] px-4 py-5 text-center">
             <p className="text-sm text-[#6b7280]">Amount to deposit</p>
             <p className="mt-1 text-3xl font-bold text-[#111827]">
               {parsedAmount.toLocaleString("en-US", {
@@ -193,7 +212,7 @@ export default function DepositSheet({
                 maximumFractionDigits: 2,
               })}{" "}
               <span className="text-lg font-semibold text-[#6b7280]">
-                USDC
+                {selectedAsset}
               </span>
             </p>
             <p className="mt-1 text-xs text-[#9ca3af]">Network: Stellar</p>
@@ -224,8 +243,8 @@ export default function DepositSheet({
           </div>
 
           <p className="text-xs leading-relaxed text-[#9ca3af]">
-            Send only USDC on the Stellar network to this address. Sending
-            other assets may result in permanent loss.
+            Send only {selectedAsset} on the Stellar network to this address.
+            Sending other assets may result in permanent loss.
           </p>
         </div>
       )}

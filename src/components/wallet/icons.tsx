@@ -82,6 +82,14 @@ export function UsdcIcon() {
   );
 }
 
+export function EurcIcon() {
+  return (
+    <div className="flex h-[22px] w-[22px] items-center justify-center rounded-full bg-[#003399] text-[10px] font-bold text-white">
+      €
+    </div>
+  );
+}
+
 export function StellarIcon() {
   return (
     <div className="flex h-[22px] w-[22px] items-center justify-center rounded-full bg-[#7d00ff] text-[9px] font-bold text-white">
