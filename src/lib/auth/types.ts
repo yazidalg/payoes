@@ -12,9 +12,13 @@ export type StellarWallet = {
   funded: boolean;
 };
 
-export type WalletBalances = {
-  xlm: string;
-  usdc: string | null;
+export type PortfolioBalance = {
+  totalUsd: number;
+  stablecoins: {
+    code: string;
+    balance: string;
+    usdValue: number;
+  }[];
 };
 
 export type AuthStatus =

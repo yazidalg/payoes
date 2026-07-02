@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { wallets } from "@/lib/db/schema";
-import { getWalletBalances } from "@/lib/stellar/balance";
+import { getPortfolioBalance } from "@/lib/stellar/balance";
 
 export const runtime = "nodejs";
 
@@ -22,12 +22,15 @@ export async function GET() {
   }
 
   try {
-    const balances = await getWalletBalances(wallet.publicKey);
+    const portfolio = await getPortfolioBalance(
+      wallet.publicKey,
+      wallet.network as "testnet",
+    );
 
     return NextResponse.json({
       publicKey: wallet.publicKey,
       network: wallet.network,
-      balances,
+      portfolio,
     });
   } catch (error) {
     console.error("Balance fetch failed:", error);
