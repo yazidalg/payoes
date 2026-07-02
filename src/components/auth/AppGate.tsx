@@ -25,7 +25,7 @@ export default function AppGate() {
 
 function LoadingScreen() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#f4f6f8]">
+    <div className="flex min-h-screen items-center justify-center bg-white">
       <div className="h-10 w-10 animate-spin rounded-full border-4 border-[#e5e7eb] border-t-[#1a56db]" />
     </div>
   );

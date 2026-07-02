@@ -13,7 +13,7 @@ export default function WalletProvisioningScreen() {
   ];
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-[#f4f6f8] px-6">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-white px-6">
       <div className="w-full max-w-xs text-center">
         <div className="mx-auto mb-8 flex h-16 w-16 items-center justify-center">
           <div className="h-12 w-12 animate-spin rounded-full border-4 border-[#e5e7eb] border-t-[#1a56db]" />

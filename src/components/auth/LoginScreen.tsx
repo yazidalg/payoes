@@ -18,7 +18,7 @@ export default function LoginScreen() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#f4f6f8]">
+    <div className="flex min-h-screen flex-col bg-white">
       <div className="h-11 shrink-0" />
 
       <div className="flex flex-1 flex-col justify-between px-6 pb-10 pt-16">
