@@ -10,12 +10,14 @@ type OrganizationLogoUploadProps = {
   businessName: string;
   value: File | null;
   onChange: (file: File | null) => void;
+  existingLogoUrl?: string | null;
 };
 
 export function OrganizationLogoUpload({
   businessName,
   value,
   onChange,
+  existingLogoUrl,
 }: OrganizationLogoUploadProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const initials = getInitials(businessName || "Workspace");
@@ -46,6 +48,13 @@ export function OrganizationLogoUpload({
             <img
               src={previewUrl}
               alt="Business logo preview"
+              className="size-full object-cover"
+            />
+          ) : existingLogoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={existingLogoUrl}
+              alt="Business logo"
               className="size-full object-cover"
             />
           ) : (

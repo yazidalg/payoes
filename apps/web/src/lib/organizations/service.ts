@@ -88,3 +88,32 @@ export async function getOrganizationById(organizationId: string) {
     where: eq(organizations.id, organizationId),
   });
 }
+
+export async function updateOrganization(
+  organizationId: string,
+  input: {
+    name: string;
+    email: string;
+    website?: string | null;
+    description?: string | null;
+    logoUrl?: string | null;
+  }
+) {
+  const logoInitials = getInitials(input.name);
+
+  const [organization] = await db
+    .update(organizations)
+    .set({
+      name: input.name.trim(),
+      email: input.email.trim().toLowerCase(),
+      website: input.website?.trim() || null,
+      description: input.description?.trim() || null,
+      logoUrl: input.logoUrl ?? undefined,
+      logoInitials,
+      updatedAt: new Date(),
+    })
+    .where(eq(organizations.id, organizationId))
+    .returning();
+
+  return organization;
+}
