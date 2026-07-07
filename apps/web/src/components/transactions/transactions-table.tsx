@@ -1,19 +1,16 @@
 "use client";
 
 import { useCallback } from "react";
+import Link from "next/link";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { useAsyncData } from "@/hooks/use-async-data";
-
-type PaymentRow = {
-  id: string;
-  amount: string;
-  asset: string;
-  status: string;
-  tx_hash: string | null;
-  payer_address: string | null;
-  customer_id: string | null;
-  confirmed_at: string | null;
-  created_at: string;
-};
+import type { PaymentRow } from "@/lib/payments/types";
 
 export function TransactionsTable({ organizationId }: { organizationId: string }) {
   const fetchTransactions = useCallback(async () => {
@@ -33,52 +30,69 @@ export function TransactionsTable({ organizationId }: { organizationId: string }
         </p>
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-border/80">
-        <table className="w-full text-sm">
-          <thead className="bg-muted/40 text-left">
-            <tr>
-              <th className="px-4 py-3 font-medium">Payment</th>
-              <th className="px-4 py-3 font-medium">Amount</th>
-              <th className="px-4 py-3 font-medium">Payer</th>
-              <th className="px-4 py-3 font-medium">Tx Hash</th>
-              <th className="px-4 py-3 font-medium">Confirmed</th>
-            </tr>
-          </thead>
-          <tbody>
-            {(transactions ?? []).length === 0 ? (
-              <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
-                  No confirmed transactions yet.
-                </td>
-              </tr>
-            ) : (
-              (transactions ?? []).map((transaction) => (
-                <tr key={transaction.id} className="border-t border-border/60">
-                  <td className="px-4 py-3 font-mono text-xs">{transaction.id}</td>
-                  <td className="px-4 py-3">
-                    {transaction.amount} {transaction.asset}
-                  </td>
-                  <td className="px-4 py-3 font-mono text-xs">
-                    {transaction.payer_address
-                      ? `${transaction.payer_address.slice(0, 10)}...`
-                      : "N/A"}
-                  </td>
-                  <td className="px-4 py-3 font-mono text-xs">
-                    {transaction.tx_hash
-                      ? `${transaction.tx_hash.slice(0, 8)}...`
-                      : "N/A"}
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground">
-                    {transaction.confirmed_at
-                      ? new Date(transaction.confirmed_at).toLocaleString()
-                      : "N/A"}
-                  </td>
+      <Card>
+        <CardHeader>
+          <CardTitle>Transaction list</CardTitle>
+          <CardDescription>
+            Click a payment ID to open the full payment detail page.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="px-0 pb-0">
+          <div className="overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/40 text-left">
+                <tr>
+                  <th className="px-4 py-3 font-medium">Payment</th>
+                  <th className="px-4 py-3 font-medium">Amount</th>
+                  <th className="px-4 py-3 font-medium">Payer</th>
+                  <th className="px-4 py-3 font-medium">Tx Hash</th>
+                  <th className="px-4 py-3 font-medium">Confirmed</th>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+              </thead>
+              <tbody>
+                {(transactions ?? []).length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
+                      No confirmed transactions yet.
+                    </td>
+                  </tr>
+                ) : (
+                  (transactions ?? []).map((transaction) => (
+                    <tr key={transaction.id} className="border-t border-border/60">
+                      <td className="px-4 py-3 font-mono text-xs">
+                        <Link
+                          href={`/dashboard/payments/${transaction.id}`}
+                          className="hover:underline"
+                        >
+                          {transaction.id}
+                        </Link>
+                      </td>
+                      <td className="px-4 py-3">
+                        {transaction.amount} {transaction.asset}
+                      </td>
+                      <td className="px-4 py-3 font-mono text-xs">
+                        {transaction.payer_address
+                          ? `${transaction.payer_address.slice(0, 10)}...`
+                          : "N/A"}
+                      </td>
+                      <td className="px-4 py-3 font-mono text-xs">
+                        {transaction.tx_hash
+                          ? `${transaction.tx_hash.slice(0, 8)}...`
+                          : "N/A"}
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground">
+                        {transaction.confirmed_at
+                          ? new Date(transaction.confirmed_at).toLocaleString()
+                          : "N/A"}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

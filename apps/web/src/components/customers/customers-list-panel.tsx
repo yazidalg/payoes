@@ -33,7 +33,7 @@ export function CustomersListPanel({ organizationId }: { organizationId: string 
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">All Customers</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Customers</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Browse payer profiles. Customers are also created automatically after
             checkout.
