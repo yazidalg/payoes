@@ -38,7 +38,7 @@ export function AppSidebar({
         />
       </SidebarHeader>
       <SidebarContent>
-        <NavMain />
+        <NavMain environment={activeOrganization?.environment ?? "sandbox"} />
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={user} />

@@ -20,11 +20,12 @@ import {
   SidebarMenuSubItem,
 } from "@/components/ui/sidebar";
 import {
-  dashboardNav,
+  getDashboardNav,
   isNavGroupActive,
   isNavItemActive,
   type DashboardNavItem,
 } from "@/lib/navigation/dashboard-nav";
+import type { Organization } from "@/lib/db/schema";
 import { ChevronRightIcon } from "lucide-react";
 
 function NavGroup({ item }: { item: DashboardNavItem }) {
@@ -90,12 +91,18 @@ function NavGroup({ item }: { item: DashboardNavItem }) {
   );
 }
 
-export function NavMain() {
+export function NavMain({
+  environment = "sandbox",
+}: {
+  environment?: Organization["environment"];
+}) {
+  const navItems = getDashboardNav(environment);
+
   return (
     <SidebarGroup>
       <SidebarGroupLabel>Platform</SidebarGroupLabel>
       <SidebarMenu>
-        {dashboardNav.map((item) => (
+        {navItems.map((item) => (
           <NavGroup key={item.title} item={item} />
         ))}
       </SidebarMenu>

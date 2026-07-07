@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { usePathname } from "next/navigation";
 import { AppSidebar } from "@/components/app-sidebar";
-import { SandboxModeBanner } from "@/components/dashboard/environment-mode";
+import { EnvironmentModeBanner } from "@/components/dashboard/environment-mode";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -35,21 +35,25 @@ export function DashboardShell({
   const pathname = usePathname();
   const pageTitle = getDashboardPageTitle(pathname);
   const [activeOrganization, setActiveOrganization] = useState(organizations[0]);
-  const isSandbox = activeOrganization?.environment === "sandbox";
 
   return (
     <div className="bg-sidebar flex h-svh w-full flex-col overflow-hidden">
-      {activeOrganization && isSandbox ? (
-        <SandboxModeBanner organization={activeOrganization} />
+      {activeOrganization ? (
+        <EnvironmentModeBanner
+          organization={activeOrganization}
+          onOrganizationUpdated={setActiveOrganization}
+        />
       ) : null}
 
-      <SidebarProvider className="bg-sidebar min-h-0 flex-1 overflow-hidden">
+      <SidebarProvider className="bg-sidebar !min-h-0 h-0 min-h-0 flex-1 overflow-hidden">
         <AppSidebar
           user={user}
           organizations={organizations}
           activeOrganization={activeOrganization}
           onOrganizationChange={setActiveOrganization}
-          collapsible={isSandbox ? "none" : "icon"}
+          collapsible={
+            activeOrganization?.environment === "sandbox" ? "none" : "icon"
+          }
         />
         <SidebarInset className="bg-sidebar m-0 flex min-h-0 flex-1 flex-col overflow-hidden p-0">
           <header className="bg-sidebar flex h-14 shrink-0 items-center gap-2 px-4 md:px-6">

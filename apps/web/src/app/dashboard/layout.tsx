@@ -5,10 +5,6 @@ import {
   getOrganizationsForUser,
   userHasOrganization,
 } from "@/lib/organizations/service";
-import {
-  organizationHasReceivingWallet,
-} from "@/lib/organizations/wallet";
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 async function resolveUserId(session: {
@@ -50,23 +46,6 @@ export default async function DashboardLayout({
   }
 
   const organizations = await getOrganizationsForUser(userId);
-  const primaryOrganization = organizations[0];
-
-  if (primaryOrganization) {
-    const hasWallet = await organizationHasReceivingWallet(
-      primaryOrganization.id,
-      primaryOrganization.environment
-    );
-
-    if (!hasWallet) {
-      const headersList = await headers();
-      const pathname = headersList.get("x-pathname") ?? "";
-
-      if (pathname !== "/dashboard/settings/receiving-wallet") {
-        redirect("/onboarding/wallet");
-      }
-    }
-  }
 
   return (
     <DashboardShell user={session.user} organizations={organizations}>

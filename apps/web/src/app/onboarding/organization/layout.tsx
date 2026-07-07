@@ -2,10 +2,6 @@ import type React from "react";
 import { auth } from "@/auth";
 import { findUserByEmail } from "@/lib/auth/users";
 import { userHasOrganization } from "@/lib/organizations/service";
-import {
-  getPrimaryOrganizationForUser,
-  organizationHasReceivingWallet,
-} from "@/lib/organizations/wallet";
 import { redirect } from "next/navigation";
 
 async function resolveUserId(session: {
@@ -38,19 +34,7 @@ export default async function OrganizationOnboardingLayout({
   const hasOrganization = await userHasOrganization(userId);
 
   if (hasOrganization) {
-    const organization = await getPrimaryOrganizationForUser(userId);
-
-    if (
-      organization &&
-      (await organizationHasReceivingWallet(
-        organization.id,
-        organization.environment
-      ))
-    ) {
-      redirect("/dashboard/payments");
-    }
-
-    redirect("/onboarding/wallet");
+    redirect("/dashboard/payments");
   }
 
   return children;

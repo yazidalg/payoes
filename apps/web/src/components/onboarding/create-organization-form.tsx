@@ -84,7 +84,7 @@ export function CreateOrganizationForm({
     }
 
     toast.success("Workspace created successfully");
-    router.push("/onboarding/wallet");
+    router.push("/dashboard/payments");
     router.refresh();
   };
 

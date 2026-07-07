@@ -37,15 +37,16 @@ export default async function ReceivingWalletPage() {
     redirect("/onboarding");
   }
 
-  const wallet = await getReceivingWallet(
-    organization.id,
-    organization.environment
-  );
+  if (organization.environment !== "production") {
+    redirect("/dashboard/payments");
+  }
+
+  const wallet = await getReceivingWallet(organization.id, "production");
 
   return (
     <ReceivingWalletForm
       organizationId={organization.id}
-      environment={organization.environment}
+      environment="production"
       mode="settings"
       initialAddress={wallet?.stellarAddress ?? null}
       initialAssets={(wallet?.acceptedAssets ?? ["USDC", "XLM"]) as AcceptedAsset[]}

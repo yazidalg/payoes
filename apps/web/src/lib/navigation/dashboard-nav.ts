@@ -12,6 +12,7 @@ import {
   Wallet,
   Webhook,
 } from "lucide-react";
+import type { Organization } from "@/lib/db/schema";
 
 export type DashboardNavItem = {
   title: string;
@@ -90,6 +91,35 @@ export const dashboardNav: DashboardNavItem[] = [
     ],
   },
 ];
+
+export function getSettingsNavItems(environment: Organization["environment"]) {
+  const settingsGroup = dashboardNav.find((item) => item.title === "Settings");
+
+  if (!settingsGroup?.items) {
+    return [];
+  }
+
+  return settingsGroup.items.filter((item) => {
+    if (item.url === "/dashboard/settings/receiving-wallet") {
+      return environment === "production";
+    }
+
+    return true;
+  });
+}
+
+export function getDashboardNav(environment: Organization["environment"]) {
+  return dashboardNav.map((item) => {
+    if (item.title !== "Settings" || !item.items) {
+      return item;
+    }
+
+    return {
+      ...item,
+      items: getSettingsNavItems(environment),
+    };
+  });
+}
 
 const pageTitles: Record<string, string> = {
   "/dashboard": "Dashboard",

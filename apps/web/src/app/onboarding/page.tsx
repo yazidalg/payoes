@@ -5,10 +5,6 @@ import { buttonVariants } from "@/components/ui/button";
 import { CardContent, CardDescription, CardTitle } from "@/components/ui/card";
 import { findUserByEmail } from "@/lib/auth/users";
 import { userHasOrganization } from "@/lib/organizations/service";
-import {
-  getPrimaryOrganizationForUser,
-  organizationHasReceivingWallet,
-} from "@/lib/organizations/wallet";
 import { cn } from "@/lib/utils";
 import { SparklesIcon } from "lucide-react";
 import { redirect } from "next/navigation";
@@ -33,19 +29,7 @@ export default async function OnboardingWelcomePage() {
   const userId = session?.user ? await resolveUserId(session) : null;
 
   if (userId && (await userHasOrganization(userId))) {
-    const organization = await getPrimaryOrganizationForUser(userId);
-
-    if (
-      organization &&
-      (await organizationHasReceivingWallet(
-        organization.id,
-        organization.environment
-      ))
-    ) {
-      redirect("/dashboard/payments");
-    }
-
-    redirect("/onboarding/wallet");
+    redirect("/dashboard/payments");
   }
 
   return (
@@ -69,8 +53,8 @@ export default async function OnboardingWelcomePage() {
           <p className="font-medium text-foreground">What happens next</p>
           <ul className="mt-3 space-y-2">
             <li>1. Create your organization profile</li>
-            <li>2. Configure your receiving wallet</li>
-            <li>3. Start creating payments and API keys</li>
+            <li>2. Start creating payments and API keys in sandbox</li>
+            <li>3. Switch to production when you are ready to go live</li>
           </ul>
         </div>
 
