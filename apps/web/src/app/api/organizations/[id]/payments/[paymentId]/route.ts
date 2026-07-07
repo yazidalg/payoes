@@ -23,7 +23,11 @@ export async function GET(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const payment = await getPaymentForOrganization(paymentId, organization.id);
+  const payment = await getPaymentForOrganization(
+    paymentId,
+    organization.id,
+    organization.environment
+  );
 
   if (!payment) {
     return NextResponse.json({ error: "Payment not found" }, { status: 404 });

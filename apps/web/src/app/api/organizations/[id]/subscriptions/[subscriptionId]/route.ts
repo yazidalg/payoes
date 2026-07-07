@@ -23,7 +23,11 @@ export async function GET(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const detail = await getSubscriptionDetail(subscriptionId, organization.id);
+  const detail = await getSubscriptionDetail(
+    subscriptionId,
+    organization.id,
+    organization.environment
+  );
 
   if (!detail) {
     return NextResponse.json({ error: "Subscription not found" }, { status: 404 });

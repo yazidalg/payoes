@@ -19,7 +19,10 @@ const createPaymentLinkSchema = z.object({
 
 export async function GET(request: Request) {
   return withApiKeyAuth(request, async ({ apiKey }) => {
-    const links = await listPaymentLinks(apiKey.organizationId);
+    const links = await listPaymentLinks(
+      apiKey.organizationId,
+      apiKey.environment
+    );
 
     return NextResponse.json({
       payment_links: links.map((link) => serializePaymentLink(link)),

@@ -23,7 +23,11 @@ export async function GET(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const detail = await getCheckoutSessionDetail(sessionId, organization.id);
+  const detail = await getCheckoutSessionDetail(
+    sessionId,
+    organization.id,
+    organization.environment
+  );
 
   if (!detail) {
     return NextResponse.json(

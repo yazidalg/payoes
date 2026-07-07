@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
   checkoutSessions,
@@ -21,7 +21,11 @@ export function getCheckoutSessionUrl(publicId: string) {
   return `${baseUrl}/c/${publicId}`;
 }
 
-export async function listCheckoutSessions(organizationId: string, limit = 50) {
+export async function listCheckoutSessions(
+  organizationId: string,
+  environment: Organization["environment"],
+  limit = 50
+) {
   return db
     .select({
       id: checkoutSessions.id,
@@ -42,7 +46,12 @@ export async function listCheckoutSessions(organizationId: string, limit = 50) {
     })
     .from(checkoutSessions)
     .innerJoin(payments, eq(checkoutSessions.paymentId, payments.id))
-    .where(eq(checkoutSessions.organizationId, organizationId))
+    .where(
+      and(
+        eq(checkoutSessions.organizationId, organizationId),
+        eq(payments.environment, environment)
+      )
+    )
     .orderBy(desc(checkoutSessions.createdAt))
     .limit(limit);
 }
@@ -59,11 +68,22 @@ export async function getCheckoutSessionByPublicId(publicId: string) {
 
 export async function getCheckoutSessionForOrganization(
   publicId: string,
-  organizationId: string
+  organizationId: string,
+  environment: Organization["environment"]
 ) {
   const session = await getCheckoutSessionByPublicId(publicId);
 
   if (!session || session.organizationId !== organizationId) {
+    return null;
+  }
+
+  const payment = await getPaymentById(
+    session.paymentId,
+    organizationId,
+    environment
+  );
+
+  if (!payment) {
     return null;
   }
 
@@ -72,15 +92,24 @@ export async function getCheckoutSessionForOrganization(
 
 export async function getCheckoutSessionDetail(
   publicId: string,
-  organizationId: string
+  organizationId: string,
+  environment: Organization["environment"]
 ) {
-  const session = await getCheckoutSessionForOrganization(publicId, organizationId);
+  const session = await getCheckoutSessionForOrganization(
+    publicId,
+    organizationId,
+    environment
+  );
 
   if (!session) {
     return null;
   }
 
-  const payment = await getPaymentById(session.paymentId, organizationId);
+  const payment = await getPaymentById(
+    session.paymentId,
+    organizationId,
+    environment
+  );
 
   if (!payment) {
     return null;

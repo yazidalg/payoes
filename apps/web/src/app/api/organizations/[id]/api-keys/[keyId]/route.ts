@@ -20,7 +20,7 @@ export async function GET(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const apiKey = await getApiKey(organization.id, keyId);
+  const apiKey = await getApiKey(organization.id, keyId, organization.environment);
 
   if (!apiKey) {
     return NextResponse.json({ error: "API key not found" }, { status: 404 });
@@ -46,7 +46,11 @@ export async function DELETE(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const revoked = await revokeApiKey(organization.id, keyId);
+  const revoked = await revokeApiKey(
+    organization.id,
+    keyId,
+    organization.environment
+  );
 
   if (!revoked) {
     return NextResponse.json({ error: "API key not found" }, { status: 404 });

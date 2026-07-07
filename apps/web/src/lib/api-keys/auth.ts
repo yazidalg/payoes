@@ -30,6 +30,7 @@ export async function withApiKeyAuth(
 
   await logApiRequest({
     organizationId: apiKey.organizationId,
+    environment: apiKey.environment,
     apiKeyId: apiKey.id,
     method: request.method,
     path: new URL(request.url).pathname,

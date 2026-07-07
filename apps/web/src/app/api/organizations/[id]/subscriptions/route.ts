@@ -40,7 +40,7 @@ export async function GET(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const rows = await listSubscriptions(organization.id);
+  const rows = await listSubscriptions(organization.id, organization.environment);
 
   return NextResponse.json({
     subscriptions: serializeSubscriptions(rows),
@@ -89,7 +89,8 @@ export async function POST(
 
     const detail = await getSubscriptionDetail(
       subscription.publicId,
-      organization.id
+      organization.id,
+      organization.environment
     );
 
     if (!detail) {

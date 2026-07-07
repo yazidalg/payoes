@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { withApiKeyAuth } from "@/lib/api-keys/auth";
 import {
-  getCustomerByPublicId,
+  getCustomerForOrganization,
   listPaymentsForCustomer,
   serializeCustomer,
 } from "@/lib/customers/service";
@@ -13,13 +13,20 @@ export async function GET(
 ) {
   return withApiKeyAuth(request, async ({ apiKey }) => {
     const { id } = await params;
-    const customer = await getCustomerByPublicId(id);
+    const customer = await getCustomerForOrganization(
+      id,
+      apiKey.organizationId,
+      apiKey.environment
+    );
 
-    if (!customer || customer.organizationId !== apiKey.organizationId) {
+    if (!customer) {
       return NextResponse.json({ error: "Customer not found" }, { status: 404 });
     }
 
-    const paymentList = await listPaymentsForCustomer(customer.id);
+    const paymentList = await listPaymentsForCustomer(
+      customer.id,
+      apiKey.environment
+    );
 
     return NextResponse.json({
       ...serializeCustomer(customer),

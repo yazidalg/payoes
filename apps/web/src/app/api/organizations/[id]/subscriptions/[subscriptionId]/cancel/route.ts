@@ -26,7 +26,8 @@ export async function POST(
   try {
     const subscription = await cancelSubscription(
       subscriptionId,
-      organization.id
+      organization.id,
+      organization.environment
     );
 
     return NextResponse.json(serializeSubscription(subscription));

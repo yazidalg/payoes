@@ -9,6 +9,7 @@ import {
 } from "@/lib/db/schema";
 import type { AcceptedAsset } from "@/lib/organizations/wallet-constants";
 import { getCustomerByPublicId } from "@/lib/customers/service";
+import { organizationEnvironmentWhere } from "@/lib/organizations/environment-scope";
 import {
   createCheckoutSession,
   getCheckoutSessionUrl,
@@ -19,7 +20,11 @@ function createInvoicePublicId() {
   return `inv_${randomBytes(12).toString("base64url")}`;
 }
 
-export async function listInvoices(organizationId: string, limit = 50) {
+export async function listInvoices(
+  organizationId: string,
+  environment: Organization["environment"],
+  limit = 50
+) {
   return db
     .select({
       id: invoices.id,
@@ -41,7 +46,14 @@ export async function listInvoices(organizationId: string, limit = 50) {
     })
     .from(invoices)
     .innerJoin(customers, eq(invoices.customerId, customers.id))
-    .where(eq(invoices.organizationId, organizationId))
+    .where(
+      organizationEnvironmentWhere(
+        invoices.organizationId,
+        invoices.environment,
+        organizationId,
+        environment
+      )
+    )
     .orderBy(desc(invoices.createdAt))
     .limit(limit);
 }
@@ -58,19 +70,32 @@ export async function getInvoiceByPublicId(publicId: string) {
 
 export async function getInvoiceForOrganization(
   publicId: string,
-  organizationId: string
+  organizationId: string,
+  environment: Organization["environment"]
 ) {
   const invoice = await getInvoiceByPublicId(publicId);
 
-  if (!invoice || invoice.organizationId !== organizationId) {
+  if (
+    !invoice ||
+    invoice.organizationId !== organizationId ||
+    invoice.environment !== environment
+  ) {
     return null;
   }
 
   return invoice;
 }
 
-export async function getInvoiceDetail(publicId: string, organizationId: string) {
-  const invoice = await getInvoiceForOrganization(publicId, organizationId);
+export async function getInvoiceDetail(
+  publicId: string,
+  organizationId: string,
+  environment: Organization["environment"]
+) {
+  const invoice = await getInvoiceForOrganization(
+    publicId,
+    organizationId,
+    environment
+  );
 
   if (!invoice) {
     return null;
@@ -154,8 +179,16 @@ export async function createInvoice(input: {
   return invoice;
 }
 
-export async function finalizeInvoice(publicId: string, organizationId: string) {
-  const invoice = await getInvoiceForOrganization(publicId, organizationId);
+export async function finalizeInvoice(
+  publicId: string,
+  organizationId: string,
+  environment: Organization["environment"]
+) {
+  const invoice = await getInvoiceForOrganization(
+    publicId,
+    organizationId,
+    environment
+  );
 
   if (!invoice) {
     throw new Error("Invoice not found");
@@ -214,8 +247,16 @@ export async function finalizeInvoice(publicId: string, organizationId: string) 
   };
 }
 
-export async function voidInvoice(publicId: string, organizationId: string) {
-  const invoice = await getInvoiceForOrganization(publicId, organizationId);
+export async function voidInvoice(
+  publicId: string,
+  organizationId: string,
+  environment: Organization["environment"]
+) {
+  const invoice = await getInvoiceForOrganization(
+    publicId,
+    organizationId,
+    environment
+  );
 
   if (!invoice) {
     throw new Error("Invoice not found");

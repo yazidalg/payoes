@@ -39,7 +39,7 @@ export async function GET(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const rows = await listInvoices(organization.id);
+  const rows = await listInvoices(organization.id, organization.environment);
 
   return NextResponse.json({
     invoices: await serializeInvoices(rows),
@@ -85,7 +85,11 @@ export async function POST(
       dueInDays: parsed.data.due_in_days,
     });
 
-    const detail = await getInvoiceDetail(invoice.publicId, organization.id);
+    const detail = await getInvoiceDetail(
+      invoice.publicId,
+      organization.id,
+      organization.environment
+    );
 
     if (!detail) {
       return NextResponse.json(

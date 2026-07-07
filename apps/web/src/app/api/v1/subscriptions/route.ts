@@ -24,7 +24,10 @@ const createSubscriptionSchema = z.object({
 
 export async function GET(request: Request) {
   return withApiKeyAuth(request, async ({ apiKey }) => {
-    const rows = await listSubscriptions(apiKey.organizationId);
+    const rows = await listSubscriptions(
+      apiKey.organizationId,
+      apiKey.environment
+    );
 
     return NextResponse.json({
       subscriptions: serializeSubscriptions(rows),
@@ -59,7 +62,8 @@ export async function POST(request: Request) {
 
       const detail = await getSubscriptionDetail(
         subscription.publicId,
-        apiKey.organizationId
+        apiKey.organizationId,
+        apiKey.environment
       );
 
       if (!detail) {

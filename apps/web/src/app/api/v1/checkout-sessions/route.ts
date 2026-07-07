@@ -23,7 +23,10 @@ const createCheckoutSessionSchema = z.object({
 
 export async function GET(request: Request) {
   return withApiKeyAuth(request, async ({ apiKey }) => {
-    const sessions = await listCheckoutSessions(apiKey.organizationId);
+    const sessions = await listCheckoutSessions(
+      apiKey.organizationId,
+      apiKey.environment
+    );
 
     return NextResponse.json({
       checkout_sessions: sessions.map((row) => serializeCheckoutSession(row)),

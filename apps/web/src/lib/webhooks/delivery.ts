@@ -1,6 +1,10 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { webhookDeliveries, webhookEndpoints } from "@/lib/db/schema";
+import {
+  webhookDeliveries,
+  webhookEndpoints,
+  type Organization,
+} from "@/lib/db/schema";
 import { signWebhookPayload } from "@/lib/webhooks/service";
 
 type WebhookEvent =
@@ -11,13 +15,19 @@ type WebhookEvent =
 
 export async function dispatchWebhookEvent(input: {
   organizationId: string;
+  environment: Organization["environment"];
   event: WebhookEvent;
   payload: Record<string, unknown>;
 }) {
   const endpoints = await db
     .select()
     .from(webhookEndpoints)
-    .where(eq(webhookEndpoints.organizationId, input.organizationId));
+    .where(
+      and(
+        eq(webhookEndpoints.organizationId, input.organizationId),
+        eq(webhookEndpoints.environment, input.environment)
+      )
+    );
 
   const matching = endpoints.filter(
     (endpoint) => endpoint.enabled === 1 && endpoint.events.includes(input.event)

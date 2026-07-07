@@ -16,10 +16,11 @@ const receivingWalletSchema = z.object({
     .array(z.enum(ACCEPTED_ASSET_OPTIONS))
     .min(1, "Select at least one asset"),
   walletProvider: z.string().max(64).optional().nullable(),
+  environment: z.enum(["sandbox", "production"]).optional(),
 });
 
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await auth();
@@ -35,7 +36,10 @@ export async function GET(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const wallet = await getReceivingWallet(organization.id, organization.environment);
+  const wallet = await getReceivingWallet(
+    organization.id,
+    organization.environment
+  );
 
   if (!wallet) {
     return NextResponse.json({ wallet: null });
@@ -69,13 +73,6 @@ export async function PUT(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  if (organization.environment === "production") {
-    return NextResponse.json(
-      { error: "Production wallet setup is not available yet" },
-      { status: 403 }
-    );
-  }
-
   const body = await request.json();
   const parsed = receivingWalletSchema.safeParse(body);
 
@@ -83,6 +80,26 @@ export async function PUT(
     return NextResponse.json(
       { error: parsed.error.issues[0]?.message ?? "Invalid request" },
       { status: 400 }
+    );
+  }
+
+  const targetEnvironment = parsed.data.environment ?? organization.environment;
+
+  if (
+    targetEnvironment === "production" &&
+    organization.environment !== "sandbox" &&
+    organization.environment !== "production"
+  ) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  if (
+    targetEnvironment === "sandbox" &&
+    organization.environment === "production"
+  ) {
+    return NextResponse.json(
+      { error: "Sandbox wallet cannot be changed while in production mode" },
+      { status: 403 }
     );
   }
 
@@ -98,14 +115,16 @@ export async function PUT(
   try {
     const accountExists = await stellarAccountExists(
       stellarAddress,
-      organization.environment
+      targetEnvironment
     );
 
     if (!accountExists) {
       return NextResponse.json(
         {
           error:
-            "This Stellar account was not found on Testnet. Fund the account or switch your wallet to Testnet.",
+            targetEnvironment === "production"
+              ? "This Stellar account was not found on Mainnet. Fund the account or switch your wallet to Mainnet."
+              : "This Stellar account was not found on Testnet. Fund the account or switch your wallet to Testnet.",
         },
         { status: 400 }
       );
@@ -119,7 +138,7 @@ export async function PUT(
 
   const wallet = await upsertReceivingWallet({
     organizationId: organization.id,
-    environment: organization.environment,
+    environment: targetEnvironment,
     stellarAddress,
     acceptedAssets,
     walletProvider,

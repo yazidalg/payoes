@@ -21,7 +21,11 @@ export async function POST(
   }
 
   try {
-    const result = await finalizeInvoice(invoiceId, organization.id);
+    const result = await finalizeInvoice(
+      invoiceId,
+      organization.id,
+      organization.environment
+    );
 
     return NextResponse.json({
       invoice: serializeInvoice(result.invoice, {

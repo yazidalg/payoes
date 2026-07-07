@@ -21,7 +21,11 @@ export async function POST(
   }
 
   try {
-    const invoice = await voidInvoice(invoiceId, organization.id);
+    const invoice = await voidInvoice(
+      invoiceId,
+      organization.id,
+      organization.environment
+    );
 
     return NextResponse.json(serializeInvoice(invoice));
   } catch (error) {

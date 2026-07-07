@@ -11,7 +11,11 @@ export async function GET(
 ) {
   return withApiKeyAuth(request, async ({ apiKey }) => {
     const { id } = await params;
-    const detail = await getCheckoutSessionDetail(id, apiKey.organizationId);
+    const detail = await getCheckoutSessionDetail(
+      id,
+      apiKey.organizationId,
+      apiKey.environment
+    );
 
     if (!detail) {
       return NextResponse.json(

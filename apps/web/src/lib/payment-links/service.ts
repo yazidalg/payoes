@@ -3,6 +3,7 @@ import { desc, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { paymentLinks, type Organization } from "@/lib/db/schema";
 import type { AcceptedAsset } from "@/lib/organizations/wallet-constants";
+import { organizationEnvironmentWhere } from "@/lib/organizations/environment-scope";
 import { createCheckoutSession } from "@/lib/checkout-sessions/service";
 
 function createLinkPublicId() {
@@ -14,11 +15,22 @@ export function getPaymentLinkUrl(publicId: string) {
   return `${baseUrl}/l/${publicId}`;
 }
 
-export async function listPaymentLinks(organizationId: string, limit = 50) {
+export async function listPaymentLinks(
+  organizationId: string,
+  environment: Organization["environment"],
+  limit = 50
+) {
   return db
     .select()
     .from(paymentLinks)
-    .where(eq(paymentLinks.organizationId, organizationId))
+    .where(
+      organizationEnvironmentWhere(
+        paymentLinks.organizationId,
+        paymentLinks.environment,
+        organizationId,
+        environment
+      )
+    )
     .orderBy(desc(paymentLinks.createdAt))
     .limit(limit);
 }
@@ -35,11 +47,16 @@ export async function getPaymentLinkByPublicId(publicId: string) {
 
 export async function getPaymentLinkForOrganization(
   publicId: string,
-  organizationId: string
+  organizationId: string,
+  environment: Organization["environment"]
 ) {
   const link = await getPaymentLinkByPublicId(publicId);
 
-  if (!link || link.organizationId !== organizationId) {
+  if (
+    !link ||
+    link.organizationId !== organizationId ||
+    link.environment !== environment
+  ) {
     return null;
   }
 

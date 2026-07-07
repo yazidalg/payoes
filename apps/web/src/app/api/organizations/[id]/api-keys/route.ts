@@ -25,7 +25,7 @@ export async function GET(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const keys = await listApiKeys(organization.id);
+  const keys = await listApiKeys(organization.id, organization.environment);
   return NextResponse.json({ apiKeys: keys });
 }
 
@@ -44,13 +44,6 @@ export async function POST(
 
   if (!organization) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-
-  if (organization.environment === "production") {
-    return NextResponse.json(
-      { error: "Production API keys are not available yet" },
-      { status: 403 }
-    );
   }
 
   const body = await request.json();

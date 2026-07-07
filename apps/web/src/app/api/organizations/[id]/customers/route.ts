@@ -33,7 +33,10 @@ export async function GET(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const customerList = await listCustomers(organization.id);
+  const customerList = await listCustomers(
+    organization.id,
+    organization.environment
+  );
 
   return NextResponse.json({
     customers: customerList.map(serializeCustomer),

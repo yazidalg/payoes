@@ -1,9 +1,17 @@
 import { createHmac, randomBytes } from "node:crypto";
 import { and, desc, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { webhookDeliveries, webhookEndpoints } from "@/lib/db/schema";
+import {
+  webhookDeliveries,
+  webhookEndpoints,
+  type Organization,
+} from "@/lib/db/schema";
+import { organizationEnvironmentWhere } from "@/lib/organizations/environment-scope";
 
-export async function listWebhookEndpoints(organizationId: string) {
+export async function listWebhookEndpoints(
+  organizationId: string,
+  environment: Organization["environment"]
+) {
   return db
     .select({
       id: webhookEndpoints.id,
@@ -13,13 +21,21 @@ export async function listWebhookEndpoints(organizationId: string) {
       createdAt: webhookEndpoints.createdAt,
     })
     .from(webhookEndpoints)
-    .where(eq(webhookEndpoints.organizationId, organizationId))
+    .where(
+      organizationEnvironmentWhere(
+        webhookEndpoints.organizationId,
+        webhookEndpoints.environment,
+        organizationId,
+        environment
+      )
+    )
     .orderBy(desc(webhookEndpoints.createdAt));
 }
 
 export async function getWebhookEndpoint(
   organizationId: string,
-  webhookId: string
+  webhookId: string,
+  environment: Organization["environment"]
 ) {
   const [endpoint] = await db
     .select({
@@ -33,7 +49,8 @@ export async function getWebhookEndpoint(
     .where(
       and(
         eq(webhookEndpoints.id, webhookId),
-        eq(webhookEndpoints.organizationId, organizationId)
+        eq(webhookEndpoints.organizationId, organizationId),
+        eq(webhookEndpoints.environment, environment)
       )
     )
     .limit(1);
@@ -43,6 +60,7 @@ export async function getWebhookEndpoint(
 
 export async function createWebhookEndpoint(input: {
   organizationId: string;
+  environment: Organization["environment"];
   url: string;
   events: string[];
 }) {
@@ -52,6 +70,7 @@ export async function createWebhookEndpoint(input: {
     .insert(webhookEndpoints)
     .values({
       organizationId: input.organizationId,
+      environment: input.environment,
       url: input.url.trim(),
       events: input.events,
       secret,
@@ -70,14 +89,16 @@ export async function createWebhookEndpoint(input: {
 
 export async function deleteWebhookEndpoint(
   organizationId: string,
-  webhookId: string
+  webhookId: string,
+  environment: Organization["environment"]
 ) {
   const [endpoint] = await db
     .delete(webhookEndpoints)
     .where(
       and(
         eq(webhookEndpoints.id, webhookId),
-        eq(webhookEndpoints.organizationId, organizationId)
+        eq(webhookEndpoints.organizationId, organizationId),
+        eq(webhookEndpoints.environment, environment)
       )
     )
     .returning({ id: webhookEndpoints.id });
@@ -85,7 +106,11 @@ export async function deleteWebhookEndpoint(
   return endpoint ?? null;
 }
 
-export async function listWebhookDeliveries(organizationId: string, limit = 50) {
+export async function listWebhookDeliveries(
+  organizationId: string,
+  environment: Organization["environment"],
+  limit = 50
+) {
   return db
     .select({
       id: webhookDeliveries.id,
@@ -103,7 +128,12 @@ export async function listWebhookDeliveries(organizationId: string, limit = 50) 
       webhookEndpoints,
       eq(webhookDeliveries.webhookEndpointId, webhookEndpoints.id)
     )
-    .where(eq(webhookEndpoints.organizationId, organizationId))
+    .where(
+      and(
+        eq(webhookEndpoints.organizationId, organizationId),
+        eq(webhookEndpoints.environment, environment)
+      )
+    )
     .orderBy(desc(webhookDeliveries.createdAt))
     .limit(limit);
 }
@@ -111,6 +141,7 @@ export async function listWebhookDeliveries(organizationId: string, limit = 50) 
 export async function listWebhookDeliveriesForEndpoint(
   organizationId: string,
   webhookId: string,
+  environment: Organization["environment"],
   limit = 50
 ) {
   return db
@@ -131,6 +162,7 @@ export async function listWebhookDeliveriesForEndpoint(
     .where(
       and(
         eq(webhookEndpoints.organizationId, organizationId),
+        eq(webhookEndpoints.environment, environment),
         eq(webhookDeliveries.webhookEndpointId, webhookId)
       )
     )

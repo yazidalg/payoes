@@ -24,7 +24,11 @@ export async function GET(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const endpoint = await getWebhookEndpoint(organization.id, webhookId);
+  const endpoint = await getWebhookEndpoint(
+    organization.id,
+    webhookId,
+    organization.environment
+  );
 
   if (!endpoint) {
     return NextResponse.json({ error: "Webhook not found" }, { status: 404 });
@@ -32,7 +36,8 @@ export async function GET(
 
   const deliveries = await listWebhookDeliveriesForEndpoint(
     organization.id,
-    webhookId
+    webhookId,
+    organization.environment
   );
 
   return NextResponse.json({ endpoint, deliveries });
@@ -55,7 +60,11 @@ export async function DELETE(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const deleted = await deleteWebhookEndpoint(organization.id, webhookId);
+  const deleted = await deleteWebhookEndpoint(
+    organization.id,
+    webhookId,
+    organization.environment
+  );
 
   if (!deleted) {
     return NextResponse.json({ error: "Webhook not found" }, { status: 404 });

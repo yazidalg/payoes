@@ -9,6 +9,7 @@ import {
 } from "@/lib/db/schema";
 import type { AcceptedAsset } from "@/lib/organizations/wallet-constants";
 import { getCustomerByPublicId } from "@/lib/customers/service";
+import { organizationEnvironmentWhere } from "@/lib/organizations/environment-scope";
 import { createInvoice, finalizeInvoice } from "@/lib/invoices/service";
 import { normalizeStellarAmount } from "@/lib/stellar/amount";
 
@@ -32,7 +33,11 @@ export function addBillingPeriod(
   return end;
 }
 
-export async function listSubscriptions(organizationId: string, limit = 50) {
+export async function listSubscriptions(
+  organizationId: string,
+  environment: Organization["environment"],
+  limit = 50
+) {
   return db
     .select({
       id: subscriptions.id,
@@ -55,7 +60,14 @@ export async function listSubscriptions(organizationId: string, limit = 50) {
     })
     .from(subscriptions)
     .innerJoin(customers, eq(subscriptions.customerId, customers.id))
-    .where(eq(subscriptions.organizationId, organizationId))
+    .where(
+      organizationEnvironmentWhere(
+        subscriptions.organizationId,
+        subscriptions.environment,
+        organizationId,
+        environment
+      )
+    )
     .orderBy(desc(subscriptions.createdAt))
     .limit(limit);
 }
@@ -72,11 +84,16 @@ export async function getSubscriptionByPublicId(publicId: string) {
 
 export async function getSubscriptionForOrganization(
   publicId: string,
-  organizationId: string
+  organizationId: string,
+  environment: Organization["environment"]
 ) {
   const subscription = await getSubscriptionByPublicId(publicId);
 
-  if (!subscription || subscription.organizationId !== organizationId) {
+  if (
+    !subscription ||
+    subscription.organizationId !== organizationId ||
+    subscription.environment !== environment
+  ) {
     return null;
   }
 
@@ -85,9 +102,14 @@ export async function getSubscriptionForOrganization(
 
 export async function getSubscriptionDetail(
   publicId: string,
-  organizationId: string
+  organizationId: string,
+  environment: Organization["environment"]
 ) {
-  const subscription = await getSubscriptionForOrganization(publicId, organizationId);
+  const subscription = await getSubscriptionForOrganization(
+    publicId,
+    organizationId,
+    environment
+  );
 
   if (!subscription) {
     return null;
@@ -158,8 +180,16 @@ export async function createSubscription(input: {
   return subscription;
 }
 
-export async function cancelSubscription(publicId: string, organizationId: string) {
-  const subscription = await getSubscriptionForOrganization(publicId, organizationId);
+export async function cancelSubscription(
+  publicId: string,
+  organizationId: string,
+  environment: Organization["environment"]
+) {
+  const subscription = await getSubscriptionForOrganization(
+    publicId,
+    organizationId,
+    environment
+  );
 
   if (!subscription) {
     throw new Error("Subscription not found");
@@ -182,8 +212,16 @@ export async function cancelSubscription(publicId: string, organizationId: strin
   return updated;
 }
 
-export async function billSubscription(publicId: string, organizationId: string) {
-  const subscription = await getSubscriptionForOrganization(publicId, organizationId);
+export async function billSubscription(
+  publicId: string,
+  organizationId: string,
+  environment: Organization["environment"]
+) {
+  const subscription = await getSubscriptionForOrganization(
+    publicId,
+    organizationId,
+    environment
+  );
 
   if (!subscription) {
     throw new Error("Subscription not found");
@@ -224,7 +262,11 @@ export async function billSubscription(publicId: string, organizationId: string)
     subscriptionId: subscription.id,
   });
 
-  const result = await finalizeInvoice(invoice.publicId, organizationId);
+  const result = await finalizeInvoice(
+    invoice.publicId,
+    organizationId,
+    environment
+  );
 
   return { subscription, ...result };
 }

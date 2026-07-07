@@ -20,7 +20,11 @@ export async function GET(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const detail = await getInvoiceDetail(invoiceId, organization.id);
+  const detail = await getInvoiceDetail(
+    invoiceId,
+    organization.id,
+    organization.environment
+  );
 
   if (!detail) {
     return NextResponse.json({ error: "Invoice not found" }, { status: 404 });

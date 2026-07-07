@@ -39,7 +39,10 @@ export async function GET(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const sessions = await listCheckoutSessions(organization.id);
+  const sessions = await listCheckoutSessions(
+    organization.id,
+    organization.environment
+  );
 
   return NextResponse.json({
     checkout_sessions: sessions.map((row) => serializeCheckoutSession(row)),

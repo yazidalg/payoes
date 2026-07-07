@@ -11,7 +11,11 @@ export async function GET(
 ) {
   return withApiKeyAuth(request, async ({ apiKey }) => {
     const { id } = await params;
-    const detail = await getInvoiceDetail(id, apiKey.organizationId);
+    const detail = await getInvoiceDetail(
+      id,
+      apiKey.organizationId,
+      apiKey.environment
+    );
 
     if (!detail) {
       return NextResponse.json({ error: "Invoice not found" }, { status: 404 });

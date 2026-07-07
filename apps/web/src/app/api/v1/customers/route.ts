@@ -17,7 +17,10 @@ const createCustomerSchema = z.object({
 
 export async function GET(request: Request) {
   return withApiKeyAuth(request, async ({ apiKey }) => {
-    const customerList = await listCustomers(apiKey.organizationId);
+    const customerList = await listCustomers(
+      apiKey.organizationId,
+      apiKey.environment
+    );
 
     return NextResponse.json({
       customers: customerList.map(serializeCustomer),

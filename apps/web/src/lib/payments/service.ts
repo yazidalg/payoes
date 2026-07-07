@@ -3,6 +3,7 @@ import { and, desc, eq, inArray, lt } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { customers, payments, type Organization, type Payment } from "@/lib/db/schema";
 import type { AcceptedAsset } from "@/lib/organizations/wallet-constants";
+import { organizationEnvironmentWhere } from "@/lib/organizations/environment-scope";
 import { getReceivingWallet } from "@/lib/organizations/wallet";
 import { getCustomerByPublicId } from "@/lib/customers/service";
 import { normalizeStellarAmount } from "@/lib/stellar/amount";
@@ -17,11 +18,15 @@ export function getCheckoutUrl(publicId: string) {
   return `${baseUrl}/c/${publicId}`;
 }
 
-export async function listPayments(organizationId: string, limit = 50) {
+export async function listPayments(
+  organizationId: string,
+  environment: Organization["environment"],
+  limit = 50
+) {
   return db
     .select()
     .from(payments)
-    .where(eq(payments.organizationId, organizationId))
+    .where(organizationEnvironmentWhere(payments.organizationId, payments.environment, organizationId, environment))
     .orderBy(desc(payments.createdAt))
     .limit(limit);
 }
@@ -38,30 +43,46 @@ export async function getPaymentByPublicId(publicId: string) {
 
 export async function getPaymentForOrganization(
   publicId: string,
-  organizationId: string
+  organizationId: string,
+  environment: Organization["environment"]
 ) {
   const payment = await getPaymentByPublicId(publicId);
 
-  if (!payment || payment.organizationId !== organizationId) {
+  if (
+    !payment ||
+    payment.organizationId !== organizationId ||
+    payment.environment !== environment
+  ) {
     return null;
   }
 
   return payment;
 }
 
-export async function getPaymentById(id: string, organizationId: string) {
+export async function getPaymentById(
+  id: string,
+  organizationId: string,
+  environment: Organization["environment"]
+) {
   const [payment] = await db
     .select()
     .from(payments)
     .where(
-      and(eq(payments.id, id), eq(payments.organizationId, organizationId))
+      and(
+        eq(payments.id, id),
+        eq(payments.organizationId, organizationId),
+        eq(payments.environment, environment)
+      )
     )
     .limit(1);
 
   return payment ?? null;
 }
 
-export async function expireStalePayments(organizationId: string) {
+export async function expireStalePayments(
+  organizationId: string,
+  environment: Organization["environment"]
+) {
   const now = new Date();
   const stale = await db
     .select()
@@ -69,6 +90,7 @@ export async function expireStalePayments(organizationId: string) {
     .where(
       and(
         eq(payments.organizationId, organizationId),
+        eq(payments.environment, environment),
         eq(payments.status, "pending"),
         lt(payments.expiresAt, now)
       )
@@ -151,6 +173,7 @@ export async function createPayment(input: {
 
   await dispatchWebhookEvent({
     organizationId: input.organizationId,
+    environment: input.environment,
     event: "payment.created",
     payload: serializePayment(payment, { customerPublicId }),
   });
@@ -204,6 +227,7 @@ export async function updatePaymentStatus(
   if (status in eventMap) {
     await dispatchWebhookEvent({
       organizationId: payment.organizationId,
+      environment: payment.environment,
       event: eventMap[status as keyof typeof eventMap],
       payload: serializePayment(updated, { customerPublicId }),
     });
@@ -269,13 +293,17 @@ export async function serializePayments(paymentList: Payment[]) {
   );
 }
 
-export async function listCompletedPayments(organizationId: string) {
+export async function listCompletedPayments(
+  organizationId: string,
+  environment: Organization["environment"]
+) {
   return db
     .select()
     .from(payments)
     .where(
       and(
         eq(payments.organizationId, organizationId),
+        eq(payments.environment, environment),
         eq(payments.status, "completed")
       )
     )

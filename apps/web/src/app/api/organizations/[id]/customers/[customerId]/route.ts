@@ -2,7 +2,7 @@ import { auth } from "@/auth";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import {
-  getCustomerByPublicId,
+  getCustomerForOrganization,
   listPaymentsForCustomer,
   serializeCustomer,
   updateCustomer,
@@ -35,13 +35,20 @@ export async function GET(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const customer = await getCustomerByPublicId(customerId);
+  const customer = await getCustomerForOrganization(
+    customerId,
+    organization.id,
+    organization.environment
+  );
 
-  if (!customer || customer.organizationId !== organization.id) {
+  if (!customer) {
     return NextResponse.json({ error: "Customer not found" }, { status: 404 });
   }
 
-  const paymentList = await listPaymentsForCustomer(customer.id);
+  const paymentList = await listPaymentsForCustomer(
+    customer.id,
+    organization.environment
+  );
 
   return NextResponse.json({
     customer: serializeCustomer(customer),
@@ -66,9 +73,13 @@ export async function PATCH(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const customer = await getCustomerByPublicId(customerId);
+  const customer = await getCustomerForOrganization(
+    customerId,
+    organization.id,
+    organization.environment
+  );
 
-  if (!customer || customer.organizationId !== organization.id) {
+  if (!customer) {
     return NextResponse.json({ error: "Customer not found" }, { status: 404 });
   }
 

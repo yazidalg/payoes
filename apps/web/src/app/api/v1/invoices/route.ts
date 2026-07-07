@@ -23,7 +23,7 @@ const createInvoiceSchema = z.object({
 
 export async function GET(request: Request) {
   return withApiKeyAuth(request, async ({ apiKey }) => {
-    const rows = await listInvoices(apiKey.organizationId);
+    const rows = await listInvoices(apiKey.organizationId, apiKey.environment);
 
     return NextResponse.json({
       invoices: await serializeInvoices(rows),
@@ -55,7 +55,11 @@ export async function POST(request: Request) {
         dueInDays: parsed.data.due_in_days,
       });
 
-      const detail = await getInvoiceDetail(invoice.publicId, apiKey.organizationId);
+      const detail = await getInvoiceDetail(
+        invoice.publicId,
+        apiKey.organizationId,
+        apiKey.environment
+      );
 
       if (!detail) {
         return NextResponse.json(

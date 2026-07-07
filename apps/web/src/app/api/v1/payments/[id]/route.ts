@@ -13,7 +13,11 @@ export async function GET(
     const { id } = await params;
     const payment = await getPaymentByPublicId(id);
 
-    if (!payment || payment.organizationId !== apiKey.organizationId) {
+    if (
+      !payment ||
+      payment.organizationId !== apiKey.organizationId ||
+      payment.environment !== apiKey.environment
+    ) {
       return NextResponse.json({ error: "Payment not found" }, { status: 404 });
     }
 

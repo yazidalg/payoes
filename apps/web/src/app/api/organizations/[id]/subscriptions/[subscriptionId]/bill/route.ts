@@ -22,7 +22,11 @@ export async function POST(
   }
 
   try {
-    const result = await billSubscription(subscriptionId, organization.id);
+    const result = await billSubscription(
+      subscriptionId,
+      organization.id,
+      organization.environment
+    );
 
     return NextResponse.json({
       invoice: serializeInvoice(result.invoice, {

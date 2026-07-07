@@ -11,7 +11,11 @@ export async function GET(
 ) {
   return withApiKeyAuth(request, async ({ apiKey }) => {
     const { id } = await params;
-    const link = await getPaymentLinkForOrganization(id, apiKey.organizationId);
+    const link = await getPaymentLinkForOrganization(
+      id,
+      apiKey.organizationId,
+      apiKey.environment
+    );
 
     if (!link) {
       return NextResponse.json({ error: "Payment link not found" }, { status: 404 });

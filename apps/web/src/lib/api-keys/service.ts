@@ -2,6 +2,7 @@ import { createHash, randomBytes } from "node:crypto";
 import { and, desc, eq, isNull } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { apiKeys, type ApiKey, type Organization } from "@/lib/db/schema";
+import { organizationEnvironmentWhere } from "@/lib/organizations/environment-scope";
 
 function hashApiKey(rawKey: string) {
   return createHash("sha256").update(rawKey).digest("hex");
@@ -13,7 +14,10 @@ function buildRawApiKey(environment: Organization["environment"]) {
   return `${prefix}${secret}`;
 }
 
-export async function listApiKeys(organizationId: string) {
+export async function listApiKeys(
+  organizationId: string,
+  environment: Organization["environment"]
+) {
   return db
     .select({
       id: apiKeys.id,
@@ -25,11 +29,22 @@ export async function listApiKeys(organizationId: string) {
       createdAt: apiKeys.createdAt,
     })
     .from(apiKeys)
-    .where(eq(apiKeys.organizationId, organizationId))
+    .where(
+      organizationEnvironmentWhere(
+        apiKeys.organizationId,
+        apiKeys.environment,
+        organizationId,
+        environment
+      )
+    )
     .orderBy(desc(apiKeys.createdAt));
 }
 
-export async function getApiKey(organizationId: string, apiKeyId: string) {
+export async function getApiKey(
+  organizationId: string,
+  apiKeyId: string,
+  environment: Organization["environment"]
+) {
   const [apiKey] = await db
     .select({
       id: apiKeys.id,
@@ -42,7 +57,11 @@ export async function getApiKey(organizationId: string, apiKeyId: string) {
     })
     .from(apiKeys)
     .where(
-      and(eq(apiKeys.id, apiKeyId), eq(apiKeys.organizationId, organizationId))
+      and(
+        eq(apiKeys.id, apiKeyId),
+        eq(apiKeys.organizationId, organizationId),
+        eq(apiKeys.environment, environment)
+      )
     )
     .limit(1);
 
@@ -77,7 +96,11 @@ export async function createApiKey(input: {
   return { apiKey, rawKey };
 }
 
-export async function revokeApiKey(organizationId: string, apiKeyId: string) {
+export async function revokeApiKey(
+  organizationId: string,
+  apiKeyId: string,
+  environment: Organization["environment"]
+) {
   const [apiKey] = await db
     .update(apiKeys)
     .set({ revokedAt: new Date() })
@@ -85,6 +108,7 @@ export async function revokeApiKey(organizationId: string, apiKeyId: string) {
       and(
         eq(apiKeys.id, apiKeyId),
         eq(apiKeys.organizationId, organizationId),
+        eq(apiKeys.environment, environment),
         isNull(apiKeys.revokedAt)
       )
     )

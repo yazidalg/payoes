@@ -21,7 +21,10 @@ const createPaymentSchema = z.object({
 
 export async function GET(request: Request) {
   return withApiKeyAuth(request, async ({ apiKey }) => {
-    const paymentList = await listPayments(apiKey.organizationId);
+    const paymentList = await listPayments(
+      apiKey.organizationId,
+      apiKey.environment
+    );
     return NextResponse.json({
       payments: await serializePayments(paymentList),
     });

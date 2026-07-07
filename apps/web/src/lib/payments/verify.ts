@@ -17,7 +17,8 @@ async function resolveCustomerForCompletedPayment(
   if (payment.customerId) {
     const customer = await getCustomerById(
       payment.customerId,
-      payment.organizationId
+      payment.organizationId,
+      payment.environment
     );
 
     if (customer) {

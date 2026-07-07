@@ -37,7 +37,7 @@ export async function GET(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const paymentList = await listPayments(organization.id);
+  const paymentList = await listPayments(organization.id, organization.environment);
   return NextResponse.json({
     payments: await serializePayments(paymentList),
   });

@@ -38,7 +38,10 @@ export async function GET(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const endpoints = await listWebhookEndpoints(organization.id);
+  const endpoints = await listWebhookEndpoints(
+    organization.id,
+    organization.environment
+  );
 
   return NextResponse.json({ endpoints });
 }
@@ -72,6 +75,7 @@ export async function POST(
 
   const endpoint = await createWebhookEndpoint({
     organizationId: organization.id,
+    environment: organization.environment,
     url: parsed.data.url,
     events: parsed.data.events,
   });

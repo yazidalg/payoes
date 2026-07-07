@@ -2,19 +2,49 @@ import { randomBytes } from "node:crypto";
 import { and, desc, eq, inArray } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { customers, payments, type Customer, type Organization } from "@/lib/db/schema";
+import { organizationEnvironmentWhere } from "@/lib/organizations/environment-scope";
 import { isValidStellarAddress } from "@/lib/stellar/validate-address";
 
 function createPublicId() {
   return `cus_${randomBytes(12).toString("base64url")}`;
 }
 
-export async function listCustomers(organizationId: string, limit = 50) {
+export async function listCustomers(
+  organizationId: string,
+  environment: Organization["environment"],
+  limit = 50
+) {
   return db
     .select()
     .from(customers)
-    .where(eq(customers.organizationId, organizationId))
+    .where(
+      organizationEnvironmentWhere(
+        customers.organizationId,
+        customers.environment,
+        organizationId,
+        environment
+      )
+    )
     .orderBy(desc(customers.createdAt))
     .limit(limit);
+}
+
+export async function getCustomerForOrganization(
+  publicId: string,
+  organizationId: string,
+  environment: Organization["environment"]
+) {
+  const customer = await getCustomerByPublicId(publicId);
+
+  if (
+    !customer ||
+    customer.organizationId !== organizationId ||
+    customer.environment !== environment
+  ) {
+    return null;
+  }
+
+  return customer;
 }
 
 export async function getCustomerByPublicId(publicId: string) {
@@ -27,12 +57,20 @@ export async function getCustomerByPublicId(publicId: string) {
   return customer ?? null;
 }
 
-export async function getCustomerById(id: string, organizationId: string) {
+export async function getCustomerById(
+  id: string,
+  organizationId: string,
+  environment: Organization["environment"]
+) {
   const [customer] = await db
     .select()
     .from(customers)
     .where(
-      and(eq(customers.id, id), eq(customers.organizationId, organizationId))
+      and(
+        eq(customers.id, id),
+        eq(customers.organizationId, organizationId),
+        eq(customers.environment, environment)
+      )
     )
     .limit(1);
 
@@ -214,11 +252,20 @@ export async function linkCustomerToPayment(input: {
   return input.customer;
 }
 
-export async function listPaymentsForCustomer(customerId: string, limit = 50) {
+export async function listPaymentsForCustomer(
+  customerId: string,
+  environment: Organization["environment"],
+  limit = 50
+) {
   return db
     .select()
     .from(payments)
-    .where(eq(payments.customerId, customerId))
+    .where(
+      and(
+        eq(payments.customerId, customerId),
+        eq(payments.environment, environment)
+      )
+    )
     .orderBy(desc(payments.createdAt))
     .limit(limit);
 }

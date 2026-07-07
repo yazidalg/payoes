@@ -11,7 +11,11 @@ export async function POST(
     const { id } = await params;
 
     try {
-      const result = await billSubscription(id, apiKey.organizationId);
+      const result = await billSubscription(
+        id,
+        apiKey.organizationId,
+        apiKey.environment
+      );
 
       return NextResponse.json({
         invoice: serializeInvoice(result.invoice, {
