@@ -1,0 +1,56 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: payoes-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: payoes
+      POSTGRES_PASSWORD: payoes
+      POSTGRES_DB: payoes
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U payoes -d payoes"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  minio:
+    image: minio/minio:latest
+    container_name: payoes-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: payoes
+      MINIO_ROOT_PASSWORD: payoessecret
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:9000/minio/health/live || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  minio-init:
+    image: minio/mc:latest
+    container_name: payoes-minio-init
+    depends_on:
+      minio:
+        condition: service_started
+    entrypoint: >
+      /bin/sh -c "
+      until mc alias set local http://minio:9000 payoes payoessecret; do sleep 1; done;
+      mc mb local/payoes-uploads --ignore-existing;
+      mc anonymous set download local/payoes-uploads;
+      echo 'MinIO bucket payoes-uploads is ready';
+      "
+
+volumes:
+  postgres_data:
+  minio_data:
