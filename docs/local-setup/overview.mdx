@@ -1,0 +1,66 @@
+---
+title: Overview
+description: Run the Payoes web app and API on your machine for development.
+---
+
+This section is for **developers who clone the Payoes repository** and want to run the stack locally. It is separate from merchant guides (Quickstart, API usage, checkout).
+
+## What you will run locally
+
+| Component | Purpose | How it starts |
+|-----------|---------|---------------|
+| **Web app** (`apps/web`) | Dashboard, checkout, REST API | `npm run dev` |
+| **PostgreSQL** | Organizations, payments, verification data | `docker compose up -d` |
+| **MinIO** | Organization logos | `docker compose up -d` |
+| **Docs** (optional) | Mintlify preview on port 3001 | `npm run docs:dev` |
+
+After setup, open:
+
+- [http://localhost:3000](http://localhost:3000) — web app
+- [http://localhost:3001](http://localhost:3001) — docs (if you start them)
+- [http://localhost:9001](http://localhost:9001) — MinIO console (`payoes` / `payoessecret`)
+
+## Prerequisites
+
+Install these before you start:
+
+<AccordionGroup>
+  <Accordion title="Required for the core app">
+    - **Node.js 20+** and **npm**
+    - **Git**
+    - **Docker Desktop** (or Docker Engine + Compose) for PostgreSQL and MinIO
+  </Accordion>
+  <Accordion title="Optional — only if you need these features">
+    - **Google OAuth credentials** — sign in with Google (email/password demo login works without this)
+    - **SMTP settings** — send real team invitation emails
+    - **Persona API keys** — identity verification for production mode ([KYC setup](/local-setup/kyc-verification))
+  </Accordion>
+</AccordionGroup>
+
+## Repository layout
+
+```
+payoes/
+├── apps/web/          # Next.js app (dashboard + API)
+├── packages/sdk/      # TypeScript SDK (placeholder)
+├── docs/              # Mintlify documentation (this site)
+├── docker-compose.yml # PostgreSQL + MinIO
+```
+
+## Recommended path
+
+<Steps>
+  <Step title="Getting started">
+    Follow [Getting started](/local-setup/getting-started) to install dependencies, start Docker, configure `.env.local`, run migrations, and sign in.
+  </Step>
+  <Step title="Environment variables">
+    Use [Environment variables](/local-setup/environment-variables) as a reference when you enable OAuth, SMTP, or Persona KYC.
+  </Step>
+  <Step title="KYC verification (optional)">
+    If you need to test production mode, continue with [KYC verification](/local-setup/kyc-verification).
+  </Step>
+</Steps>
+
+<Note>
+  You do **not** need Persona to develop sandbox payments, checkout, customers, or webhooks. Those features work on Stellar testnet with the default local setup.
+</Note>

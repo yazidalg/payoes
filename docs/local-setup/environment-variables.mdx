@@ -1,0 +1,121 @@
+---
+title: Environment variables
+description: Reference for apps/web/.env.local when running Payoes locally.
+---
+
+All configuration for the web app lives in `apps/web/.env.local`. Copy from `apps/web/.env.example` and adjust values for your machine.
+
+<Note>
+  Restart `npm run dev` after changing environment variables.
+</Note>
+
+## Auth
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `AUTH_SECRET` | Yes | Session encryption secret. Generate with `openssl rand -base64 32` |
+| `AUTH_URL` | Yes | Public app URL. Local: `http://localhost:3000` |
+| `AUTH_GOOGLE_ID` | No | Google OAuth client ID |
+| `AUTH_GOOGLE_SECRET` | No | Google OAuth client secret |
+| `AUTH_DEMO_EMAIL` | Recommended | Email for password-based demo login |
+| `AUTH_DEMO_PASSWORD` | Recommended | Password for demo login |
+
+<Tip>
+  For local development, demo login is the fastest path. Add Google OAuth only when you need to test the Google sign-in flow.
+</Tip>
+
+## Database
+
+| Variable | Required | Default (local) |
+|----------|----------|-----------------|
+| `DATABASE_URL` | Yes | `postgresql://payoes:payoes@localhost:5432/payoes` |
+
+Must match the credentials in `docker-compose.yml`.
+
+## Object storage (MinIO)
+
+| Variable | Required | Default (local) |
+|----------|----------|-----------------|
+| `S3_ENDPOINT` | Yes | `http://localhost:9000` |
+| `S3_PUBLIC_URL` | Yes | `http://localhost:9000/payoes-uploads` |
+| `S3_ACCESS_KEY` | Yes | `payoes` |
+| `S3_SECRET_KEY` | Yes | `payoessecret` |
+| `S3_BUCKET` | Yes | `payoes-uploads` |
+| `S3_REGION` | Yes | `us-east-1` |
+
+Used for organization logo uploads.
+
+## Stellar
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `STELLAR_TESTNET_USDC_ISSUER` | For USDC sandbox | Testnet USDC issuer public key |
+| `STELLAR_MAINNET_USDC_ISSUER` | For USDC production | Mainnet USDC issuer public key |
+| `NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID` | No | Enables WalletConnect in Stellar Wallet Kit |
+
+XLM payments work without USDC issuer variables. Set the issuer for the network you test when accepting USDC.
+
+## Email (SMTP)
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `SMTP_HOST` | For invites | SMTP server hostname |
+| `SMTP_PORT` | For invites | Usually `587` |
+| `SMTP_USER` | For invites | SMTP username |
+| `SMTP_PASSWORD` | For invites | SMTP password |
+| `SMTP_FROM` | For invites | From header, e.g. `Payoes <noreply@yourdomain.com>` |
+
+Team invitation emails are sent only when SMTP is configured. Without SMTP, you can still test invites by copying the invite URL from the database or API response.
+
+## KYC (Persona)
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `PERSONA_API_KEY` | For production gate | Server-side Persona API key (`persona_sandbox_...`) |
+| `PERSONA_WEBHOOK_SECRET` | For webhooks | Webhook signing secret from Persona dashboard |
+| `PERSONA_INQUIRY_TEMPLATE_ID` | For production gate | KYC inquiry template ID (`itmpl_...`) |
+| `NEXT_PUBLIC_PERSONA_ENVIRONMENT_ID` | For production gate | Persona environment ID (`env_...`) |
+| `NEXT_PUBLIC_PERSONA_INQUIRY_TEMPLATE_ID` | Optional | Client-side template ID if needed by SDK |
+
+See [KYC verification](/local-setup/kyc-verification) for Persona sandbox setup.
+
+## Docs
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `NEXT_PUBLIC_DOCS_URL` | Recommended | URL opened by dashboard documentation links. Local: `http://localhost:3001` |
+
+## Example: minimal local file
+
+```bash
+AUTH_SECRET=<openssl rand -base64 32>
+AUTH_URL=http://localhost:3000
+AUTH_DEMO_EMAIL=demo@payoes.dev
+AUTH_DEMO_PASSWORD=demo1234
+
+DATABASE_URL=postgresql://payoes:payoes@localhost:5432/payoes
+
+S3_ENDPOINT=http://localhost:9000
+S3_PUBLIC_URL=http://localhost:9000/payoes-uploads
+S3_ACCESS_KEY=payoes
+S3_SECRET_KEY=payoessecret
+S3_BUCKET=payoes-uploads
+S3_REGION=us-east-1
+
+NEXT_PUBLIC_DOCS_URL=http://localhost:3001
+```
+
+## Example: with Google OAuth
+
+Add to the minimal file:
+
+```bash
+AUTH_GOOGLE_ID=your-client-id.apps.googleusercontent.com
+AUTH_GOOGLE_SECRET=your-client-secret
+```
+
+In [Google Cloud Console](https://console.cloud.google.com/), set the authorized redirect URI to:
+
+```
+http://localhost:3000/api/auth/callback/google
+```

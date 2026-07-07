@@ -67,6 +67,24 @@ export const webhookDeliveryStatusEnum = pgEnum("webhook_delivery_status", [
   "failed",
 ]);
 
+export const verificationStatusEnum = pgEnum("verification_status", [
+  "unverified",
+  "pending",
+  "verified",
+  "expired",
+  "rejected",
+]);
+
+export const accountTypeEnum = pgEnum("account_type", ["personal", "business"]);
+
+export const providerStatusEnum = pgEnum("provider_status", [
+  "created",
+  "pending",
+  "approved",
+  "declined",
+  "needs_review",
+]);
+
 export const users = pgTable("users", {
   id: uuid("id").defaultRandom().primaryKey(),
   email: text("email").notNull().unique(),
@@ -89,10 +107,38 @@ export const organizations = pgTable(
     logoInitials: text("logo_initials").notNull(),
     slug: text("slug").notNull().unique(),
     environment: environmentModeEnum("environment").notNull().default("sandbox"),
+    verificationStatus: verificationStatusEnum("verification_status")
+      .notNull()
+      .default("unverified"),
+    verifiedAt: timestamp("verified_at", { withTimezone: true }),
+    verificationExpiresAt: timestamp("verification_expires_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [uniqueIndex("organizations_slug_idx").on(table.slug)]
+);
+
+export const organizationVerificationApplications = pgTable(
+  "organization_verification_applications",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    accountType: accountTypeEnum("account_type").notNull().default("personal"),
+    displayName: text("display_name").notNull(),
+    registrationNumber: text("registration_number"),
+    country: text("country").notNull(),
+    businessDescription: text("business_description"),
+    provider: text("provider").notNull().default("persona"),
+    providerInquiryId: text("provider_inquiry_id"),
+    providerStatus: providerStatusEnum("provider_status").notNull().default("created"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("organization_verification_applications_org_idx").on(table.organizationId),
+  ]
 );
 
 export const organizationMembers = pgTable(
@@ -180,7 +226,18 @@ export const organizationsRelations = relations(organizations, ({ many }) => ({
   invites: many(organizationInvites),
   receivingWallets: many(organizationReceivingWallets),
   customers: many(customers),
+  verificationApplications: many(organizationVerificationApplications),
 }));
+
+export const organizationVerificationApplicationsRelations = relations(
+  organizationVerificationApplications,
+  ({ one }) => ({
+    organization: one(organizations, {
+      fields: [organizationVerificationApplications.organizationId],
+      references: [organizations.id],
+    }),
+  })
+);
 
 export const organizationReceivingWalletsRelations = relations(
   organizationReceivingWallets,
@@ -225,6 +282,9 @@ export type Organization = typeof organizations.$inferSelect;
 export type OrganizationMember = typeof organizationMembers.$inferSelect;
 export type OrganizationInvite = typeof organizationInvites.$inferSelect;
 export type MemberRole = OrganizationMember["role"];
+export type VerificationStatus = Organization["verificationStatus"];
+export type OrganizationVerificationApplication =
+  typeof organizationVerificationApplications.$inferSelect;
 export type OrganizationReceivingWallet =
   typeof organizationReceivingWallets.$inferSelect;
 
@@ -420,6 +480,7 @@ export const webhookEndpoints = pgTable("webhook_endpoints", {
   organizationId: uuid("organization_id")
     .notNull()
     .references(() => organizations.id, { onDelete: "cascade" }),
+  environment: environmentModeEnum("environment").notNull().default("sandbox"),
   url: text("url").notNull(),
   secret: text("secret").notNull(),
   events: jsonb("events").$type<string[]>().notNull().default([]),
@@ -448,6 +509,7 @@ export const apiLogs = pgTable("api_logs", {
   organizationId: uuid("organization_id")
     .notNull()
     .references(() => organizations.id, { onDelete: "cascade" }),
+  environment: environmentModeEnum("environment").notNull().default("sandbox"),
   apiKeyId: uuid("api_key_id").references(() => apiKeys.id, {
     onDelete: "set null",
   }),

@@ -1,0 +1,194 @@
+---
+title: Getting started
+description: Step-by-step guide to run Payoes on your machine from a fresh clone.
+---
+
+Follow these steps in order. Each step builds on the previous one.
+
+## 1. Clone and install
+
+```bash
+git clone <your-payoes-repo-url>
+cd payoes
+npm install
+```
+
+This installs dependencies for the monorepo (`apps/web`, `packages/*`).
+
+## 2. Start PostgreSQL and MinIO
+
+From the repository root:
+
+```bash
+npm run docker:up
+```
+
+Wait until both containers are healthy:
+
+```bash
+docker compose ps
+```
+
+You should see `payoes-postgres` and `payoes-minio` running. The `minio-init` job creates the `payoes-uploads` bucket automatically.
+
+<Tip>
+  To stop services later: `npm run docker:down`
+</Tip>
+
+## 3. Create your environment file
+
+```bash
+cp apps/web/.env.example apps/web/.env.local
+```
+
+Open `apps/web/.env.local` and set the **minimum required** values below.
+
+### Minimum config for first run
+
+```bash
+# Generate a random secret:
+# openssl rand -base64 32
+AUTH_SECRET=your-generated-secret-here
+AUTH_URL=http://localhost:3000
+
+# Demo login (no Google OAuth required)
+AUTH_DEMO_EMAIL=demo@payoes.dev
+AUTH_DEMO_PASSWORD=demo1234
+
+# Database (matches docker-compose.yml)
+DATABASE_URL=postgresql://payoes:payoes@localhost:5432/payoes
+
+# MinIO (matches docker-compose.yml)
+S3_ENDPOINT=http://localhost:9000
+S3_PUBLIC_URL=http://localhost:9000/payoes-uploads
+S3_ACCESS_KEY=payoes
+S3_SECRET_KEY=payoessecret
+S3_BUCKET=payoes-uploads
+S3_REGION=us-east-1
+
+# Docs link in dashboard
+NEXT_PUBLIC_DOCS_URL=http://localhost:3001
+```
+
+Leave Google OAuth, SMTP, and Persona variables empty for now. You can add them later.
+
+## 4. Run database migrations
+
+```bash
+npm run db:migrate
+```
+
+You should see `migrations applied successfully`. This creates all tables (organizations, payments, team invites, verification, and more).
+
+<Warning>
+  Run migrations after every `git pull` that adds new files under `apps/web/drizzle/`.
+</Warning>
+
+## 5. Start the web app
+
+```bash
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000).
+
+## 6. Sign in and complete onboarding
+
+1. Go to [http://localhost:3000/login](http://localhost:3000/login)
+2. Sign in with your demo credentials:
+   - Email: `demo@payoes.dev` (or whatever you set in `AUTH_DEMO_EMAIL`)
+   - Password: value of `AUTH_DEMO_PASSWORD`
+3. Complete onboarding:
+   - Create an organization (name + logo)
+   - Connect a **testnet** receiving wallet (use [Stellar Laboratory](https://laboratory.stellar.org/#account-creator?network=test) to generate and fund one)
+
+You should land on the dashboard with sandbox mode enabled.
+
+## 7. Verify the setup works
+
+Run a quick smoke test:
+
+<Steps>
+  <Step title="Create a sandbox API key">
+    Dashboard → **Developers → API Keys** → create a key with the `pk_test_` prefix.
+  </Step>
+  <Step title="Create a payment">
+    Dashboard → **Payments** → create a payment, or use the API:
+
+    ```bash
+    curl -X POST http://localhost:3000/api/v1/payments \
+      -H "Authorization: Bearer pk_test_YOUR_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{"amount": "1", "asset": "XLM", "description": "Local test"}'
+    ```
+  </Step>
+  <Step title="Open checkout">
+    Open the `checkout_url` from the response in a browser and complete payment with a testnet wallet.
+  </Step>
+</Steps>
+
+If payment status becomes `completed`, your local stack is working.
+
+## 8. Start docs locally (optional)
+
+In a second terminal, from the repository root:
+
+```bash
+npm run docs:dev
+```
+
+Open [http://localhost:3001](http://localhost:3001) to preview this documentation site.
+
+## Common issues
+
+<AccordionGroup>
+  <Accordion title="Database connection refused">
+    - Ensure Docker is running: `docker compose ps`
+    - Restart services: `npm run docker:down && npm run docker:up`
+    - Confirm `DATABASE_URL` matches `docker-compose.yml` credentials
+  </Accordion>
+  <Accordion title="Migration errors">
+    - Make sure PostgreSQL is up before running `npm run db:migrate`
+    - If you changed schema locally, run `npm run db:generate` only when intentionally creating new migrations
+  </Accordion>
+  <Accordion title="Cannot sign in">
+    - Check `AUTH_SECRET` is set (not empty)
+    - Use the exact `AUTH_DEMO_EMAIL` and `AUTH_DEMO_PASSWORD` from `.env.local`
+    - Restart the dev server after changing `.env.local`
+  </Accordion>
+  <Accordion title="Logo upload fails">
+    - Confirm MinIO is running on port 9000
+    - Check `S3_*` variables match `docker-compose.yml`
+    - Open [http://localhost:9001](http://localhost:9001) and verify bucket `payoes-uploads` exists
+  </Accordion>
+  <Accordion title="Build fails">
+    ```bash
+    npm run build
+    ```
+    Fix TypeScript or lint errors reported in the output. Run from the repository root.
+  </Accordion>
+</AccordionGroup>
+
+## Useful commands
+
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start web app on port 3000 |
+| `npm run build` | Production build |
+| `npm run docker:up` | Start PostgreSQL + MinIO |
+| `npm run docker:down` | Stop Docker services |
+| `npm run db:migrate` | Apply database migrations |
+| `npm run db:studio` | Open Drizzle Studio (database GUI) |
+| `npm run docs:dev` | Preview Mintlify docs on port 3001 |
+| `npm run lint` | Lint `apps/web` |
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Environment variables" icon="sliders" href="/local-setup/environment-variables">
+    Full reference for OAuth, SMTP, Stellar, and Persona KYC settings.
+  </Card>
+  <Card title="KYC verification" icon="shield-check" href="/local-setup/kyc-verification">
+    Optional setup for Persona identity verification and production mode.
+  </Card>
+</CardGroup>

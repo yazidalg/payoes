@@ -1,0 +1,86 @@
+---
+title: KYC verification (Persona)
+description: Set up automated identity verification for production mode using Persona.
+---
+
+Production mode requires **identity verification** through [Persona](https://withpersona.com). Persona automatically reviews government ID and selfie/liveness checks. Payoes does not manually review applications.
+
+## What you need
+
+| Item | Where to get it |
+|------|-----------------|
+| Persona sandbox account | [app.withpersona.com](https://app.withpersona.com) |
+| API key | Dashboard → API → API Keys (`persona_sandbox_...`) |
+| KYC inquiry template | Dashboard → Inquiries → Templates (`itmpl_...`) |
+| Environment ID | Dashboard → Environments (`env_...`) |
+| Webhook secret | Dashboard → Webhooks |
+
+## Environment variables
+
+Add to `apps/web/.env.local`:
+
+```bash
+PERSONA_API_KEY=persona_sandbox_...
+PERSONA_WEBHOOK_SECRET=whsec_...
+PERSONA_INQUIRY_TEMPLATE_ID=itmpl_...
+NEXT_PUBLIC_PERSONA_ENVIRONMENT_ID=env_...
+NEXT_PUBLIC_PERSONA_INQUIRY_TEMPLATE_ID=itmpl_...
+```
+
+Restart `npm run dev` after updating env vars.
+
+## Webhook setup (local)
+
+Persona sends webhooks when verification status changes. For local development, expose your app with a tunnel:
+
+```bash
+cloudflared tunnel --url http://localhost:3000
+# or
+ngrok http 3000
+```
+
+Set the webhook URL in Persona to:
+
+```
+https://<your-tunnel-host>/api/webhooks/persona
+```
+
+Enable events: `inquiry.completed`, `inquiry.approved`, `inquiry.declined`, `inquiry.failed`.
+
+<Note>
+  If webhooks cannot reach your machine, use **Refresh status** on the Production page. Payoes also syncs status when the Persona flow completes.
+</Note>
+
+## Test the flow
+
+1. Sign in to Payoes as organization **owner**
+2. Open **Settings → Production**
+3. Choose **Personal** or **Business**
+4. Fill name, country, and business description (if business)
+5. Click **Verify identity with Persona**
+6. Complete the Persona sandbox flow (use Persona test documents)
+7. After approval, configure a **mainnet receiving wallet**
+8. Click **Switch to production**
+
+## Sandbox test documents
+
+Persona sandbox accepts test ID images documented in the Persona dashboard. Real documents are only required in production.
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Persona flow does not open">
+    - Confirm `NEXT_PUBLIC_PERSONA_ENVIRONMENT_ID` is set
+    - Confirm `PERSONA_API_KEY` and `PERSONA_INQUIRY_TEMPLATE_ID` are set on the server
+    - Restart the dev server
+  </Accordion>
+  <Accordion title="Status stays pending after completing Persona">
+    - Click **Refresh status** on the Production page
+    - Check webhook delivery in the Persona dashboard
+    - Ensure `PERSONA_WEBHOOK_SECRET` matches your webhook configuration
+  </Accordion>
+  <Accordion title="Switch to production is disabled">
+    - Verification status must be `verified`
+    - Configure a **production** receiving wallet first
+  </Accordion>
+</AccordionGroup>
