@@ -36,6 +36,19 @@ export async function getPaymentByPublicId(publicId: string) {
   return payment ?? null;
 }
 
+export async function getPaymentForOrganization(
+  publicId: string,
+  organizationId: string
+) {
+  const payment = await getPaymentByPublicId(publicId);
+
+  if (!payment || payment.organizationId !== organizationId) {
+    return null;
+  }
+
+  return payment;
+}
+
 export async function getPaymentById(id: string, organizationId: string) {
   const [payment] = await db
     .select()
@@ -75,6 +88,10 @@ export async function createPayment(input: {
   metadata?: Record<string, string> | null;
   expiresInMinutes?: number;
   customerId?: string | null;
+  sourceType?: Payment["sourceType"];
+  paymentLinkId?: string | null;
+  invoiceId?: string | null;
+  subscriptionId?: string | null;
 }) {
   const wallet = await getReceivingWallet(input.organizationId, input.environment);
 
@@ -116,6 +133,10 @@ export async function createPayment(input: {
       publicId,
       organizationId: input.organizationId,
       customerId: customerInternalId,
+      sourceType: input.sourceType ?? "direct",
+      paymentLinkId: input.paymentLinkId ?? null,
+      invoiceId: input.invoiceId ?? null,
+      subscriptionId: input.subscriptionId ?? null,
       environment: input.environment,
       amount: normalizeStellarAmount(input.amount),
       asset: input.asset,
@@ -188,6 +209,14 @@ export async function updatePaymentStatus(
     });
   }
 
+  const { syncCheckoutSessionWithPayment } = await import(
+    "@/lib/checkout-sessions/service"
+  );
+  await syncCheckoutSessionWithPayment(updated);
+
+  const { syncInvoiceWithPayment } = await import("@/lib/invoices/service");
+  await syncInvoiceWithPayment(updated);
+
   return updated;
 }
 
@@ -197,12 +226,14 @@ export function serializePayment(
 ) {
   return {
     id: payment.publicId,
+    object: "payment_intent",
     amount: payment.amount,
     asset: payment.asset,
     status: payment.status,
     description: payment.description,
     metadata: payment.metadata,
     checkout_url: getCheckoutUrl(payment.publicId),
+    source_type: payment.sourceType,
     customer_id: options?.customerPublicId ?? null,
     payer_address: payment.payerAddress,
     tx_hash: payment.txHash,
