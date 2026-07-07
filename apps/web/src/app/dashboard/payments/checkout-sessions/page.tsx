@@ -1,7 +1,6 @@
-import { DashboardSectionPage } from "@/components/dashboard/section-placeholder";
+import { redirect } from "next/navigation";
+import { getPaymentsHubHref } from "@/lib/navigation/payments-tabs";
 
 export default function CheckoutSessionsPage() {
-  return (
-    <DashboardSectionPage pathname="/dashboard/payments/checkout-sessions" />
-  );
+  redirect(getPaymentsHubHref());
 }

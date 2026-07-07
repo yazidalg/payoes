@@ -1,17 +1,13 @@
 import type { LucideIcon } from "lucide-react";
 import {
   ArrowLeftRight,
-  BarChart3,
   BookOpen,
   Building2,
   Code2,
   CreditCard,
   FileCode2,
   KeyRound,
-  Link2,
-  ScrollText,
   Settings,
-  ShoppingBag,
   Users,
   Wallet,
   Webhook,
@@ -33,23 +29,6 @@ export const dashboardNav: DashboardNavItem[] = [
     title: "Payments",
     url: "/dashboard/payments",
     icon: CreditCard,
-    items: [
-      {
-        title: "All Payments",
-        url: "/dashboard/payments",
-        icon: ScrollText,
-      },
-      {
-        title: "Payment Links",
-        url: "/dashboard/payments/links",
-        icon: Link2,
-      },
-      {
-        title: "Checkout Sessions",
-        url: "/dashboard/payments/checkout-sessions",
-        icon: ShoppingBag,
-      },
-    ],
   },
   {
     title: "Transactions",
@@ -60,13 +39,6 @@ export const dashboardNav: DashboardNavItem[] = [
     title: "Customers",
     url: "/dashboard/customers",
     icon: Users,
-    items: [
-      {
-        title: "All Customers",
-        url: "/dashboard/customers",
-        icon: Users,
-      },
-    ],
   },
   {
     title: "Developers",
@@ -96,11 +68,6 @@ export const dashboardNav: DashboardNavItem[] = [
     ],
   },
   {
-    title: "Analytics",
-    url: "/dashboard/analytics",
-    icon: BarChart3,
-  },
-  {
     title: "Settings",
     url: "/dashboard/settings/organization",
     icon: Settings,
@@ -120,44 +87,104 @@ export const dashboardNav: DashboardNavItem[] = [
         url: "/dashboard/settings/team",
         icon: Users,
       },
-      {
-        title: "Billing",
-        url: "/dashboard/settings/billing",
-        icon: CreditCard,
-      },
     ],
   },
 ];
 
 const pageTitles: Record<string, string> = {
   "/dashboard": "Dashboard",
-  "/dashboard/payments": "All Payments",
-  "/dashboard/payments/links": "Payment Links",
-  "/dashboard/payments/checkout-sessions": "Checkout Sessions",
+  "/dashboard/payments": "Payments",
   "/dashboard/transactions": "Transactions",
-  "/dashboard/customers": "All Customers",
+  "/dashboard/customers": "Customers",
   "/dashboard/developers/api-keys": "API Keys",
   "/dashboard/developers/webhooks": "Webhooks",
   "/dashboard/developers/api-logs": "API Logs",
   "/dashboard/developers/documentation": "Documentation",
-  "/dashboard/analytics": "Analytics",
   "/dashboard/settings/organization": "Organization",
   "/dashboard/settings/receiving-wallet": "Receiving Wallet",
   "/dashboard/settings/team": "Team Members",
-  "/dashboard/settings/billing": "Billing",
 };
 
 export function getDashboardPageTitle(pathname: string) {
+  if (pathname.startsWith("/dashboard/payments/pay_")) {
+    return "Payment Intent Detail";
+  }
+
+  if (
+    pathname.startsWith("/dashboard/payments/checkout-sessions/") &&
+    pathname !== "/dashboard/payments/checkout-sessions"
+  ) {
+    return "Checkout Session Detail";
+  }
+
+  if (
+    pathname.startsWith("/dashboard/payments/links/") &&
+    pathname !== "/dashboard/payments/links"
+  ) {
+    return "Payment Link Detail";
+  }
+
+  if (
+    pathname.startsWith("/dashboard/payments/invoices/") &&
+    pathname !== "/dashboard/payments/invoices"
+  ) {
+    return "Invoice Detail";
+  }
+
+  if (
+    pathname.startsWith("/dashboard/payments/subscriptions/") &&
+    pathname !== "/dashboard/payments/subscriptions"
+  ) {
+    return "Subscription Detail";
+  }
+
   if (pathname.startsWith("/dashboard/customers/") && pathname !== "/dashboard/customers") {
     return "Customer Detail";
+  }
+
+  if (
+    pathname.startsWith("/dashboard/developers/api-keys/") &&
+    pathname !== "/dashboard/developers/api-keys"
+  ) {
+    return "API Key Detail";
+  }
+
+  if (
+    pathname.startsWith("/dashboard/developers/webhooks/") &&
+    pathname !== "/dashboard/developers/webhooks"
+  ) {
+    return "Webhook Detail";
   }
 
   return pageTitles[pathname] ?? "Dashboard";
 }
 
+export function isPaymentsRoute(pathname: string) {
+  return (
+    pathname === "/dashboard/payments" ||
+    pathname.startsWith("/dashboard/payments/")
+  );
+}
+
 export function isNavItemActive(pathname: string, url: string) {
+  if (url === "/dashboard/payments") {
+    return isPaymentsRoute(pathname);
+  }
+
   if (url === "/dashboard/customers") {
     return pathname === url || pathname.startsWith("/dashboard/customers/");
+  }
+
+  if (url === "/dashboard/developers/api-keys") {
+    return (
+      pathname === url || pathname.startsWith("/dashboard/developers/api-keys/")
+    );
+  }
+
+  if (url === "/dashboard/developers/webhooks") {
+    return (
+      pathname === url || pathname.startsWith("/dashboard/developers/webhooks/")
+    );
   }
 
   return pathname === url;

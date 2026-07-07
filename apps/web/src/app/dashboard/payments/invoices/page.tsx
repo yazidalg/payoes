@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getPaymentsHubHref } from "@/lib/navigation/payments-tabs";
 
-export default function PaymentLinksPage() {
-  redirect(getPaymentsHubHref("payment-links"));
+export default function InvoicesPage() {
+  redirect(getPaymentsHubHref("invoices"));
 }
