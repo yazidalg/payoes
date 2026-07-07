@@ -1,0 +1,65 @@
+---
+title: Authentication
+description: Authenticate Payoes API requests with Bearer API keys.
+---
+
+All Payoes REST API requests require a valid API key in the `Authorization` header.
+
+## API keys
+
+Create keys in the dashboard under **Developers → API Keys**.
+
+| Prefix | Environment | Stellar network |
+|--------|-------------|-----------------|
+| `pk_test_` | Sandbox | Testnet |
+| `pk_live_` | Production | Mainnet |
+
+<Warning>
+  The full API key is shown only once at creation. Store it securely. Payoes stores a hash and cannot recover the raw key.
+</Warning>
+
+## Request format
+
+<Snippet file="auth-header.mdx" />
+
+Example:
+
+```bash
+curl https://payoes.com/api/v1/payments \
+  -H "Authorization: Bearer pk_test_YOUR_KEY"
+```
+
+## Unauthorized requests
+
+Missing or invalid keys return `401 Unauthorized`:
+
+```json
+{
+  "error": "Unauthorized"
+}
+```
+
+## Key rotation
+
+To rotate a key:
+
+1. Create a new API key
+2. Update your application configuration
+3. Revoke the old key from the dashboard
+
+Revoked keys stop working immediately.
+
+## Dashboard vs API authentication
+
+| Surface | Auth method |
+|---------|-------------|
+| Dashboard | OAuth (Google) or email/password via Auth.js session |
+| Public API (`/api/v1/*`) | Bearer API key |
+| Hosted checkout (`/c/*`) | No auth. Wallet connection only. |
+| Checkout API (`/api/checkout/*`) | Public. Used by checkout page. |
+
+Only server-side code should use API keys. Never expose keys in browser JavaScript or mobile apps.
+
+## API request logging
+
+Authenticated API requests are logged under **Developers → API Logs** with method, path, status code, and duration.

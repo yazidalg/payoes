@@ -1,0 +1,60 @@
+---
+title: API overview
+description: Payoes REST API conventions, base URL, and authentication.
+---
+
+The Payoes API is a REST JSON API for creating and managing Stellar payments.
+
+## Base URL
+
+<Snippet file="base-url.mdx" />
+
+All public integration endpoints are under `/api/v1`.
+
+## Authentication
+
+<Snippet file="auth-header.mdx" />
+
+See [Authentication](/guides/authentication) for key management and rotation.
+
+## Request format
+
+- Send JSON bodies with `Content-Type: application/json`
+- Use snake_case field names in request and response bodies
+- Amounts are strings with up to 7 decimal places (Stellar convention)
+
+## Response format
+
+Successful responses return JSON objects. Errors return:
+
+```json
+{
+  "error": "Human-readable message"
+}
+```
+
+## Rate limiting
+
+Rate limits are not enforced in the current release. Production deployments should implement limits. Check release notes for updates.
+
+## Available endpoints
+
+The v1 API currently exposes payment resources:
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/payments` | Create a payment |
+| `GET` | `/payments` | List payments |
+| `GET` | `/payments/{id}` | Retrieve a payment |
+
+Full request and response schemas are documented in the **Payments** section of this API reference, generated from the OpenAPI specification at `docs/openapi/v1.yaml`.
+
+## Idempotency
+
+Idempotency keys are planned. Until then, use unique `metadata` values and guard webhook handlers against duplicate processing.
+
+## Changelog
+
+| Version | Changes |
+|---------|---------|
+| `v1` | Initial payments API: create, list, retrieve |

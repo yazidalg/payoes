@@ -1,0 +1,80 @@
+---
+title: Hosted checkout
+description: How the Payoes checkout page works and how customers pay with Stellar wallets.
+---
+
+Payoes provides a hosted checkout page so you do not need to build wallet integration yourself.
+
+## Checkout URL
+
+Every payment includes a `checkout_url`:
+
+```
+https://your-payoes-host/c/{payment_id}
+```
+
+Share this link directly or redirect users from your application after creating a payment via API.
+
+## Customer flow
+
+1. Customer opens the checkout URL
+2. Checkout loads payment amount, asset, merchant name, and logo
+3. Customer clicks **Connect wallet** (Stellar Wallet Kit: Freighter, xBull, etc.)
+4. Customer clicks **Pay** and approves the transaction in their wallet
+5. Payoes submits the signed transaction to Horizon
+6. Payoes verifies the payment and shows a success state
+
+No Payoes login is required for customers.
+
+## What Payoes handles
+
+- Building the unsigned Stellar payment transaction
+- Setting the correct destination (merchant receiving wallet)
+- Attaching a payment memo for reconciliation
+- USDC trustline preflight checks before signing
+- Horizon submission and verification
+- Status updates and webhook delivery
+
+## Checkout API (internal)
+
+The hosted page uses public endpoints under `/api/checkout/{payment_id}`:
+
+| Method | Purpose |
+|--------|---------|
+| `GET` | Load payment and merchant details |
+| `POST` `{ action: "build_transaction", sourcePublicKey }` | Build unsigned transaction XDR |
+| `POST` `{ txHash }` | Confirm payment after wallet submission |
+
+These endpoints are used by the checkout UI. Integrations should use `/api/v1/payments` instead.
+
+## Custom checkout (future)
+
+Embedded checkout and payment widgets are on the roadmap. Today, redirect customers to the hosted `checkout_url`.
+
+## Retry confirmation
+
+If a transaction succeeds on Stellar but confirmation fails (e.g. temporary Horizon delay), the checkout page offers **Retry payment confirmation** with the submitted transaction hash.
+
+## Integration pattern
+
+```typescript
+// 1. Create payment on your server
+const payment = await fetch("https://payoes.example.com/api/v1/payments", {
+  method: "POST",
+  headers: {
+    Authorization: `Bearer ${process.env.PAYOES_API_KEY}`,
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    amount: "25",
+    asset: "USDC",
+    description: "Pro plan (monthly)",
+    metadata: { user_id: "usr_123" },
+  }),
+}).then((r) => r.json());
+
+// 2. Redirect customer to checkout
+return Response.redirect(payment.checkout_url);
+```
+
+After payment, listen for `payment.completed` webhooks or poll `GET /api/v1/payments/{id}`.

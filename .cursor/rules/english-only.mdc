@@ -39,7 +39,7 @@ All project-facing content must be written in **English**. This applies to every
 export const SDK_VERSION = "0.0.0";
 
 // ✅ GOOD
-/** SDK placeholder — implementation coming soon */
+/** SDK placeholder. Implementation coming soon */
 export const SDK_VERSION = "0.0.0";
 ```
 

@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { OrganizationLogoUpload } from "@/components/onboarding/organization-logo-upload";
@@ -56,7 +56,7 @@ export function CreateOrganizationForm({
     resolver: zodResolver(organizationSchema),
   });
 
-  const businessName = form.watch("name");
+  const businessName = useWatch({ control: form.control, name: "name" });
 
   const onSubmit = async (values: OrganizationForm) => {
     setError(null);

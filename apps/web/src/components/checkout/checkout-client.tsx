@@ -29,23 +29,32 @@ type CheckoutData = {
   } | null;
 };
 
+function getStoredCheckoutTxHash(paymentId: string) {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  return sessionStorage.getItem(`payoes:checkout-tx:${paymentId}`);
+}
+
 export function CheckoutClient({ paymentId }: { paymentId: string }) {
   const [data, setData] = useState<CheckoutData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPaying, setIsPaying] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [pendingTxHash, setPendingTxHash] = useState<string | null>(null);
+  const [pendingTxHash, setPendingTxHash] = useState<string | null>(() =>
+    getStoredCheckoutTxHash(paymentId)
+  );
+  const [restoredPaymentId, setRestoredPaymentId] = useState(paymentId);
+
+  if (restoredPaymentId !== paymentId) {
+    setRestoredPaymentId(paymentId);
+    setPendingTxHash(getStoredCheckoutTxHash(paymentId));
+  }
 
   const environment = data?.payment.environment ?? "sandbox";
   const { address, connect, isConnecting, networkLabel } =
     useStellarWallet(environment);
-
-  useEffect(() => {
-    const savedTxHash = sessionStorage.getItem(`payoes:checkout-tx:${paymentId}`);
-    if (savedTxHash) {
-      setPendingTxHash(savedTxHash);
-    }
-  }, [paymentId]);
 
   useEffect(() => {
     async function load() {

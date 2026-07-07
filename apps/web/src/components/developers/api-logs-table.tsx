@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback } from "react";
+import { useAsyncData } from "@/hooks/use-async-data";
 
 type ApiLogRow = {
   id: string;
@@ -12,17 +13,13 @@ type ApiLogRow = {
 };
 
 export function ApiLogsTable({ organizationId }: { organizationId: string }) {
-  const [logs, setLogs] = useState<ApiLogRow[]>([]);
-
-  const load = useCallback(async () => {
+  const fetchLogs = useCallback(async () => {
     const response = await fetch(`/api/organizations/${organizationId}/api-logs`);
     const data = (await response.json()) as { logs?: ApiLogRow[] };
-    setLogs(data.logs ?? []);
+    return data.logs ?? [];
   }, [organizationId]);
 
-  useEffect(() => {
-    void load();
-  }, [load]);
+  const { data: logs } = useAsyncData(fetchLogs, [organizationId]);
 
   return (
     <div className="space-y-6">
@@ -45,14 +42,14 @@ export function ApiLogsTable({ organizationId }: { organizationId: string }) {
             </tr>
           </thead>
           <tbody>
-            {logs.length === 0 ? (
+            {(logs ?? []).length === 0 ? (
               <tr>
                 <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
                   No API logs yet.
                 </td>
               </tr>
             ) : (
-              logs.map((log) => (
+              (logs ?? []).map((log) => (
                 <tr key={log.id} className="border-t border-border/60">
                   <td className="px-4 py-3 font-mono text-xs">{log.method}</td>
                   <td className="px-4 py-3 font-mono text-xs">{log.path}</td>

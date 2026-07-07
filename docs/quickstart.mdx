@@ -1,0 +1,89 @@
+---
+title: Quickstart
+description: Create your first Stellar payment with the Payoes API.
+---
+
+This guide walks you through creating a payment and completing it on Stellar testnet (sandbox).
+
+## Prerequisites
+
+- A Payoes account with an organization and receiving wallet configured
+- An API key from **Developers → API Keys** in the dashboard
+- A Stellar testnet wallet with XLM or testnet USDC
+
+## 1. Create an API key
+
+In the dashboard, go to **Developers → API Keys** and create a sandbox key. Copy the full key. It is only shown once.
+
+Sandbox keys use the `pk_test_` prefix.
+
+## 2. Create a payment
+
+<Snippet file="base-url.mdx" />
+
+<Snippet file="auth-header.mdx" />
+
+```bash
+curl -X POST https://payoes.com/api/v1/payments \
+  -H "Authorization: Bearer pk_test_YOUR_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "amount": "2",
+    "asset": "XLM",
+    "description": "Quickstart payment"
+  }'
+```
+
+Example response:
+
+```json
+{
+  "id": "pay_nLU2gUDk-v3tdyd6",
+  "amount": "2.0000000",
+  "asset": "XLM",
+  "status": "pending",
+  "description": "Quickstart payment",
+  "metadata": null,
+  "checkout_url": "https://payoes.com/c/pay_nLU2gUDk-v3tdyd6",
+  "tx_hash": null,
+  "confirmed_at": null,
+  "expires_at": "2026-07-07T07:00:00.000Z",
+  "created_at": "2026-07-07T06:00:00.000Z"
+}
+```
+
+## 3. Open checkout
+
+Open `checkout_url` in a browser. Connect a Stellar wallet and click **Pay**.
+
+No login is required for customers. They only connect a wallet at checkout time.
+
+## 4. Confirm payment status
+
+After the wallet approves the transaction, Payoes verifies it on Horizon and marks the payment `completed`.
+
+Retrieve the payment:
+
+```bash
+curl https://payoes.com/api/v1/payments/pay_nLU2gUDk-v3tdyd6 \
+  -H "Authorization: Bearer pk_test_YOUR_KEY"
+```
+
+When `status` is `completed`, `tx_hash` contains the Stellar transaction hash.
+
+## 5. Listen with webhooks (optional)
+
+Register a webhook endpoint in **Developers → Webhooks** to receive `payment.completed` events automatically instead of polling.
+
+See [Webhooks](/guides/webhooks) for signature verification.
+
+## What's next
+
+<CardGroup cols={2}>
+  <Card title="Authentication" icon="key" href="/guides/authentication">
+    Learn how API keys and environments work.
+  </Card>
+  <Card title="API Reference" icon="code" href="/api-reference/overview">
+    Explore the full Payments API.
+  </Card>
+</CardGroup>

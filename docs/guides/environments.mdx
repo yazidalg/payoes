@@ -1,0 +1,52 @@
+---
+title: Environments
+description: Sandbox and production modes for safe testing on Stellar testnet.
+---
+
+Payoes separates **sandbox** and **production** environments so you can test on Stellar testnet before accepting real funds on mainnet.
+
+## Overview
+
+| Setting | Sandbox | Production |
+|---------|---------|------------|
+| Stellar network | Testnet | Mainnet |
+| API key prefix | `pk_test_` | `pk_live_` |
+| Receiving wallet | Testnet address | Mainnet address |
+| USDC issuer | `STELLAR_TESTNET_USDC_ISSUER` | `STELLAR_MAINNET_USDC_ISSUER` |
+
+Your organization environment is shown in the dashboard header. Sandbox mode displays a visible banner.
+
+## How environment is determined
+
+- **API keys** carry an environment. A `pk_test_` key always creates sandbox payments; `pk_live_` creates production payments.
+- **Dashboard actions** use the organization's current environment setting.
+- **Receiving wallets** are configured per environment. You need a separate wallet for sandbox and production.
+
+## Testing on testnet
+
+1. Create a sandbox API key
+2. Fund a testnet wallet from [Stellar Laboratory Faucet](https://laboratory.stellar.org/#account-creator?network=test)
+3. Create a payment and complete checkout on testnet
+4. Verify `tx_hash` on [Stellar Expert (testnet)](https://stellar.expert/explorer/testnet)
+
+<Note>
+  Self-payments (paying from the same wallet configured as the receiving wallet) are allowed for testing.
+</Note>
+
+## Moving to production
+
+Before going live:
+
+1. Configure a **production receiving wallet** with a mainnet address
+2. Ensure the wallet has a **USDC trustline** if accepting USDC
+3. Create a `pk_live_` API key
+4. Update `STELLAR_MAINNET_USDC_ISSUER` on your Payoes deployment
+5. Switch your integration to production keys and mainnet checkout URLs
+
+<Warning>
+  Production payments move real assets. Test thoroughly in sandbox first.
+</Warning>
+
+## Expiration
+
+Payments expire after `expires_in_minutes` (default 60, max 10080). Expired payments receive status `expired` and trigger a `payment.expired` webhook if configured.

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { UploadIcon, XIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getInitials } from "@/lib/utils/initials";
@@ -18,20 +18,19 @@ export function OrganizationLogoUpload({
   onChange,
 }: OrganizationLogoUploadProps) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const initials = getInitials(businessName || "Workspace");
+  const previewUrl = useMemo(
+    () => (value ? URL.createObjectURL(value) : null),
+    [value]
+  );
 
   useEffect(() => {
-    if (!value) {
-      setPreviewUrl(null);
+    if (!previewUrl) {
       return;
     }
 
-    const objectUrl = URL.createObjectURL(value);
-    setPreviewUrl(objectUrl);
-
-    return () => URL.revokeObjectURL(objectUrl);
-  }, [value]);
+    return () => URL.revokeObjectURL(previewUrl);
+  }, [previewUrl]);
 
   return (
     <div className="space-y-2">

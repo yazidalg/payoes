@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   Collapsible,
   CollapsibleContent,
@@ -30,11 +30,8 @@ import { ChevronRightIcon } from "lucide-react";
 function NavGroup({ item }: { item: DashboardNavItem }) {
   const pathname = usePathname();
   const isActive = isNavGroupActive(pathname, item);
-  const [open, setOpen] = useState(isActive);
-
-  useEffect(() => {
-    setOpen(isActive);
-  }, [isActive]);
+  const [openOverride, setOpenOverride] = useState<boolean | undefined>(undefined);
+  const open = openOverride ?? isActive;
 
   if (!item.items?.length) {
     return (
@@ -56,7 +53,7 @@ function NavGroup({ item }: { item: DashboardNavItem }) {
     <SidebarMenuItem>
       <Collapsible
         open={open}
-        onOpenChange={setOpen}
+        onOpenChange={setOpenOverride}
         className="group/collapsible"
       >
         <CollapsibleTrigger

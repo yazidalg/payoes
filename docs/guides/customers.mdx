@@ -1,0 +1,100 @@
+---
+title: Customers
+description: Organize payers, link payments, and auto-create customers from checkout wallets.
+---
+
+Customers represent payers in your merchant account. Use them to group payments, enrich webhooks, and build a simple CRM on top of Payoes.
+
+## What a customer stores
+
+| Field | Description |
+|-------|-------------|
+| `id` | Public ID (`cus_...`) |
+| `email` | Optional contact email |
+| `name` | Optional display name |
+| `primary_stellar_address` | Main Stellar wallet for this payer |
+| `notes` | Internal merchant notes |
+| `metadata` | Custom key-value pairs |
+
+Customers are scoped to your organization and environment (sandbox or production).
+
+## Manual creation
+
+Create a customer from the dashboard or API before sending a payment:
+
+```bash
+curl -X POST https://payoes.com/api/v1/customers \
+  -H "Authorization: Bearer pk_test_YOUR_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Alice Johnson",
+    "email": "alice@example.com"
+  }'
+```
+
+## Link a customer to a payment
+
+When creating a payment, pass `customer_id` to pre-link the checkout:
+
+```bash
+curl -X POST https://payoes.com/api/v1/payments \
+  -H "Authorization: Bearer pk_test_YOUR_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "amount": "25",
+    "asset": "USDC",
+    "customer_id": "cus_abc123xyz",
+    "description": "Pro plan"
+  }'
+```
+
+This is similar to attaching a Stripe `Customer` to a `PaymentIntent`.
+
+## Auto-create from checkout
+
+If you do not pass `customer_id`, Payoes still links payers automatically:
+
+1. Customer completes hosted checkout
+2. Payoes verifies the transaction on Horizon
+3. Payoes reads the payer wallet (`from` address)
+4. Payoes creates or updates a customer for that wallet
+5. The payment is linked to that customer
+
+This is useful when you share checkout links without knowing the payer wallet in advance.
+
+## Payment fields
+
+Completed payments include:
+
+| Field | Description |
+|-------|-------------|
+| `customer_id` | Linked customer public ID |
+| `payer_address` | Wallet that signed the Stellar transaction |
+
+Webhook payloads for `payment.completed` include both fields.
+
+## Retrieve customer history
+
+```bash
+curl https://payoes.com/api/v1/customers/cus_abc123xyz \
+  -H "Authorization: Bearer pk_test_YOUR_KEY"
+```
+
+The response includes the customer profile and an array of linked payments.
+
+## What customers are not
+
+- Not login accounts for your dashboard
+- Not custodial wallets (Payoes never holds private keys)
+- Not saved payment methods that can charge without wallet approval
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Create a payment and complete checkout.
+  </Card>
+  <Card title="Webhooks" icon="webhook" href="/guides/webhooks">
+    React to payment.completed events.
+  </Card>
+</CardGroup>

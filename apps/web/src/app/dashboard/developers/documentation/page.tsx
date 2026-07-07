@@ -1,5 +1,5 @@
-import { DashboardSectionPage } from "@/components/dashboard/section-placeholder";
+import { DocumentationPanel } from "@/components/developers/documentation-panel";
 
 export default function DocumentationPage() {
-  return <DashboardSectionPage pathname="/dashboard/developers/documentation" />;
+  return <DocumentationPanel />;
 }

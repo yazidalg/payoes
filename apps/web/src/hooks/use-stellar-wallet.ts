@@ -26,7 +26,10 @@ export function useStellarWallet(environment: Organization["environment"]) {
       network:
         environment === "production" ? Networks.PUBLIC : Networks.TESTNET,
     });
-    setIsReady(true);
+
+    void Promise.resolve().then(() => {
+      setIsReady(true);
+    });
 
     const unsubscribe = StellarWalletsKit.on(
       KitEventType.STATE_UPDATED,

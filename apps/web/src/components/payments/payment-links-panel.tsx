@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback } from "react";
 import { Button } from "@/components/ui/button";
+import { useAsyncData } from "@/hooks/use-async-data";
 import { toast } from "sonner";
 
 type PaymentRow = {
@@ -14,17 +15,13 @@ type PaymentRow = {
 };
 
 export function PaymentLinksPanel({ organizationId }: { organizationId: string }) {
-  const [payments, setPayments] = useState<PaymentRow[]>([]);
-
-  const load = useCallback(async () => {
+  const fetchPayments = useCallback(async () => {
     const response = await fetch(`/api/organizations/${organizationId}/payments`);
     const data = (await response.json()) as { payments?: PaymentRow[] };
-    setPayments((data.payments ?? []).filter((payment) => payment.status === "pending"));
+    return (data.payments ?? []).filter((payment) => payment.status === "pending");
   }, [organizationId]);
 
-  useEffect(() => {
-    void load();
-  }, [load]);
+  const { data: payments } = useAsyncData(fetchPayments, [organizationId]);
 
   async function copyLink(url: string) {
     await navigator.clipboard.writeText(url);
@@ -50,14 +47,14 @@ export function PaymentLinksPanel({ organizationId }: { organizationId: string }
             </tr>
           </thead>
           <tbody>
-            {payments.length === 0 ? (
+            {(payments ?? []).length === 0 ? (
               <tr>
                 <td colSpan={3} className="px-4 py-8 text-center text-muted-foreground">
                   No pending payment links.
                 </td>
               </tr>
             ) : (
-              payments.map((payment) => (
+              (payments ?? []).map((payment) => (
                 <tr key={payment.id} className="border-t border-border/60">
                   <td className="px-4 py-3 font-mono text-xs">{payment.id}</td>
                   <td className="px-4 py-3">

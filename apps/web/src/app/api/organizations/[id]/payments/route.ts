@@ -6,7 +6,7 @@ import { getOrganizationForMember } from "@/lib/organizations/wallet";
 import {
   createPayment,
   listPayments,
-  serializePayment,
+  serializePayments,
 } from "@/lib/payments/service";
 
 const createPaymentSchema = z.object({
@@ -17,6 +17,7 @@ const createPaymentSchema = z.object({
   description: z.string().max(500).optional().nullable(),
   metadata: z.record(z.string(), z.string()).optional().nullable(),
   expires_in_minutes: z.number().int().min(5).max(10080).optional(),
+  customer_id: z.string().optional().nullable(),
 });
 
 export async function GET(
@@ -36,9 +37,9 @@ export async function GET(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const payments = await listPayments(organization.id);
+  const paymentList = await listPayments(organization.id);
   return NextResponse.json({
-    payments: payments.map(serializePayment),
+    payments: await serializePayments(paymentList),
   });
 }
 
@@ -78,9 +79,12 @@ export async function POST(
       description: parsed.data.description,
       metadata: parsed.data.metadata,
       expiresInMinutes: parsed.data.expires_in_minutes,
+      customerId: parsed.data.customer_id,
     });
 
-    return NextResponse.json(serializePayment(payment), { status: 201 });
+    const serialized = await serializePayments([payment]);
+
+    return NextResponse.json(serialized[0], { status: 201 });
   } catch (error) {
     return NextResponse.json(
       {

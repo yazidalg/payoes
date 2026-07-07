@@ -1,0 +1,86 @@
+---
+title: Webhooks
+description: Receive real-time HTTP notifications when payment events occur.
+---
+
+Webhooks let your backend react to payment events without polling the API.
+
+## Supported events
+
+| Event | When it fires |
+|-------|---------------|
+| `payment.created` | A new payment is created |
+| `payment.completed` | Payment verified on Horizon |
+| `payment.failed` | Transaction failed on Stellar |
+| `payment.expired` | Payment passed its expiration time |
+
+## Register an endpoint
+
+In the dashboard, go to **Developers → Webhooks** and add:
+
+- **URL**: your HTTPS endpoint (e.g. `https://api.example.com/webhooks/payoes`)
+- **Events**: which events to receive
+
+On creation, Payoes returns a **signing secret**. Store it securely for signature verification.
+
+## Payload format
+
+Payoes sends `POST` requests with JSON body:
+
+```json
+{
+  "event": "payment.completed",
+  "data": {
+    "id": "pay_nLU2gUDk-v3tdyd6",
+    "amount": "2.0000000",
+    "asset": "XLM",
+    "status": "completed",
+    "description": "Invoice #1024",
+    "metadata": { "order_id": "ord_123" },
+    "checkout_url": "https://payoes.example.com/c/pay_nLU2gUDk-v3tdyd6",
+    "tx_hash": "0658f6099741d7a783ec5d87389f782ab5f207a13c0ddbe8cbe24d9c19834c7e",
+    "confirmed_at": "2026-07-07T06:07:00.000Z",
+    "expires_at": "2026-07-07T07:00:00.000Z",
+    "created_at": "2026-07-07T06:00:00.000Z"
+  }
+}
+```
+
+## Signature verification
+
+Each request includes an `X-Payoes-Signature` header: an HMAC-SHA256 hex digest of the raw request body using your webhook secret.
+
+```typescript
+import { createHmac, timingSafeEqual } from "node:crypto";
+
+function verifyPayoesSignature(
+  secret: string,
+  rawBody: string,
+  signature: string
+): boolean {
+  const expected = createHmac("sha256", secret)
+    .update(rawBody)
+    .digest("hex");
+
+  const a = Buffer.from(expected, "utf8");
+  const b = Buffer.from(signature, "utf8");
+
+  return a.length === b.length && timingSafeEqual(a, b);
+}
+```
+
+<Warning>
+  Always verify signatures before processing webhook payloads. Use the raw request body, not a re-serialized JSON object.
+</Warning>
+
+## Delivery behavior
+
+- Deliveries are attempted once per event per endpoint
+- Failed deliveries are recorded in the dashboard with response status and body
+- Automatic retry queues are planned. Implement idempotent handlers today.
+
+## Handler best practices
+
+- Return `2xx` quickly; process heavy work asynchronously
+- Make handlers **idempotent**. The same event may be delivered more than once.
+- Match `data.id` to your internal order records via `metadata`

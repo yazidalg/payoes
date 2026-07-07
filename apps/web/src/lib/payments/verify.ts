@@ -1,9 +1,43 @@
+import {
+  getCustomerById,
+  linkCustomerToPayment,
+  upsertCustomerFromWallet,
+} from "@/lib/customers/service";
 import type { Payment } from "@/lib/db/schema";
 import {
   getPaymentByPublicId,
   updatePaymentStatus,
 } from "@/lib/payments/service";
 import { verifyPaymentOnHorizon } from "@/lib/stellar/payments";
+
+async function resolveCustomerForCompletedPayment(
+  payment: Payment,
+  payerAddress: string
+) {
+  if (payment.customerId) {
+    const customer = await getCustomerById(
+      payment.customerId,
+      payment.organizationId
+    );
+
+    if (customer) {
+      const linked = await linkCustomerToPayment({
+        customer,
+        stellarAddress: payerAddress,
+      });
+
+      return linked.id;
+    }
+  }
+
+  const customer = await upsertCustomerFromWallet({
+    organizationId: payment.organizationId,
+    environment: payment.environment,
+    stellarAddress: payerAddress,
+  });
+
+  return customer.id;
+}
 
 export async function confirmPaymentWithTxHash(
   publicId: string,
@@ -46,9 +80,16 @@ export async function confirmPaymentWithTxHash(
       return { ok: false as const, error: verification.reason };
     }
 
+    const customerId = await resolveCustomerForCompletedPayment(
+      payment,
+      verification.payerAddress
+    );
+
     const updated = await updatePaymentStatus(payment, "completed", {
       txHash,
       confirmedAt: new Date(),
+      customerId,
+      payerAddress: verification.payerAddress,
     });
 
     return { ok: true as const, payment: updated };

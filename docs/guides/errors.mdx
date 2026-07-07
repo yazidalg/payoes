@@ -1,0 +1,75 @@
+---
+title: Errors
+description: Common payment and Stellar network errors and how to resolve them.
+---
+
+## API errors
+
+| HTTP status | Meaning |
+|-------------|---------|
+| `400` | Invalid request body or business rule violation |
+| `401` | Missing or invalid API key |
+| `404` | Payment or resource not found |
+
+Example:
+
+```json
+{
+  "error": "Amount must be a valid Stellar amount"
+}
+```
+
+## Payment statuses
+
+| Status | Description |
+|--------|-------------|
+| `pending` | Awaiting customer payment |
+| `completed` | Verified on Horizon |
+| `failed` | Transaction failed or verification rejected |
+| `expired` | Past `expires_at` without completion |
+
+Failed payments can be re-confirmed if a valid transaction hash is submitted before expiration.
+
+## Stellar network errors
+
+### `op_no_trust`
+
+**Cause:** Missing USDC trustline on the customer or merchant wallet.
+
+**Fix:** Add a trustline to the correct USDC issuer for your network. See [Receiving wallet](/guides/receiving-wallet).
+
+### `op_underfunded`
+
+**Cause:** Wallet balance is too low for the payment amount plus fees.
+
+**Fix:** Fund the wallet with enough XLM or USDC.
+
+### `op_line_full`
+
+**Cause:** Destination trustline limit reached.
+
+**Fix:** Increase the trustline limit on the receiving account.
+
+### Issuer is invalid
+
+**Cause:** `STELLAR_*_USDC_ISSUER` environment variable is missing or incorrect on the Payoes server.
+
+**Fix:** Set the correct Circle USDC issuer for testnet or mainnet in your deployment environment.
+
+## Verification errors
+
+| Error | Cause |
+|-------|-------|
+| Payment operation not found | No matching payment op in the transaction |
+| Payment was sent to a different address | Destination does not match receiving wallet |
+| Payment amount does not match | Amount differs from the payment record |
+| Payment asset does not match | Wrong asset type or issuer |
+| Transaction was not successful | Transaction failed on Stellar |
+
+Amount comparisons normalize Stellar's 7-decimal format (`2` equals `2.0000000`).
+
+## Getting help
+
+- Check the transaction on [Stellar Expert](https://stellar.expert) for the correct network
+- Review **Developers → API Logs** for request details
+- Confirm receiving wallet and trustlines are configured for the payment asset

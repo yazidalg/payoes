@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { withApiKeyAuth } from "@/lib/api-keys/auth";
 import {
   getPaymentByPublicId,
-  serializePayment,
+  serializePayments,
 } from "@/lib/payments/service";
 
 export async function GET(
@@ -17,6 +17,8 @@ export async function GET(
       return NextResponse.json({ error: "Payment not found" }, { status: 404 });
     }
 
-    return NextResponse.json(serializePayment(payment));
+    const serialized = await serializePayments([payment]);
+
+    return NextResponse.json(serialized[0]);
   });
 }

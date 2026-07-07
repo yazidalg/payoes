@@ -1,11 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { toast } from "sonner";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useAsyncData } from "@/hooks/use-async-data";
 
 type ApiKeyRow = {
   id: string;
@@ -18,21 +19,17 @@ type ApiKeyRow = {
 };
 
 export function ApiKeysPanel({ organizationId }: { organizationId: string }) {
-  const [keys, setKeys] = useState<ApiKeyRow[]>([]);
+  const fetchKeys = useCallback(async () => {
+    const response = await fetch(`/api/organizations/${organizationId}/api-keys`);
+    const data = (await response.json()) as { apiKeys?: ApiKeyRow[] };
+    return data.apiKeys ?? [];
+  }, [organizationId]);
+
+  const { data: keys, reload: reloadKeys } = useAsyncData(fetchKeys, [organizationId]);
   const [name, setName] = useState("");
   const [secret, setSecret] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-
-  const loadKeys = useCallback(async () => {
-    const response = await fetch(`/api/organizations/${organizationId}/api-keys`);
-    const data = (await response.json()) as { apiKeys?: ApiKeyRow[] };
-    setKeys(data.apiKeys ?? []);
-  }, [organizationId]);
-
-  useEffect(() => {
-    void loadKeys();
-  }, [loadKeys]);
 
   async function handleCreate() {
     setError(null);
@@ -55,7 +52,7 @@ export function ApiKeysPanel({ organizationId }: { organizationId: string }) {
     setSecret(data.secret ?? null);
     setName("");
     toast.success("API key created");
-    await loadKeys();
+    reloadKeys();
     setIsLoading(false);
   }
 
@@ -71,7 +68,7 @@ export function ApiKeysPanel({ organizationId }: { organizationId: string }) {
     }
 
     toast.success("API key revoked");
-    await loadKeys();
+    reloadKeys();
   }
 
   return (
@@ -125,14 +122,14 @@ export function ApiKeysPanel({ organizationId }: { organizationId: string }) {
             </tr>
           </thead>
           <tbody>
-            {keys.length === 0 ? (
+            {(keys ?? []).length === 0 ? (
               <tr>
                 <td colSpan={4} className="px-4 py-8 text-center text-muted-foreground">
                   No API keys yet.
                 </td>
               </tr>
             ) : (
-              keys.map((key) => (
+              (keys ?? []).map((key) => (
                 <tr key={key.id} className="border-t border-border/60">
                   <td className="px-4 py-3">{key.name}</td>
                   <td className="px-4 py-3 font-mono text-xs">{key.keyPrefix}</td>

@@ -123,6 +123,7 @@ export const organizationReceivingWallets = pgTable(
 export const organizationsRelations = relations(organizations, ({ many }) => ({
   members: many(organizationMembers),
   receivingWallets: many(organizationReceivingWallets),
+  customers: many(customers),
 }));
 
 export const organizationReceivingWalletsRelations = relations(
@@ -175,6 +176,33 @@ export const apiKeys = pgTable(
   ]
 );
 
+export const customers = pgTable(
+  "customers",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    publicId: text("public_id").notNull().unique(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    environment: environmentModeEnum("environment").notNull().default("sandbox"),
+    email: text("email"),
+    name: text("name"),
+    primaryStellarAddress: text("primary_stellar_address"),
+    notes: text("notes"),
+    metadata: jsonb("metadata").$type<Record<string, string>>(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("customers_public_id_idx").on(table.publicId),
+    uniqueIndex("customers_org_env_wallet_idx").on(
+      table.organizationId,
+      table.environment,
+      table.primaryStellarAddress
+    ),
+  ]
+);
+
 export const payments = pgTable(
   "payments",
   {
@@ -183,11 +211,15 @@ export const payments = pgTable(
     organizationId: uuid("organization_id")
       .notNull()
       .references(() => organizations.id, { onDelete: "cascade" }),
+    customerId: uuid("customer_id").references(() => customers.id, {
+      onDelete: "set null",
+    }),
     environment: environmentModeEnum("environment").notNull().default("sandbox"),
     amount: text("amount").notNull(),
     asset: paymentAssetEnum("asset").notNull(),
     status: paymentStatusEnum("status").notNull().default("pending"),
     receivingAddress: text("receiving_address").notNull(),
+    payerAddress: text("payer_address"),
     description: text("description"),
     metadata: jsonb("metadata").$type<Record<string, string>>(),
     memo: text("memo"),
@@ -250,10 +282,22 @@ export const apiKeysRelations = relations(apiKeys, ({ one }) => ({
   }),
 }));
 
+export const customersRelations = relations(customers, ({ one, many }) => ({
+  organization: one(organizations, {
+    fields: [customers.organizationId],
+    references: [organizations.id],
+  }),
+  payments: many(payments),
+}));
+
 export const paymentsRelations = relations(payments, ({ one }) => ({
   organization: one(organizations, {
     fields: [payments.organizationId],
     references: [organizations.id],
+  }),
+  customer: one(customers, {
+    fields: [payments.customerId],
+    references: [customers.id],
   }),
 }));
 
@@ -290,6 +334,7 @@ export const apiLogsRelations = relations(apiLogs, ({ one }) => ({
 }));
 
 export type ApiKey = typeof apiKeys.$inferSelect;
+export type Customer = typeof customers.$inferSelect;
 export type Payment = typeof payments.$inferSelect;
 export type WebhookEndpoint = typeof webhookEndpoints.$inferSelect;
 export type WebhookDelivery = typeof webhookDeliveries.$inferSelect;

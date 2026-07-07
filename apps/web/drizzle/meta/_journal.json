@@ -29,6 +29,13 @@
       "when": 1783403635021,
       "tag": "0003_unique_greymalkin",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1783404000000,
+      "tag": "0004_customers",
+      "breakpoints": true
     }
   ]
 }

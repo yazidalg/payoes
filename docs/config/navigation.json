@@ -1,0 +1,49 @@
+{
+  "tabs": [
+    {
+      "tab": "Guides",
+      "groups": [
+        {
+          "group": "Get started",
+          "pages": ["introduction", "quickstart"]
+        },
+        {
+          "group": "Core concepts",
+          "pages": [
+            "guides/concepts",
+            "guides/authentication",
+            "guides/environments",
+            "guides/customers"
+          ]
+        },
+        {
+          "group": "Payments",
+          "pages": [
+            "guides/checkout",
+            "guides/receiving-wallet",
+            "guides/webhooks",
+            "guides/errors"
+          ]
+        }
+      ]
+    },
+    {
+      "tab": "API Reference",
+      "groups": [
+        {
+          "group": "Overview",
+          "pages": ["api-reference/overview"]
+        },
+        {
+          "group": "Payments",
+          "openapi": "openapi/v1.yaml"
+        },
+        {
+          "group": "Customers",
+          "openapi": "openapi/v1.yaml",
+          "expanded": false
+        }
+      ]
+    }
+  ]
+}

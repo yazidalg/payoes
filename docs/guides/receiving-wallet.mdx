@@ -1,0 +1,59 @@
+---
+title: Receiving wallet
+description: Configure the Stellar address where customer payments are sent.
+---
+
+Every organization must configure a **receiving wallet**: the Stellar public key that receives payments.
+
+## Setup
+
+Receiving wallets are configured during onboarding and can be updated in **Settings → Receiving Wallet**.
+
+Requirements:
+
+- Valid Stellar public key (`G...` address)
+- Connected via Stellar Wallet Kit for proof of ownership
+- Separate wallet per environment (sandbox and production)
+
+## Accepted assets
+
+By default, organizations accept:
+
+- **XLM**: native Stellar lumens
+- **USDC**: Circle USDC on Stellar
+
+The receiving wallet must be able to receive the asset being paid:
+
+| Asset | Requirement |
+|-------|-------------|
+| XLM | Account must exist and be funded (minimum balance) |
+| USDC | Account must have a trustline to the network USDC issuer |
+
+## USDC trustlines
+
+USDC on Stellar is issued by Circle. Your receiving wallet needs an active trustline to the correct issuer:
+
+| Network | Environment variable |
+|---------|---------------------|
+| Testnet | `STELLAR_TESTNET_USDC_ISSUER` |
+| Mainnet | `STELLAR_MAINNET_USDC_ISSUER` |
+
+Circle testnet issuer example:
+
+```
+GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5
+```
+
+If the merchant or customer wallet lacks a USDC trustline, checkout returns a clear error before the transaction is submitted.
+
+## How it affects payments
+
+When you create a payment, Payoes snapshots the receiving address into the payment record. The checkout transaction always sends funds to that address.
+
+Changing the receiving wallet after creating a payment does not affect existing pending payments.
+
+## Security notes
+
+- Payoes never holds private keys for merchant wallets
+- Wallet connection during setup proves you control the address
+- Use a dedicated receiving wallet rather than a personal hot wallet for production

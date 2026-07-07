@@ -1,9 +1,10 @@
 import { randomBytes } from "node:crypto";
-import { and, desc, eq, lt } from "drizzle-orm";
+import { and, desc, eq, inArray, lt } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { payments, type Organization, type Payment } from "@/lib/db/schema";
+import { customers, payments, type Organization, type Payment } from "@/lib/db/schema";
 import type { AcceptedAsset } from "@/lib/organizations/wallet-constants";
 import { getReceivingWallet } from "@/lib/organizations/wallet";
+import { getCustomerByPublicId } from "@/lib/customers/service";
 import { normalizeStellarAmount } from "@/lib/stellar/amount";
 import { dispatchWebhookEvent } from "@/lib/webhooks/delivery";
 
@@ -73,6 +74,7 @@ export async function createPayment(input: {
   description?: string | null;
   metadata?: Record<string, string> | null;
   expiresInMinutes?: number;
+  customerId?: string | null;
 }) {
   const wallet = await getReceivingWallet(input.organizationId, input.environment);
 
@@ -82,6 +84,24 @@ export async function createPayment(input: {
 
   if (!wallet.acceptedAssets.includes(input.asset)) {
     throw new Error(`Asset ${input.asset} is not accepted by this organization`);
+  }
+
+  let customerInternalId: string | null = null;
+  let customerPublicId: string | null = null;
+
+  if (input.customerId) {
+    const customer = await getCustomerByPublicId(input.customerId);
+
+    if (!customer || customer.organizationId !== input.organizationId) {
+      throw new Error("Customer not found");
+    }
+
+    if (customer.environment !== input.environment) {
+      throw new Error("Customer environment does not match payment environment");
+    }
+
+    customerInternalId = customer.id;
+    customerPublicId = customer.publicId;
   }
 
   const expiresAt = new Date(
@@ -95,6 +115,7 @@ export async function createPayment(input: {
     .values({
       publicId,
       organizationId: input.organizationId,
+      customerId: customerInternalId,
       environment: input.environment,
       amount: normalizeStellarAmount(input.amount),
       asset: input.asset,
@@ -110,7 +131,7 @@ export async function createPayment(input: {
   await dispatchWebhookEvent({
     organizationId: input.organizationId,
     event: "payment.created",
-    payload: serializePayment(payment),
+    payload: serializePayment(payment, { customerPublicId }),
   });
 
   return payment;
@@ -119,7 +140,12 @@ export async function createPayment(input: {
 export async function updatePaymentStatus(
   payment: Payment,
   status: Payment["status"],
-  extra?: { txHash?: string; confirmedAt?: Date }
+  extra?: {
+    txHash?: string;
+    confirmedAt?: Date;
+    customerId?: string | null;
+    payerAddress?: string | null;
+  }
 ) {
   const [updated] = await db
     .update(payments)
@@ -127,10 +153,26 @@ export async function updatePaymentStatus(
       status,
       txHash: extra?.txHash ?? payment.txHash,
       confirmedAt: extra?.confirmedAt ?? payment.confirmedAt,
+      customerId:
+        extra?.customerId !== undefined ? extra.customerId : payment.customerId,
+      payerAddress:
+        extra?.payerAddress !== undefined
+          ? extra.payerAddress
+          : payment.payerAddress,
       updatedAt: new Date(),
     })
     .where(eq(payments.id, payment.id))
     .returning();
+
+  const customerPublicId = updated.customerId
+    ? (
+        await db
+          .select({ publicId: customers.publicId })
+          .from(customers)
+          .where(eq(customers.id, updated.customerId))
+          .limit(1)
+      )[0]?.publicId ?? null
+    : null;
 
   const eventMap = {
     completed: "payment.completed",
@@ -142,14 +184,17 @@ export async function updatePaymentStatus(
     await dispatchWebhookEvent({
       organizationId: payment.organizationId,
       event: eventMap[status as keyof typeof eventMap],
-      payload: serializePayment(updated),
+      payload: serializePayment(updated, { customerPublicId }),
     });
   }
 
   return updated;
 }
 
-export function serializePayment(payment: Payment) {
+export function serializePayment(
+  payment: Payment,
+  options?: { customerPublicId?: string | null }
+) {
   return {
     id: payment.publicId,
     amount: payment.amount,
@@ -158,11 +203,39 @@ export function serializePayment(payment: Payment) {
     description: payment.description,
     metadata: payment.metadata,
     checkout_url: getCheckoutUrl(payment.publicId),
+    customer_id: options?.customerPublicId ?? null,
+    payer_address: payment.payerAddress,
     tx_hash: payment.txHash,
     confirmed_at: payment.confirmedAt,
     expires_at: payment.expiresAt,
     created_at: payment.createdAt,
   };
+}
+
+export async function serializePayments(paymentList: Payment[]) {
+  const customerIds = paymentList
+    .map((payment) => payment.customerId)
+    .filter((id): id is string => Boolean(id));
+
+  const customerRows =
+    customerIds.length > 0
+      ? await db
+          .select({ id: customers.id, publicId: customers.publicId })
+          .from(customers)
+          .where(inArray(customers.id, customerIds))
+      : [];
+
+  const customerMap = new Map(
+    customerRows.map((row) => [row.id, row.publicId] as const)
+  );
+
+  return paymentList.map((payment) =>
+    serializePayment(payment, {
+      customerPublicId: payment.customerId
+        ? (customerMap.get(payment.customerId) ?? null)
+        : null,
+    })
+  );
 }
 
 export async function listCompletedPayments(organizationId: string) {

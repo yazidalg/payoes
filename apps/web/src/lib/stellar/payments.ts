@@ -106,6 +106,8 @@ export async function verifyPaymentOnHorizon(input: {
   }
 
   const payment = paymentOp as {
+    from: string;
+    from_muxed?: string;
     to: string;
     to_muxed?: string;
     amount: string;
@@ -113,6 +115,8 @@ export async function verifyPaymentOnHorizon(input: {
     asset_code?: string;
     asset_issuer?: string;
   };
+
+  const payerAddress = payment.from_muxed ?? payment.from;
 
   const actualAsset =
     payment.asset_type === "native"
@@ -144,5 +148,5 @@ export async function verifyPaymentOnHorizon(input: {
     };
   }
 
-  return { valid: true as const, transaction };
+  return { valid: true as const, transaction, payerAddress };
 }

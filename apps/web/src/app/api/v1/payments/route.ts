@@ -5,7 +5,7 @@ import { ACCEPTED_ASSET_OPTIONS } from "@/lib/organizations/wallet-constants";
 import {
   createPayment,
   listPayments,
-  serializePayment,
+  serializePayments,
 } from "@/lib/payments/service";
 
 const createPaymentSchema = z.object({
@@ -16,13 +16,14 @@ const createPaymentSchema = z.object({
   description: z.string().max(500).optional().nullable(),
   metadata: z.record(z.string(), z.string()).optional().nullable(),
   expires_in_minutes: z.number().int().min(5).max(10080).optional(),
+  customer_id: z.string().optional().nullable(),
 });
 
 export async function GET(request: Request) {
   return withApiKeyAuth(request, async ({ apiKey }) => {
-    const payments = await listPayments(apiKey.organizationId);
+    const paymentList = await listPayments(apiKey.organizationId);
     return NextResponse.json({
-      payments: payments.map(serializePayment),
+      payments: await serializePayments(paymentList),
     });
   });
 }
@@ -48,9 +49,12 @@ export async function POST(request: Request) {
         description: parsed.data.description,
         metadata: parsed.data.metadata,
         expiresInMinutes: parsed.data.expires_in_minutes,
+        customerId: parsed.data.customer_id,
       });
 
-      return NextResponse.json(serializePayment(payment), { status: 201 });
+      const serialized = await serializePayments([payment]);
+
+      return NextResponse.json(serialized[0], { status: 201 });
     } catch (error) {
       return NextResponse.json(
         {

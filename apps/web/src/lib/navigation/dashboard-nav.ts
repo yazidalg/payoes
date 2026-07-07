@@ -60,6 +60,13 @@ export const dashboardNav: DashboardNavItem[] = [
     title: "Customers",
     url: "/dashboard/customers",
     icon: Users,
+    items: [
+      {
+        title: "All Customers",
+        url: "/dashboard/customers",
+        icon: Users,
+      },
+    ],
   },
   {
     title: "Developers",
@@ -128,7 +135,7 @@ const pageTitles: Record<string, string> = {
   "/dashboard/payments/links": "Payment Links",
   "/dashboard/payments/checkout-sessions": "Checkout Sessions",
   "/dashboard/transactions": "Transactions",
-  "/dashboard/customers": "Customers",
+  "/dashboard/customers": "All Customers",
   "/dashboard/developers/api-keys": "API Keys",
   "/dashboard/developers/webhooks": "Webhooks",
   "/dashboard/developers/api-logs": "API Logs",
@@ -141,10 +148,18 @@ const pageTitles: Record<string, string> = {
 };
 
 export function getDashboardPageTitle(pathname: string) {
+  if (pathname.startsWith("/dashboard/customers/") && pathname !== "/dashboard/customers") {
+    return "Customer Detail";
+  }
+
   return pageTitles[pathname] ?? "Dashboard";
 }
 
 export function isNavItemActive(pathname: string, url: string) {
+  if (url === "/dashboard/customers") {
+    return pathname === url || pathname.startsWith("/dashboard/customers/");
+  }
+
   return pathname === url;
 }
 

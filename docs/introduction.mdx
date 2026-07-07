@@ -1,0 +1,62 @@
+---
+title: Introduction
+description: Accept USDC and XLM payments on Stellar without building blockchain infrastructure from scratch.
+---
+
+Payoes is open-source, developer-first payment infrastructure for the Stellar ecosystem.
+
+Instead of integrating wallets, building checkout flows, monitoring Horizon, and wiring webhooks yourself, you create a payment through a simple REST API and share a hosted checkout link with your customer.
+
+## What Payoes is
+
+- Payment infrastructure for merchants and developers
+- A hosted checkout page with Stellar Wallet Kit
+- Horizon-backed transaction verification
+- Webhooks for payment lifecycle events
+
+## What Payoes is not
+
+- A consumer wallet
+- An exchange or on-ramp
+- A custody provider
+
+## How it works
+
+<Steps>
+  <Step title="Set up your organization">
+    Create an organization in the dashboard and connect a **receiving wallet**: the Stellar address where payments are sent.
+  </Step>
+  <Step title="Create a payment">
+    Use the dashboard or `POST /api/v1/payments` to create a payment with an amount and asset (USDC or XLM).
+  </Step>
+  <Step title="Share the checkout link">
+    Payoes returns a `checkout_url`. Send it to your customer by email, chat, or embed it in your product.
+  </Step>
+  <Step title="Customer pays with a wallet">
+    The customer opens checkout, connects a Stellar wallet, and approves the transaction.
+  </Step>
+  <Step title="Payoes verifies and notifies">
+  Payoes confirms the payment on Horizon, updates the status, and delivers webhooks to your backend.
+  </Step>
+</Steps>
+
+## Who it's for
+
+Payoes is built for developers and businesses on Stellar:
+
+- SaaS products
+- Marketplaces and agencies
+- Digital goods and creator platforms
+- Donation flows
+- Any app that needs "pay with USDC/XLM" without reinventing payment plumbing
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Create your first payment in under five minutes.
+  </Card>
+  <Card title="Core concepts" icon="lightbulb" href="/guides/concepts">
+    Understand merchants, customers, payments, and checkout.
+  </Card>
+</CardGroup>

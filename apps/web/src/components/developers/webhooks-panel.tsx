@@ -1,11 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { toast } from "sonner";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useAsyncData } from "@/hooks/use-async-data";
 
 const WEBHOOK_EVENTS = [
   "payment.created",
@@ -15,44 +16,44 @@ const WEBHOOK_EVENTS = [
 ] as const;
 
 export function WebhooksPanel({ organizationId }: { organizationId: string }) {
-  const [endpoints, setEndpoints] = useState<
-    Array<{
-      id: string;
-      url: string;
-      events: string[];
-      enabled: number;
-      createdAt: string;
-      secret?: string;
-    }>
-  >([]);
-  const [deliveries, setDeliveries] = useState<
-    Array<{
-      id: string;
-      event: string;
-      status: string;
-      responseStatus: number | null;
-      url: string;
-      createdAt: string;
-    }>
-  >([]);
+  type WebhookEndpoint = {
+    id: string;
+    url: string;
+    events: string[];
+    enabled: number;
+    createdAt: string;
+    secret?: string;
+  };
+
+  type WebhookDelivery = {
+    id: string;
+    event: string;
+    status: string;
+    responseStatus: number | null;
+    url: string;
+    createdAt: string;
+  };
+
+  const fetchWebhooks = useCallback(async () => {
+    const response = await fetch(`/api/organizations/${organizationId}/webhooks`);
+    const data = (await response.json()) as {
+      endpoints?: WebhookEndpoint[];
+      deliveries?: WebhookDelivery[];
+    };
+
+    return {
+      endpoints: data.endpoints ?? [],
+      deliveries: data.deliveries ?? [],
+    };
+  }, [organizationId]);
+
+  const { data, reload } = useAsyncData(fetchWebhooks, [organizationId]);
+  const endpoints = data?.endpoints ?? [];
+  const deliveries = data?.deliveries ?? [];
   const [url, setUrl] = useState("");
   const [secret, setSecret] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-
-  const load = useCallback(async () => {
-    const response = await fetch(`/api/organizations/${organizationId}/webhooks`);
-    const data = (await response.json()) as {
-      endpoints?: typeof endpoints;
-      deliveries?: typeof deliveries;
-    };
-    setEndpoints(data.endpoints ?? []);
-    setDeliveries(data.deliveries ?? []);
-  }, [organizationId]);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
 
   async function handleCreate() {
     setError(null);
@@ -81,7 +82,7 @@ export function WebhooksPanel({ organizationId }: { organizationId: string }) {
     setSecret(data.endpoint?.secret ?? null);
     setUrl("");
     toast.success("Webhook endpoint created");
-    await load();
+    reload();
     setIsLoading(false);
   }
 
@@ -97,7 +98,7 @@ export function WebhooksPanel({ organizationId }: { organizationId: string }) {
     }
 
     toast.success("Webhook deleted");
-    await load();
+    reload();
   }
 
   return (
@@ -194,7 +195,7 @@ export function WebhooksPanel({ organizationId }: { organizationId: string }) {
                     <td className="px-4 py-3">{delivery.event}</td>
                     <td className="px-4 py-3 capitalize">{delivery.status}</td>
                     <td className="px-4 py-3">
-                      {delivery.responseStatus ?? "—"}
+                      {delivery.responseStatus ?? "N/A"}
                     </td>
                   </tr>
                 ))
