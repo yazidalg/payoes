@@ -27,6 +27,10 @@ From the repository root:
 npm run docs:dev
 ```
 
+Open [http://localhost:3001](http://localhost:3001).
+
+To run the full Payoes app locally (database, MinIO, web app), see the **Local Setup** tab in the docs sidebar, starting with [Getting started](/local-setup/getting-started).
+
 Or from this directory:
 
 ```bash

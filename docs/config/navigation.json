@@ -28,6 +28,20 @@
       ]
     },
     {
+      "tab": "Local Setup",
+      "groups": [
+        {
+          "group": "Developer guide",
+          "pages": [
+            "local-setup/overview",
+            "local-setup/getting-started",
+            "local-setup/environment-variables",
+            "local-setup/kyc-verification"
+          ]
+        }
+      ]
+    },
+    {
       "tab": "API Reference",
       "groups": [
         {

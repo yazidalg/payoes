@@ -35,17 +35,32 @@ Your organization environment is shown in the dashboard header. Sandbox mode dis
 
 ## Moving to production
 
-Before going live:
+Production mode accepts **real mainnet payments**. Before going live you must complete **identity verification** through Persona.
 
-1. Configure a **production receiving wallet** with a mainnet address
-2. Ensure the wallet has a **USDC trustline** if accepting USDC
-3. Create a `pk_live_` API key
-4. Update `STELLAR_MAINNET_USDC_ISSUER` on your Payoes deployment
-5. Switch your integration to production keys and mainnet checkout URLs
+### Identity verification and production gate
+
+1. Open **Settings → Production** in the dashboard
+2. Choose **Personal** or **Business** and describe what you do (business description required for business accounts)
+3. Complete the **Persona** flow (government ID + selfie/liveness)
+4. Persona automatically approves or declines — no Payoes admin review
+5. Configure a **production receiving wallet** with a mainnet address
+6. Switch the organization to production mode
+
+| Requirement | Purpose |
+|-------------|---------|
+| Persona verification | Automated identity check (personal or business) |
+| Production receiving wallet | Destination for live customer payments |
 
 <Warning>
-  Production payments move real assets. Test thoroughly in sandbox first.
+  Production payments move real assets. Complete sandbox testing and identity verification first.
 </Warning>
+
+### Additional checklist
+
+1. Ensure the production wallet has a **USDC trustline** if accepting USDC
+2. Create a `pk_live_` API key
+3. Update `STELLAR_MAINNET_USDC_ISSUER` on your Payoes deployment
+4. Update your integration to use production keys and mainnet checkout URLs
 
 ## Expiration
 
