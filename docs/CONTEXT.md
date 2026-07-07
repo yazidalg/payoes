@@ -153,7 +153,6 @@ Features:
 
 - Revenue overview
 - Recent transactions
-- Payment analytics
 - Payment links
 - API keys
 - Webhooks
@@ -171,6 +170,10 @@ Supported assets:
 - XLM
 - Custom Stellar Assets
 
+## Payment Intents
+
+Core payment records (`pay_...`), equivalent to Stripe Payment Intents.
+
 Capabilities:
 
 - One-time payments
@@ -178,18 +181,29 @@ Capabilities:
 - Metadata
 - Expiration
 - Payment status
+- Source tracking (`direct`, `checkout_session`, `payment_link`)
+
+---
+
+## Checkout Sessions
+
+Hosted checkout flows (`cs_...`), equivalent to Stripe Checkout Sessions.
+
+Each session creates an underlying payment intent and exposes a checkout URL at `/c/cs_...`.
 
 ---
 
 ## Payment Links
 
-Generate hosted payment links.
+Reusable shareable links (`plink_...`), equivalent to Stripe Payment Links.
 
 Example
 
 ```
-https://pay.payoes.com/p/pay_xxxxxx
+https://pay.payoes.com/l/plink_xxxxxx
 ```
+
+Each visit starts a new checkout session and payment intent.
 
 Payment links can be shared through:
 
@@ -198,6 +212,32 @@ Payment links can be shared through:
 - Telegram
 - QR Code
 - Websites
+
+---
+
+## Invoices
+
+Bill customers with draft-to-open invoices (`inv_...`).
+
+Flow:
+
+1. Create invoice (draft)
+2. Finalize invoice to spawn checkout session + payment intent
+3. Customer pays via hosted checkout
+4. Invoice status becomes `paid`
+
+---
+
+## Subscriptions
+
+Recurring billing (`sub_...`) with manual period billing.
+
+Capabilities:
+
+- Monthly or yearly intervals
+- Linked customer
+- Bill now creates a finalized invoice for the current period
+- Period advances when the linked invoice is paid
 
 ---
 
@@ -278,20 +318,6 @@ Capabilities:
 - Revoke Keys
 - Rotate Keys
 - View Usage
-
----
-
-## Analytics
-
-Dashboard metrics include:
-
-- Total Revenue
-- Total Payments
-- Payment Volume
-- Failed Payments
-- Conversion Rate
-- Active Customers
-- Average Payment Size
 
 ---
 
@@ -407,8 +433,6 @@ Developers
     Webhooks
     API Logs
 
-Analytics
-
 Settings
 ```
 
@@ -492,13 +516,11 @@ Infrastructure
 
 Potential future capabilities include:
 
-- Subscription Billing
 - Invoice Management
 - Escrow Payments
 - Split Payments
 - Marketplace Payouts
 - Multi-Organization Support
-- Team Management
 - SDK for multiple languages
 - Embedded Checkout
 - Payment Widgets

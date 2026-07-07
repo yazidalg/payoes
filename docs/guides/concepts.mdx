@@ -24,6 +24,21 @@ Each organization has:
 - A **sandbox** or **production** environment
 - A **receiving wallet** per environment
 - Its own API keys, payments, and webhooks
+- **Team members** with role-based access
+
+Edit your organization profile in **Settings → Organization**. Payoes does not charge merchants a platform fee in v1. Customer payments settle on-chain to your receiving wallet.
+
+### Team members
+
+Users who can access your organization dashboard. The creator becomes the **owner** during onboarding.
+
+| Role | Access |
+|------|--------|
+| **Owner** | Full access, including changing member roles |
+| **Admin** | Manage settings, API keys, webhooks, and team invites |
+| **Member** | View dashboard, create payments and customers |
+
+Owners and admins can invite teammates by email from **Settings → Team Members**. Invitees receive an email with a link to accept the invitation. They must sign in or create an account with the invited email address before joining.
 
 ### Receiving wallet
 
@@ -31,23 +46,75 @@ The Stellar public key where customer payments are sent. Configured during onboa
 
 Payoes reads this address when building checkout transactions and when verifying payments on Horizon.
 
-### Payment
+### Payment intent
 
 A single payment request, equivalent to a Stripe Payment Intent.
 
 | Field | Meaning |
 |-------|---------|
-| `id` | Public ID (`pay_...`) used in URLs and API calls |
+| `id` | Public ID (`pay_...`) used in API calls |
 | `amount` | Stellar amount (up to 7 decimal places) |
 | `asset` | `XLM` (native) or `USDC` |
 | `status` | `pending`, `completed`, `failed`, or `expired` |
-| `checkout_url` | Hosted page where the customer pays |
+| `source_type` | How the payment was created (`direct`, `checkout_session`, `payment_link`, etc.) |
+| `checkout_url` | Legacy hosted page at `/c/pay_...` |
 
-Payments are created via the dashboard or API. Each payment gets a unique checkout link.
+Payment intents are created directly via the dashboard or API, or automatically when you create a checkout session or start checkout from a payment link.
+
+### Checkout session
+
+A hosted checkout flow, equivalent to a Stripe Checkout Session. Each session creates an underlying payment intent.
+
+| Field | Meaning |
+|-------|---------|
+| `id` | Public ID (`cs_...`) |
+| `status` | `open`, `complete`, or `expired` |
+| `payment_intent_id` | Linked `pay_...` record |
+| `checkout_url` | Hosted page at `/c/cs_...` |
+
+Create checkout sessions from the dashboard or API when you want a dedicated checkout URL with optional success and cancel redirects.
+
+### Payment link
+
+A reusable shareable link, equivalent to a Stripe Payment Link.
+
+| Field | Meaning |
+|-------|---------|
+| `id` | Public ID (`plink_...`) |
+| `url` | Public page at `/l/plink_...` |
+| `active` | Whether the link accepts new checkouts |
+
+Each visit to a payment link starts a new checkout session and payment intent.
+
+### Invoice
+
+A bill sent to a customer, equivalent to a Stripe Invoice.
+
+| Field | Meaning |
+|-------|---------|
+| `id` | Public ID (`inv_...`) |
+| `status` | `draft`, `open`, `paid`, or `void` |
+| `checkout_url` | Available after finalizing the invoice |
+| `customer_id` | Linked customer |
+
+Create an invoice in draft, then finalize it to spawn a checkout session and payment intent.
+
+### Subscription
+
+Recurring billing for a customer, equivalent to a Stripe Subscription.
+
+| Field | Meaning |
+|-------|---------|
+| `id` | Public ID (`sub_...`) |
+| `status` | `active`, `canceled`, or `past_due` |
+| `interval` | `month` or `year` |
+| `current_period_end` | End of the current billing period |
+
+Use **Bill now** on a subscription to create and finalize an invoice for the current period.
 
 ### Checkout
 
-A public hosted page at `/c/{payment_id}`.
+A public hosted page at `/c/{checkout_id}` where `checkout_id` is either `cs_...` (checkout session) or `pay_...` (legacy payment intent).
 
 The checkout flow:
 
@@ -62,11 +129,7 @@ Customers never log into Payoes.
 
 ### Transaction
 
-After a successful payment, the Stellar **transaction hash** (`tx_hash`) is stored on the payment record. You can look it up on Stellar Explorer for the corresponding network (testnet or mainnet).
-
-### Payment link
-
-In the dashboard, **Payment Links** lists pending payments with copyable checkout URLs. Under the hood, a payment link is the `checkout_url` of a pending payment, not a separate resource.
+After a successful payment, the Stellar **transaction hash** (`tx_hash`) is stored on the payment intent record. You can look it up on Stellar Explorer for the corresponding network (testnet or mainnet).
 
 ### API key
 
