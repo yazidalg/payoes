@@ -1,5 +1,7 @@
-import { DashboardSectionPage } from "@/components/dashboard/section-placeholder";
+import { ApiKeysPanel } from "@/components/developers/api-keys-panel";
+import { getDashboardOrganization } from "@/lib/dashboard/get-organization";
 
-export default function ApiKeysPage() {
-  return <DashboardSectionPage pathname="/dashboard/developers/api-keys" />;
+export default async function ApiKeysPage() {
+  const organization = await getDashboardOrganization();
+  return <ApiKeysPanel organizationId={organization.id} />;
 }

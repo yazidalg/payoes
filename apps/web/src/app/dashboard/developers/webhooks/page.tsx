@@ -1,5 +1,7 @@
-import { DashboardSectionPage } from "@/components/dashboard/section-placeholder";
+import { WebhooksPanel } from "@/components/developers/webhooks-panel";
+import { getDashboardOrganization } from "@/lib/dashboard/get-organization";
 
-export default function WebhooksPage() {
-  return <DashboardSectionPage pathname="/dashboard/developers/webhooks" />;
+export default async function WebhooksPage() {
+  const organization = await getDashboardOrganization();
+  return <WebhooksPanel organizationId={organization.id} />;
 }

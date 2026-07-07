@@ -1,5 +1,7 @@
-import { DashboardSectionPage } from "@/components/dashboard/section-placeholder";
+import { PaymentsPanel } from "@/components/payments/payments-panel";
+import { getDashboardOrganization } from "@/lib/dashboard/get-organization";
 
-export default function PaymentsPage() {
-  return <DashboardSectionPage pathname="/dashboard/payments" />;
+export default async function PaymentsPage() {
+  const organization = await getDashboardOrganization();
+  return <PaymentsPanel organizationId={organization.id} />;
 }

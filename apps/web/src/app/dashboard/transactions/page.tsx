@@ -1,5 +1,7 @@
-import { DashboardSectionPage } from "@/components/dashboard/section-placeholder";
+import { TransactionsTable } from "@/components/transactions/transactions-table";
+import { getDashboardOrganization } from "@/lib/dashboard/get-organization";
 
-export default function TransactionsPage() {
-  return <DashboardSectionPage pathname="/dashboard/transactions" />;
+export default async function TransactionsPage() {
+  const organization = await getDashboardOrganization();
+  return <TransactionsTable organizationId={organization.id} />;
 }

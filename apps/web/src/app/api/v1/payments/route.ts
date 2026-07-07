@@ -1,0 +1,64 @@
+import { NextResponse } from "next/server";
+import { z } from "zod";
+import { withApiKeyAuth } from "@/lib/api-keys/auth";
+import { ACCEPTED_ASSET_OPTIONS } from "@/lib/organizations/wallet-constants";
+import {
+  createPayment,
+  listPayments,
+  serializePayment,
+} from "@/lib/payments/service";
+
+const createPaymentSchema = z.object({
+  amount: z
+    .string()
+    .regex(/^\d+(\.\d{1,7})?$/, "Amount must be a valid Stellar amount"),
+  asset: z.enum(ACCEPTED_ASSET_OPTIONS),
+  description: z.string().max(500).optional().nullable(),
+  metadata: z.record(z.string(), z.string()).optional().nullable(),
+  expires_in_minutes: z.number().int().min(5).max(10080).optional(),
+});
+
+export async function GET(request: Request) {
+  return withApiKeyAuth(request, async ({ apiKey }) => {
+    const payments = await listPayments(apiKey.organizationId);
+    return NextResponse.json({
+      payments: payments.map(serializePayment),
+    });
+  });
+}
+
+export async function POST(request: Request) {
+  return withApiKeyAuth(request, async ({ apiKey }) => {
+    const body = await request.json();
+    const parsed = createPaymentSchema.safeParse(body);
+
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: parsed.error.issues[0]?.message ?? "Invalid request" },
+        { status: 400 }
+      );
+    }
+
+    try {
+      const payment = await createPayment({
+        organizationId: apiKey.organizationId,
+        environment: apiKey.environment,
+        amount: parsed.data.amount,
+        asset: parsed.data.asset,
+        description: parsed.data.description,
+        metadata: parsed.data.metadata,
+        expiresInMinutes: parsed.data.expires_in_minutes,
+      });
+
+      return NextResponse.json(serializePayment(payment), { status: 201 });
+    } catch (error) {
+      return NextResponse.json(
+        {
+          error:
+            error instanceof Error ? error.message : "Unable to create payment",
+        },
+        { status: 400 }
+      );
+    }
+  });
+}

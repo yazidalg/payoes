@@ -1,5 +1,7 @@
-import { DashboardSectionPage } from "@/components/dashboard/section-placeholder";
+import { ApiLogsTable } from "@/components/developers/api-logs-table";
+import { getDashboardOrganization } from "@/lib/dashboard/get-organization";
 
-export default function ApiLogsPage() {
-  return <DashboardSectionPage pathname="/dashboard/developers/api-logs" />;
+export default async function ApiLogsPage() {
+  const organization = await getDashboardOrganization();
+  return <ApiLogsTable organizationId={organization.id} />;
 }
