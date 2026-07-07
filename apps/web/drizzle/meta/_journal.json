@@ -36,6 +36,27 @@
       "when": 1783404000000,
       "tag": "0004_customers",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1783405000000,
+      "tag": "0005_checkout_sessions_payment_links",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1783406000000,
+      "tag": "0006_invoices_subscriptions",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1783407000000,
+      "tag": "0007_organization_invites",
+      "breakpoints": true
     }
   ]
 }
