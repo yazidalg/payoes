@@ -4,7 +4,6 @@ import { z } from "zod";
 import { getOrganizationForMember } from "@/lib/organizations/wallet";
 import {
   createWebhookEndpoint,
-  listWebhookDeliveries,
   listWebhookEndpoints,
 } from "@/lib/webhooks/service";
 
@@ -39,12 +38,9 @@ export async function GET(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const [endpoints, deliveries] = await Promise.all([
-    listWebhookEndpoints(organization.id),
-    listWebhookDeliveries(organization.id),
-  ]);
+  const endpoints = await listWebhookEndpoints(organization.id);
 
-  return NextResponse.json({ endpoints, deliveries });
+  return NextResponse.json({ endpoints });
 }
 
 export async function POST(

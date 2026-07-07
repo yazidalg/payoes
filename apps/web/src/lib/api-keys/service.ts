@@ -29,6 +29,26 @@ export async function listApiKeys(organizationId: string) {
     .orderBy(desc(apiKeys.createdAt));
 }
 
+export async function getApiKey(organizationId: string, apiKeyId: string) {
+  const [apiKey] = await db
+    .select({
+      id: apiKeys.id,
+      name: apiKeys.name,
+      keyPrefix: apiKeys.keyPrefix,
+      environment: apiKeys.environment,
+      lastUsedAt: apiKeys.lastUsedAt,
+      revokedAt: apiKeys.revokedAt,
+      createdAt: apiKeys.createdAt,
+    })
+    .from(apiKeys)
+    .where(
+      and(eq(apiKeys.id, apiKeyId), eq(apiKeys.organizationId, organizationId))
+    )
+    .limit(1);
+
+  return apiKey ?? null;
+}
+
 export async function createApiKey(input: {
   organizationId: string;
   name: string;

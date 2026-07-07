@@ -1,7 +1,7 @@
-import { ApiKeysPanel } from "@/components/developers/api-keys-panel";
+import { ApiKeysListPanel } from "@/components/developers/api-keys-list-panel";
 import { getDashboardOrganization } from "@/lib/dashboard/get-organization";
 
 export default async function ApiKeysPage() {
   const organization = await getDashboardOrganization();
-  return <ApiKeysPanel organizationId={organization.id} />;
+  return <ApiKeysListPanel organizationId={organization.id} />;
 }

@@ -17,6 +17,30 @@ export async function listWebhookEndpoints(organizationId: string) {
     .orderBy(desc(webhookEndpoints.createdAt));
 }
 
+export async function getWebhookEndpoint(
+  organizationId: string,
+  webhookId: string
+) {
+  const [endpoint] = await db
+    .select({
+      id: webhookEndpoints.id,
+      url: webhookEndpoints.url,
+      events: webhookEndpoints.events,
+      enabled: webhookEndpoints.enabled,
+      createdAt: webhookEndpoints.createdAt,
+    })
+    .from(webhookEndpoints)
+    .where(
+      and(
+        eq(webhookEndpoints.id, webhookId),
+        eq(webhookEndpoints.organizationId, organizationId)
+      )
+    )
+    .limit(1);
+
+  return endpoint ?? null;
+}
+
 export async function createWebhookEndpoint(input: {
   organizationId: string;
   url: string;
@@ -72,6 +96,7 @@ export async function listWebhookDeliveries(organizationId: string, limit = 50) 
       createdAt: webhookDeliveries.createdAt,
       deliveredAt: webhookDeliveries.deliveredAt,
       url: webhookEndpoints.url,
+      webhookEndpointId: webhookDeliveries.webhookEndpointId,
     })
     .from(webhookDeliveries)
     .innerJoin(
@@ -79,6 +104,36 @@ export async function listWebhookDeliveries(organizationId: string, limit = 50) 
       eq(webhookDeliveries.webhookEndpointId, webhookEndpoints.id)
     )
     .where(eq(webhookEndpoints.organizationId, organizationId))
+    .orderBy(desc(webhookDeliveries.createdAt))
+    .limit(limit);
+}
+
+export async function listWebhookDeliveriesForEndpoint(
+  organizationId: string,
+  webhookId: string,
+  limit = 50
+) {
+  return db
+    .select({
+      id: webhookDeliveries.id,
+      event: webhookDeliveries.event,
+      status: webhookDeliveries.status,
+      responseStatus: webhookDeliveries.responseStatus,
+      attempts: webhookDeliveries.attempts,
+      createdAt: webhookDeliveries.createdAt,
+      deliveredAt: webhookDeliveries.deliveredAt,
+    })
+    .from(webhookDeliveries)
+    .innerJoin(
+      webhookEndpoints,
+      eq(webhookDeliveries.webhookEndpointId, webhookEndpoints.id)
+    )
+    .where(
+      and(
+        eq(webhookEndpoints.organizationId, organizationId),
+        eq(webhookDeliveries.webhookEndpointId, webhookId)
+      )
+    )
     .orderBy(desc(webhookDeliveries.createdAt))
     .limit(limit);
 }
