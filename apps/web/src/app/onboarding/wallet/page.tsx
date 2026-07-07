@@ -1,11 +1,7 @@
 import { auth } from "@/auth";
 import { findUserByEmail } from "@/lib/auth/users";
+import { getPrimaryOrganizationForUser } from "@/lib/organizations/wallet";
 import { ReceivingWalletForm } from "@/components/wallet/receiving-wallet-form";
-import type { AcceptedAsset } from "@/lib/organizations/wallet-constants";
-import {
-  getPrimaryOrganizationForUser,
-  getReceivingWallet,
-} from "@/lib/organizations/wallet";
 import { redirect } from "next/navigation";
 
 async function resolveUserId(session: {
@@ -23,32 +19,25 @@ async function resolveUserId(session: {
   return user?.id ?? null;
 }
 
-export default async function ReceivingWalletPage() {
+export default async function OnboardingWalletPage() {
   const session = await auth();
   const userId = session?.user ? await resolveUserId(session) : null;
 
   if (!userId) {
-    redirect("/login");
+    redirect("/login?error=SessionExpired");
   }
 
   const organization = await getPrimaryOrganizationForUser(userId);
 
   if (!organization) {
-    redirect("/onboarding");
+    redirect("/onboarding/organization");
   }
-
-  const wallet = await getReceivingWallet(
-    organization.id,
-    organization.environment
-  );
 
   return (
     <ReceivingWalletForm
       organizationId={organization.id}
       environment={organization.environment}
-      mode="settings"
-      initialAddress={wallet?.stellarAddress ?? null}
-      initialAssets={(wallet?.acceptedAssets ?? ["USDC", "XLM"]) as AcceptedAsset[]}
+      mode="onboarding"
     />
   );
 }
