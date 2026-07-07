@@ -30,10 +30,10 @@ export default function MarketingLayout({
               Sign in
             </Link>
             <Link
-              href="/dashboard"
-              className="rounded-full bg-zinc-900 px-4 py-1.5 text-zinc-50 transition-colors hover:bg-zinc-700"
+              href="/register"
+              className="rounded-full border border-zinc-300 px-4 py-1.5 text-zinc-900 transition-colors hover:bg-zinc-50"
             >
-              Dashboard
+              Create account
             </Link>
           </nav>
         </div>

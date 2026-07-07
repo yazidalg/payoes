@@ -28,12 +28,12 @@ export default function Home() {
           >
             Sign in
           </Link>
-          <a
-            href="#sdk"
+          <Link
+            href="/register"
             className="rounded-full border border-zinc-300 px-6 py-3 text-sm font-medium text-zinc-900 transition-colors hover:bg-zinc-50"
           >
-            View SDK
-          </a>
+            Create account
+          </Link>
         </div>
       </section>
 
