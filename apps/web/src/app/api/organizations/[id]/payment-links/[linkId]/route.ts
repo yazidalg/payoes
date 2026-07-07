@@ -1,0 +1,33 @@
+import { auth } from "@/auth";
+import { NextResponse } from "next/server";
+import {
+  getPaymentLinkForOrganization,
+  serializePaymentLink,
+} from "@/lib/payment-links/service";
+import { getOrganizationForMember } from "@/lib/organizations/wallet";
+
+export async function GET(
+  _request: Request,
+  { params }: { params: Promise<{ id: string; linkId: string }> }
+) {
+  const session = await auth();
+
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { id, linkId } = await params;
+  const organization = await getOrganizationForMember(id, session.user.id);
+
+  if (!organization) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const link = await getPaymentLinkForOrganization(linkId, organization.id);
+
+  if (!link) {
+    return NextResponse.json({ error: "Payment link not found" }, { status: 404 });
+  }
+
+  return NextResponse.json(serializePaymentLink(link));
+}

@@ -1,10 +1,10 @@
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { resolvePaymentForHostedCheckout } from "@/lib/checkout-sessions/service";
 import { db } from "@/lib/db";
 import { organizations } from "@/lib/db/schema";
 import { confirmPaymentWithTxHash } from "@/lib/payments/verify";
-import { getPaymentByPublicId } from "@/lib/payments/service";
 import { buildPaymentTransactionXdr } from "@/lib/stellar/payments";
 
 const confirmSchema = z.object({
@@ -20,11 +20,13 @@ export async function GET(
   { params }: { params: Promise<{ paymentId: string }> }
 ) {
   const { paymentId } = await params;
-  const payment = await getPaymentByPublicId(paymentId);
+  const resolved = await resolvePaymentForHostedCheckout(paymentId);
 
-  if (!payment) {
+  if (!resolved) {
     return NextResponse.json({ error: "Payment not found" }, { status: 404 });
   }
+
+  const { payment } = resolved;
 
   const [organization] = await db
     .select({
@@ -56,12 +58,13 @@ export async function POST(
   { params }: { params: Promise<{ paymentId: string }> }
 ) {
   const { paymentId } = await params;
-  const payment = await getPaymentByPublicId(paymentId);
+  const resolved = await resolvePaymentForHostedCheckout(paymentId);
 
-  if (!payment) {
+  if (!resolved) {
     return NextResponse.json({ error: "Payment not found" }, { status: 404 });
   }
 
+  const { payment } = resolved;
   const body = await request.json();
 
   if (body.action === "build_transaction") {
@@ -101,7 +104,10 @@ export async function POST(
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
   }
 
-  const result = await confirmPaymentWithTxHash(paymentId, parsed.data.txHash);
+  const result = await confirmPaymentWithTxHash(
+    payment.publicId,
+    parsed.data.txHash
+  );
 
   if (!result.ok) {
     return NextResponse.json({ error: result.error }, { status: 400 });
