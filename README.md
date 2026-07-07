@@ -1,36 +1,60 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Payoes
+
+Monorepo for Payoes — Stellar payment SDK and web application.
+
+## Structure
+
+```
+payoes/
+├── apps/
+│   └── web/                    # Landing page + dashboard (Next.js + shadcn/ui)
+│       ├── components.json     # shadcn configuration
+│       └── src/
+│           ├── app/
+│           │   ├── (marketing)/   # Landing page
+│           │   └── dashboard/       # shadcn sidebar-07 dashboard
+│           └── components/        # shadcn UI + app-sidebar, nav-*, team-switcher
+├── packages/
+│   └── sdk/                    # Payoes SDK (TypeScript)
+└── package.json                # Workspace root
+```
 
 ## Getting Started
 
-First, run the development server:
+Install dependencies from the root:
+
+```bash
+npm install
+```
+
+Run the web app:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- [http://localhost:3000](http://localhost:3000) — landing page
+- [http://localhost:3000/dashboard](http://localhost:3000/dashboard) — shadcn dashboard
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## shadcn/ui
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Dashboard is built with [shadcn/ui](https://ui.shadcn.com) (`sidebar-07` block).
 
-## Learn More
+```bash
+cd apps/web
+npx shadcn@latest add <component>
+```
 
-To learn more about Next.js, take a look at the following resources:
+## Scripts
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Dev server for `apps/web` |
+| `npm run build` | Production build for `apps/web` |
+| `npm run start` | Start production server |
+| `npm run lint` | Lint `apps/web` |
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Workspaces
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **`apps/web`** — Next.js 16, Tailwind CSS v4, shadcn/ui (base-nova)
+- **`packages/sdk`** — core SDK (`@payoes/sdk`), currently a placeholder
