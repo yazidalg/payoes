@@ -1,8 +1,11 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
+import { authConfig } from "@/auth.config";
+import { verifyUserPassword } from "@/lib/auth/users";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  ...authConfig,
   providers: [
     Google,
     Credentials({
@@ -21,11 +24,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const demoEmail = process.env.AUTH_DEMO_EMAIL;
         const demoPassword = process.env.AUTH_DEMO_PASSWORD;
 
-        if (!demoEmail || !demoPassword) {
-          return null;
-        }
-
-        if (email === demoEmail && password === demoPassword) {
+        if (
+          demoEmail &&
+          demoPassword &&
+          email === demoEmail &&
+          password === demoPassword
+        ) {
           return {
             id: "demo-user",
             email: demoEmail,
@@ -33,15 +37,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           };
         }
 
-        return null;
+        return verifyUserPassword(email, password);
       },
     }),
   ],
-  pages: {
-    signIn: "/login",
-  },
-  session: {
-    strategy: "jwt",
-  },
-  trustHost: true,
 });
