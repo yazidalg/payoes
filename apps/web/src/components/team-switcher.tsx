@@ -1,39 +1,49 @@
-"use client"
+"use client";
 
-import * as React from "react"
-
+import * as React from "react";
+import { OrganizationMark } from "@/components/organizations/organization-mark";
+import type { Organization } from "@/lib/db/schema";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuShortcut,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+} from "@/components/ui/dropdown-menu";
 import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
   useSidebar,
-} from "@/components/ui/sidebar"
-import { ChevronsUpDownIcon, PlusIcon } from "lucide-react"
+} from "@/components/ui/sidebar";
+import { ChevronsUpDownIcon } from "lucide-react";
 
 export function TeamSwitcher({
-  teams,
+  organizations,
+  activeOrganization,
+  onOrganizationChange,
 }: {
-  teams: {
-    name: string
-    logo: React.ReactNode
-    plan: string
-  }[]
+  organizations: Organization[];
+  activeOrganization?: Organization;
+  onOrganizationChange?: (organization: Organization) => void;
 }) {
-  const { isMobile } = useSidebar()
-  const [activeTeam, setActiveTeam] = React.useState(teams[0])
-  if (!activeTeam) {
-    return null
+  const { isMobile } = useSidebar();
+  const [internalOrganization, setInternalOrganization] = React.useState(
+    organizations[0]
+  );
+
+  const currentOrganization = activeOrganization ?? internalOrganization;
+
+  if (!currentOrganization) {
+    return null;
   }
+
+  function selectOrganization(organization: Organization) {
+    setInternalOrganization(organization);
+    onOrganizationChange?.(organization);
+  }
+
   return (
     <SidebarMenu>
       <SidebarMenuItem>
@@ -46,12 +56,19 @@ export function TeamSwitcher({
               />
             }
           >
-            <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-              {activeTeam.logo}
+            <div className="flex aspect-square size-8 items-center justify-center overflow-hidden rounded-lg bg-sidebar-primary text-sm font-semibold text-sidebar-primary-foreground">
+              <OrganizationMark
+                organization={currentOrganization}
+                className="size-full object-cover"
+              />
             </div>
             <div className="grid flex-1 text-left text-sm leading-tight">
-              <span className="truncate font-medium">{activeTeam.name}</span>
-              <span className="truncate text-xs">{activeTeam.plan}</span>
+              <span className="truncate font-medium">
+                {currentOrganization.name}
+              </span>
+              <span className="truncate text-xs capitalize">
+                {currentOrganization.environment} workspace
+              </span>
             </div>
             <ChevronsUpDownIcon className="ml-auto" />
           </DropdownMenuTrigger>
@@ -63,36 +80,27 @@ export function TeamSwitcher({
           >
             <DropdownMenuGroup>
               <DropdownMenuLabel className="text-xs text-muted-foreground">
-                Teams
+                Organizations
               </DropdownMenuLabel>
-              {teams.map((team, index) => (
+              {organizations.map((organization) => (
                 <DropdownMenuItem
-                  key={team.name}
-                  onClick={() => setActiveTeam(team)}
+                  key={organization.id}
+                  onClick={() => selectOrganization(organization)}
                   className="gap-2 p-2"
                 >
-                  <div className="flex size-6 items-center justify-center rounded-md border">
-                    {team.logo}
+                  <div className="flex size-6 items-center justify-center overflow-hidden rounded-md border bg-background text-[10px] font-semibold">
+                    <OrganizationMark
+                      organization={organization}
+                      className="size-full object-cover"
+                    />
                   </div>
-                  {team.name}
-                  <DropdownMenuShortcut>⌘{index + 1}</DropdownMenuShortcut>
+                  {organization.name}
                 </DropdownMenuItem>
               ))}
-            </DropdownMenuGroup>
-            <DropdownMenuSeparator />
-            <DropdownMenuGroup>
-              <DropdownMenuItem className="gap-2 p-2">
-                <div className="flex size-6 items-center justify-center rounded-md border bg-transparent">
-                  <PlusIcon className="size-4" />
-                </div>
-                <div className="font-medium text-muted-foreground">
-                  Add team
-                </div>
-              </DropdownMenuItem>
             </DropdownMenuGroup>
           </DropdownMenuContent>
         </DropdownMenu>
       </SidebarMenuItem>
     </SidebarMenu>
-  )
+  );
 }

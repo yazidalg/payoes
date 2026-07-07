@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { usePathname } from "next/navigation";
 import { AppSidebar } from "@/components/app-sidebar";
+import { SandboxModeBanner } from "@/components/dashboard/environment-mode";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -15,10 +16,12 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
+import type { Organization } from "@/lib/db/schema";
 import { getDashboardPageTitle } from "@/lib/navigation/dashboard-nav";
 
 export function DashboardShell({
   user,
+  organizations,
   children,
 }: {
   user: {
@@ -26,26 +29,30 @@ export function DashboardShell({
     email?: string | null;
     image?: string | null;
   };
+  organizations: Organization[];
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
   const pageTitle = getDashboardPageTitle(pathname);
-  const [isMounted, setIsMounted] = useState(false);
-
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
-
-  if (!isMounted) {
-    return <div className="min-h-svh w-full bg-background" />;
-  }
+  const [activeOrganization, setActiveOrganization] = useState(organizations[0]);
+  const isSandbox = activeOrganization?.environment === "sandbox";
 
   return (
-    <SidebarProvider>
-      <AppSidebar user={user} />
-      <SidebarInset className="min-w-0 flex-1">
-        <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
-          <div className="flex items-center gap-2 px-4">
+    <div className="bg-sidebar flex h-svh w-full flex-col overflow-hidden">
+      {activeOrganization && isSandbox ? (
+        <SandboxModeBanner organization={activeOrganization} />
+      ) : null}
+
+      <SidebarProvider className="bg-sidebar min-h-0 flex-1 overflow-hidden">
+        <AppSidebar
+          user={user}
+          organizations={organizations}
+          activeOrganization={activeOrganization}
+          onOrganizationChange={setActiveOrganization}
+          collapsible={isSandbox ? "none" : "icon"}
+        />
+        <SidebarInset className="bg-sidebar m-0 flex min-h-0 flex-1 flex-col overflow-hidden p-0">
+          <header className="bg-sidebar flex h-14 shrink-0 items-center gap-2 px-4 md:px-6">
             <SidebarTrigger className="-ml-1" />
             <Separator
               orientation="vertical"
@@ -58,10 +65,13 @@ export function DashboardShell({
                 </BreadcrumbItem>
               </BreadcrumbList>
             </Breadcrumb>
+          </header>
+
+          <div className="border-border bg-card mb-2 min-h-0 flex-1 overflow-hidden rounded-tl-4xl border-l">
+            <div className="h-full overflow-y-auto p-4 md:p-6">{children}</div>
           </div>
-        </header>
-        <div className="flex flex-1 flex-col gap-4 p-4 pt-0">{children}</div>
-      </SidebarInset>
-    </SidebarProvider>
+        </SidebarInset>
+      </SidebarProvider>
+    </div>
   );
 }
