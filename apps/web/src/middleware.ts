@@ -37,6 +37,7 @@ export const config = {
     "/onboarding",
     "/login",
     "/register",
+    "/invite/:path*",
     "/c/:path*",
   ],
 };
