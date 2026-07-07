@@ -1,5 +1,5 @@
-import { DashboardSectionPage } from "@/components/dashboard/section-placeholder";
+import { redirect } from "next/navigation";
 
 export default function AnalyticsPage() {
-  return <DashboardSectionPage pathname="/dashboard/analytics" />;
+  redirect("/dashboard/payments");
 }
