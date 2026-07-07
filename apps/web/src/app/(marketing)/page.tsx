@@ -23,10 +23,10 @@ export default function Home() {
         </p>
         <div className="mt-10 flex flex-wrap gap-4">
           <Link
-            href="/dashboard"
+            href="/login"
             className="rounded-full bg-zinc-900 px-6 py-3 text-sm font-medium text-zinc-50 transition-colors hover:bg-zinc-700"
           >
-            Open Dashboard
+            Sign in
           </Link>
           <a
             href="#sdk"

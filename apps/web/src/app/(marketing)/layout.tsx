@@ -24,6 +24,12 @@ export default function MarketingLayout({
               SDK
             </a>
             <Link
+              href="/login"
+              className="transition-colors hover:text-zinc-900"
+            >
+              Sign in
+            </Link>
+            <Link
               href="/dashboard"
               className="rounded-full bg-zinc-900 px-4 py-1.5 text-zinc-50 transition-colors hover:bg-zinc-700"
             >
