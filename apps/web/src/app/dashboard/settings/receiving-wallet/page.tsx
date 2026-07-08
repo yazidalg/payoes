@@ -1,7 +1,6 @@
 import { auth } from "@/auth";
 import { findUserByEmail } from "@/lib/auth/users";
 import { ReceivingWalletForm } from "@/components/wallet/receiving-wallet-form";
-import type { AcceptedAsset } from "@/lib/organizations/wallet-constants";
 import {
   getPrimaryOrganizationForUser,
   getReceivingWallet,
@@ -45,10 +44,11 @@ export default async function ReceivingWalletPage() {
   return (
     <ReceivingWalletForm
       organizationId={organization.id}
+      organizationName={organization.name}
       environment={organization.environment}
-      mode="settings"
       initialAddress={wallet?.stellarAddress ?? null}
-      initialAssets={(wallet?.acceptedAssets ?? ["USDC", "XLM"]) as AcceptedAsset[]}
+      initialWalletProvider={wallet?.walletProvider ?? null}
+      initialConnectedAt={wallet?.connectedAt?.toISOString() ?? null}
     />
   );
 }

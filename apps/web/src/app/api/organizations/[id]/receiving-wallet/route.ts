@@ -3,7 +3,6 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { stellarAccountExists } from "@/lib/stellar/horizon";
 import { isValidStellarAddress } from "@/lib/stellar/validate-address";
-import { ACCEPTED_ASSET_OPTIONS } from "@/lib/organizations/wallet-constants";
 import {
   getOrganizationForMember,
   getReceivingWallet,
@@ -12,15 +11,12 @@ import {
 
 const receivingWalletSchema = z.object({
   stellarAddress: z.string().min(1, "Stellar address is required"),
-  acceptedAssets: z
-    .array(z.enum(ACCEPTED_ASSET_OPTIONS))
-    .min(1, "Select at least one asset"),
   walletProvider: z.string().max(64).optional().nullable(),
   environment: z.enum(["sandbox", "production"]).optional(),
 });
 
 export async function GET(
-  request: Request,
+  _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await auth();
@@ -48,7 +44,6 @@ export async function GET(
   return NextResponse.json({
     wallet: {
       stellarAddress: wallet.stellarAddress,
-      acceptedAssets: wallet.acceptedAssets,
       environment: wallet.environment,
       walletProvider: wallet.walletProvider,
       connectedAt: wallet.connectedAt,
@@ -103,7 +98,7 @@ export async function PUT(
     );
   }
 
-  const { stellarAddress, acceptedAssets, walletProvider } = parsed.data;
+  const { stellarAddress, walletProvider } = parsed.data;
 
   if (!isValidStellarAddress(stellarAddress)) {
     return NextResponse.json(
@@ -140,14 +135,12 @@ export async function PUT(
     organizationId: organization.id,
     environment: targetEnvironment,
     stellarAddress,
-    acceptedAssets,
     walletProvider,
   });
 
   return NextResponse.json({
     wallet: {
       stellarAddress: wallet.stellarAddress,
-      acceptedAssets: wallet.acceptedAssets,
       environment: wallet.environment,
       walletProvider: wallet.walletProvider,
       connectedAt: wallet.connectedAt,
