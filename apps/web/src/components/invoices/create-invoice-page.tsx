@@ -5,8 +5,9 @@ import { useRouter } from "next/navigation";
 import { useCallback, useMemo, useState } from "react";
 import { ArrowLeftIcon, PlusIcon, Trash2Icon } from "lucide-react";
 import { toast } from "sonner";
-import { useDefaultAssetSelection } from "@/components/payment-methods/allowed-assets-picker";
 import { CustomerPicker } from "@/components/invoices/customer-picker";
+import { InvoiceCurrencyPicker } from "@/components/invoices/invoice-currency-picker";
+import { InvoiceDueDatePicker } from "@/components/invoices/invoice-due-date-picker";
 import { InvoicePreviewPanel } from "@/components/invoices/invoice-preview-panel";
 import { InvoiceReviewDialog } from "@/components/invoices/invoice-review-dialog";
 import { AlertBlock } from "@/components/shared/alert-block";
@@ -16,9 +17,11 @@ import { Label } from "@/components/ui/label";
 import { useAsyncData } from "@/hooks/use-async-data";
 import {
   calculateInvoiceTotal,
+  calculateTotalQuantity,
   formatInvoiceAmount,
   lineItemAmount,
 } from "@/lib/invoices/amount";
+import { DEFAULT_INVOICE_CURRENCY_CODE } from "@/lib/invoices/currencies";
 import type { InvoicePresentation } from "@/lib/invoices/presentation";
 import type { CustomerOption } from "@/lib/payments/types";
 import { cn } from "@/lib/utils";
@@ -39,17 +42,46 @@ function createDraftItem(): DraftInvoiceItem {
   };
 }
 
+function defaultDueDate() {
+  const date = new Date();
+  date.setDate(date.getDate() + 30);
+  date.setHours(23, 59, 59, 999);
+  return date;
+}
+
 function buildDraftPresentation(input: {
   organizationName: string;
   organizationLogoUrl: string | null;
   organizationLogoInitials: string;
   environment: "sandbox" | "production";
   customer: CustomerOption | null;
-  asset: string;
+  currencyCode: string;
   description: string;
-  dueInDays: string;
+  dueAt: Date;
   items: DraftInvoiceItem[];
 }): InvoicePresentation {
+  const draftItems = input.items.map((item) => {
+    const hasValues =
+      item.description.trim() && Number(item.unitAmount) > 0 && Number(item.quantity) > 0;
+
+    return {
+      id: item.id,
+      description: item.description.trim() || "Untitled item",
+      quantity: item.quantity || "1",
+      unitAmount: item.unitAmount || "0",
+      lineAmount: hasValues
+        ? lineItemAmount(
+            {
+              description: item.description,
+              quantity: item.quantity || "1",
+              unitAmount: item.unitAmount,
+            },
+            input.currencyCode
+          )
+        : "0",
+    };
+  });
+
   const validItems = input.items.filter(
     (item) => item.description.trim() && Number(item.unitAmount) > 0
   );
@@ -61,21 +93,19 @@ function buildDraftPresentation(input: {
             description: item.description,
             quantity: item.quantity || "1",
             unitAmount: item.unitAmount,
-          }))
+          })),
+          input.currencyCode
         )
-      : "0.0000000";
-
-  const dueAt = new Date(
-    Date.now() + (Number(input.dueInDays) || 30) * 24 * 60 * 60 * 1000
-  );
+      : "0";
 
   return {
     invoiceNumber: "DRAFT",
     status: "draft",
     amount,
-    asset: input.asset,
+    asset: input.currencyCode,
+    currencyCode: input.currencyCode,
     description: input.description.trim() || null,
-    dueAt,
+    dueAt: input.dueAt,
     createdAt: new Date(),
     environmentLabel:
       input.environment === "production" ? "Production" : "Sandbox test mode",
@@ -88,16 +118,7 @@ function buildDraftPresentation(input: {
       name: input.customer?.name ?? null,
       email: input.customer?.email ?? null,
     },
-    items: validItems.map((item) => ({
-      description: item.description,
-      quantity: item.quantity || "1",
-      unitAmount: item.unitAmount,
-      lineAmount: lineItemAmount({
-        description: item.description,
-        quantity: item.quantity || "1",
-        unitAmount: item.unitAmount,
-      }),
-    })),
+    items: draftItems,
     hostedInvoiceUrl: null,
     checkoutUrl: null,
   };
@@ -125,12 +146,10 @@ export function CreateInvoicePage({
 
   const { data: customers } = useAsyncData(fetchCustomers, [organizationId]);
 
-  const { settlementKey } = useDefaultAssetSelection(organizationId);
-  const previewAsset = settlementKey.split(":")[0] || "USDC";
-
   const [customerId, setCustomerId] = useState("");
+  const [currencyCode, setCurrencyCode] = useState(DEFAULT_INVOICE_CURRENCY_CODE);
   const [description, setDescription] = useState("");
-  const [dueInDays, setDueInDays] = useState("30");
+  const [dueAt, setDueAt] = useState<Date>(defaultDueDate);
   const [items, setItems] = useState<DraftInvoiceItem[]>([createDraftItem()]);
   const [error, setError] = useState<string | null>(null);
   const [reviewOpen, setReviewOpen] = useState(false);
@@ -147,9 +166,9 @@ export function CreateInvoicePage({
         organizationLogoInitials,
         environment,
         customer: selectedCustomer,
-        asset: previewAsset,
+        currencyCode,
         description,
-        dueInDays,
+        dueAt,
         items,
       }),
     [
@@ -158,11 +177,19 @@ export function CreateInvoicePage({
       organizationLogoInitials,
       environment,
       selectedCustomer,
-      previewAsset,
+      currencyCode,
       description,
-      dueInDays,
+      dueAt,
       items,
     ]
+  );
+
+  const totalQuantity = calculateTotalQuantity(
+    items.map((item) => ({
+      description: item.description,
+      quantity: item.quantity || "1",
+      unitAmount: item.unitAmount,
+    }))
   );
 
   function updateItem(id: string, patch: Partial<DraftInvoiceItem>) {
@@ -209,8 +236,9 @@ export function CreateInvoicePage({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           customer_id: customerId,
+          currency_code: currencyCode,
           description: description || null,
-          due_in_days: Number(dueInDays) || 30,
+          due_at: dueAt.toISOString(),
           items: items
             .filter((item) => item.description.trim() && Number(item.unitAmount) > 0)
             .map((item) => ({
@@ -262,7 +290,7 @@ export function CreateInvoicePage({
               Create {environment === "production" ? "" : "test "}invoice
             </h1>
             <p className="text-sm text-muted-foreground">
-              Build line items, preview the invoice, then send it to your customer.
+              Choose a currency, build line items, preview, then send to your customer.
             </p>
           </div>
         </div>
@@ -297,10 +325,13 @@ export function CreateInvoicePage({
             </section>
 
             <section className="space-y-2">
-              <Label>Settlement asset</Label>
-              <p className="text-sm text-muted-foreground">
-                Uses your organization default settlement asset ({previewAsset}) when the
-                invoice is finalized.
+              <InvoiceCurrencyPicker
+                value={currencyCode}
+                onChange={setCurrencyCode}
+              />
+              <p className="text-xs text-muted-foreground">
+                Customers can pay with any enabled Stellar token at checkout. The
+                invoice total stays in this currency.
               </p>
             </section>
 
@@ -341,7 +372,7 @@ export function CreateInvoicePage({
                         </div>
                         <div className="space-y-1">
                           <Label className="text-xs text-muted-foreground">
-                            Unit price
+                            Unit price ({currencyCode})
                           </Label>
                           <Input
                             value={item.unitAmount}
@@ -372,9 +403,12 @@ export function CreateInvoicePage({
                 ))}
               </div>
 
-              <p className="text-sm font-medium text-foreground">
-                Total: {formatInvoiceAmount(presentation.amount, presentation.asset)}
-              </p>
+              <div className="space-y-1 text-sm">
+                <p className="font-medium text-foreground">
+                  Total: {formatInvoiceAmount(presentation.amount, currencyCode)}
+                </p>
+                <p className="text-muted-foreground">Total quantity: {totalQuantity}</p>
+              </div>
             </section>
 
             <section className="space-y-2">
@@ -388,12 +422,8 @@ export function CreateInvoicePage({
             </section>
 
             <section className="space-y-2">
-              <Label htmlFor="invoice-due-days">Due in days</Label>
-              <Input
-                id="invoice-due-days"
-                value={dueInDays}
-                onChange={(event) => setDueInDays(event.target.value)}
-              />
+              <Label htmlFor="invoice-due-date">Due date</Label>
+              <InvoiceDueDatePicker value={dueAt} onChange={setDueAt} />
             </section>
           </div>
         </div>

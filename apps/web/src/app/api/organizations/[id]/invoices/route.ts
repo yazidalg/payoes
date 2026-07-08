@@ -8,32 +8,59 @@ import {
   serializeInvoice,
   serializeInvoices,
 } from "@/lib/invoices/service";
+import {
+  fiatAmountPattern,
+  resolveInvoiceCurrencyCode,
+} from "@/lib/invoices/currencies";
 import { getOrganizationForMember } from "@/lib/organizations/wallet";
 
-const invoiceItemSchema = z.object({
-  description: z.string().min(1).max(500),
-  quantity: z
-    .string()
-    .regex(/^\d+(\.\d{1,4})?$/, "Quantity must be a valid number"),
-  unit_amount: z
-    .string()
-    .regex(/^\d+(\.\d{1,7})?$/, "Unit amount must be a valid Stellar amount"),
-});
+const createInvoiceSchema = z
+  .object({
+    amount: z.string().optional(),
+    customer_id: z.string().min(1),
+    currency_code: z.string().optional(),
+    description: z.string().max(500).optional().nullable(),
+    metadata: z.record(z.string(), z.string()).optional().nullable(),
+    due_at: z.string().datetime().optional(),
+    due_in_days: z.number().int().min(1).max(365).optional(),
+    items: z
+      .array(
+        z.object({
+          description: z.string().min(1).max(500),
+          quantity: z
+            .string()
+            .regex(/^\d+(\.\d{1,4})?$/, "Quantity must be a valid number"),
+          unit_amount: z.string().min(1),
+        })
+      )
+      .optional(),
+  })
+  .refine((data) => Boolean(data.amount) || (data.items && data.items.length > 0), {
+    message: "Amount or at least one item is required",
+    path: ["items"],
+  })
+  .superRefine((data, ctx) => {
+    const currencyCode = resolveInvoiceCurrencyCode(data.currency_code);
+    const amountPattern = fiatAmountPattern(currencyCode);
 
-const createInvoiceSchema = z.object({
-  amount: z
-    .string()
-    .regex(/^\d+(\.\d{1,7})?$/, "Amount must be a valid Stellar amount")
-    .optional(),
-  customer_id: z.string().min(1),
-  description: z.string().max(500).optional().nullable(),
-  metadata: z.record(z.string(), z.string()).optional().nullable(),
-  due_in_days: z.number().int().min(1).max(365).optional(),
-  items: z.array(invoiceItemSchema).optional(),
-}).refine((data) => Boolean(data.amount) || (data.items && data.items.length > 0), {
-  message: "Amount or at least one item is required",
-  path: ["items"],
-});
+    if (data.amount && !amountPattern.test(data.amount)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `Amount must be a valid ${currencyCode} amount`,
+        path: ["amount"],
+      });
+    }
+
+    for (const [index, item] of (data.items ?? []).entries()) {
+      if (!amountPattern.test(item.unit_amount)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Unit amount must be a valid ${currencyCode} amount`,
+          path: ["items", index, "unit_amount"],
+        });
+      }
+    }
+  });
 
 export async function GET(
   _request: Request,
@@ -86,14 +113,18 @@ export async function POST(
     );
   }
 
+  const currencyCode = resolveInvoiceCurrencyCode(parsed.data.currency_code);
+
   try {
     const invoice = await createInvoice({
       organizationId: organization.id,
       environment: organization.environment,
       customerId: parsed.data.customer_id,
       amount: parsed.data.amount,
+      currencyCode,
       description: parsed.data.description,
       metadata: parsed.data.metadata,
+      dueAt: parsed.data.due_at ? new Date(parsed.data.due_at) : undefined,
       dueInDays: parsed.data.due_in_days,
       items: parsed.data.items?.map((item) => ({
         description: item.description,

@@ -9,16 +9,33 @@ import {
   serializeInvoices,
   serializeInvoice,
 } from "@/lib/invoices/service";
+import {
+  fiatAmountPattern,
+  resolveInvoiceCurrencyCode,
+} from "@/lib/invoices/currencies";
 
-const createInvoiceSchema = z.object({
-  amount: z
-    .string()
-    .regex(/^\d+(\.\d{1,7})?$/, "Amount must be a valid Stellar amount"),
-  customer_id: z.string().min(1),
-  description: z.string().max(500).optional().nullable(),
-  metadata: z.record(z.string(), z.string()).optional().nullable(),
-  due_in_days: z.number().int().min(1).max(365).optional(),
-});
+const createInvoiceSchema = z
+  .object({
+    amount: z.string().min(1),
+    customer_id: z.string().min(1),
+    currency_code: z.string().optional(),
+    description: z.string().max(500).optional().nullable(),
+    metadata: z.record(z.string(), z.string()).optional().nullable(),
+    due_at: z.string().datetime().optional(),
+    due_in_days: z.number().int().min(1).max(365).optional(),
+  })
+  .superRefine((data, ctx) => {
+    const currencyCode = resolveInvoiceCurrencyCode(data.currency_code);
+    const amountPattern = fiatAmountPattern(currencyCode);
+
+    if (!amountPattern.test(data.amount)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `Amount must be a valid ${currencyCode} amount`,
+        path: ["amount"],
+      });
+    }
+  });
 
 export async function GET(request: Request) {
   return withApiKeyAuth(request, async ({ apiKey }) => {
@@ -42,14 +59,18 @@ export async function POST(request: Request) {
       );
     }
 
+    const currencyCode = resolveInvoiceCurrencyCode(parsed.data.currency_code);
+
     try {
       const invoice = await createInvoice({
         organizationId: apiKey.organizationId,
         environment: apiKey.environment,
         customerId: parsed.data.customer_id,
         amount: parsed.data.amount,
+        currencyCode,
         description: parsed.data.description,
         metadata: parsed.data.metadata,
+        dueAt: parsed.data.due_at ? new Date(parsed.data.due_at) : undefined,
         dueInDays: parsed.data.due_in_days,
       });
 

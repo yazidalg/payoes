@@ -108,7 +108,10 @@ export function InvoicePreviewPanel({
             <div className="mt-6 rounded-lg border bg-muted/30 p-4">
               <p className="text-sm text-muted-foreground">Amount due</p>
               <p className="mt-1 text-3xl font-semibold">
-                {formatInvoiceAmount(presentation.amount, presentation.asset)}
+                {formatInvoiceAmount(
+                  presentation.amount,
+                  presentation.currencyCode ?? presentation.asset
+                )}
               </p>
               {presentation.description ? (
                 <p className="mt-2 text-sm text-muted-foreground">

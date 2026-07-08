@@ -1,3 +1,5 @@
+import { formatAmountWithUnit } from "@/lib/format/amount";
+import { getInvoiceCurrency, type InvoiceCurrencyCode } from "@/lib/invoices/currencies";
 import { normalizeStellarAmount } from "@/lib/stellar/amount";
 
 export type InvoiceLineItemInput = {
@@ -6,29 +8,83 @@ export type InvoiceLineItemInput = {
   unitAmount: string;
 };
 
-export function lineItemAmount(item: InvoiceLineItemInput) {
+export function parseFiatAmount(value: string, currencyCode: InvoiceCurrencyCode) {
+  const currency = getInvoiceCurrency(currencyCode);
+
+  if (!currency) {
+    throw new Error("Unsupported invoice currency");
+  }
+
+  const normalized = value.trim().replace(/,/g, "");
+
+  if (!normalized) {
+    throw new Error("Amount is required");
+  }
+
+  const pattern =
+    currency.decimals === 0
+      ? /^\d+$/
+      : new RegExp(`^\\d+(\\.\\d{1,${currency.decimals}})?$`);
+
+  if (!pattern.test(normalized)) {
+    throw new Error(
+      currency.decimals === 0
+        ? `${currencyCode} amounts must be whole numbers`
+        : `${currencyCode} amounts support up to ${currency.decimals} decimal places`
+    );
+  }
+
+  const numeric = Number(normalized);
+
+  if (!Number.isFinite(numeric) || numeric < 0) {
+    throw new Error("Amount must be a valid number");
+  }
+
+  if (currency.decimals === 0) {
+    return String(Math.round(numeric));
+  }
+
+  return numeric.toFixed(currency.decimals);
+}
+
+export function lineItemAmount(
+  item: InvoiceLineItemInput,
+  currencyCode: InvoiceCurrencyCode = "USD"
+) {
   const quantity = Number(item.quantity);
-  const unitAmount = Number(item.unitAmount);
+  const unitAmount = Number(parseFiatAmount(item.unitAmount, currencyCode));
 
   if (!Number.isFinite(quantity) || quantity <= 0) {
     throw new Error("Item quantity must be greater than zero");
   }
 
-  if (!Number.isFinite(unitAmount) || unitAmount < 0) {
-    throw new Error("Item unit amount must be valid");
+  const currency = getInvoiceCurrency(currencyCode)!;
+  const lineTotal = quantity * unitAmount;
+
+  if (currency.decimals === 0) {
+    return String(Math.round(lineTotal));
   }
 
-  return normalizeStellarAmount((quantity * unitAmount).toFixed(7));
+  return lineTotal.toFixed(currency.decimals);
 }
 
-export function calculateInvoiceTotal(items: InvoiceLineItemInput[]) {
+export function calculateInvoiceTotal(
+  items: InvoiceLineItemInput[],
+  currencyCode: InvoiceCurrencyCode = "USD"
+) {
   if (items.length === 0) {
     throw new Error("Add at least one invoice item");
   }
 
+  const currency = getInvoiceCurrency(currencyCode);
+
+  if (!currency) {
+    throw new Error("Unsupported invoice currency");
+  }
+
   const total = items.reduce((sum, item) => {
     const quantity = Number(item.quantity);
-    const unitAmount = Number(item.unitAmount);
+    const unitAmount = Number(parseFiatAmount(item.unitAmount, currencyCode));
     return sum + quantity * unitAmount;
   }, 0);
 
@@ -36,17 +92,32 @@ export function calculateInvoiceTotal(items: InvoiceLineItemInput[]) {
     throw new Error("Invoice total must be greater than zero");
   }
 
-  return normalizeStellarAmount(total.toFixed(7));
+  if (currency.decimals === 0) {
+    return String(Math.round(total));
+  }
+
+  return total.toFixed(currency.decimals);
 }
 
-export function formatInvoiceAmount(amount: string, asset: string) {
-  const numeric = Number(amount);
-  const formatted = Number.isFinite(numeric)
-    ? numeric.toLocaleString("en-US", {
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 7,
-      })
-    : amount;
+export function calculateTotalQuantity(items: InvoiceLineItemInput[]) {
+  return items.reduce((sum, item) => {
+    const quantity = Number(item.quantity);
 
-  return `${formatted} ${asset}`;
+    if (!Number.isFinite(quantity) || quantity <= 0) {
+      return sum;
+    }
+
+    return sum + quantity;
+  }, 0);
 }
+
+export function formatInvoiceAmount(
+  amount: string,
+  currencyOrAsset: string,
+  currencyCode?: InvoiceCurrencyCode
+) {
+  return formatAmountWithUnit(amount, currencyCode ?? currencyOrAsset);
+}
+
+/** @deprecated Use parseFiatAmount for invoice line items */
+export { normalizeStellarAmount };

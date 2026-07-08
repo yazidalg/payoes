@@ -9,6 +9,7 @@ import {
   type Invoice,
   type Organization,
 } from "@/lib/db/schema";
+import { getInvoiceEnvironmentLabel } from "@/components/shared/environment-badge";
 import { getOrganizationDefaultAssetConfig } from "@/lib/assets/config";
 import { serializePaymentAssets } from "@/lib/assets/serialize";
 import { getCustomerByPublicId } from "@/lib/customers/service";
@@ -16,8 +17,19 @@ import { sendInvoiceEmail } from "@/lib/email/send-invoice-email";
 import {
   calculateInvoiceTotal,
   lineItemAmount,
+  parseFiatAmount,
   type InvoiceLineItemInput,
 } from "@/lib/invoices/amount";
+import { DEFAULT_INVOICE_DUE_DAYS } from "@/constants/invoices/currencies";
+import {
+  MIN_PAYMENT_EXPIRY_MINUTES,
+  PLACEHOLDER_PRICING_PAYMENT_AMOUNT,
+} from "@/constants/payments/defaults";
+import {
+  getInvoiceCurrency,
+  isInvoiceCurrencyCode,
+  type InvoiceCurrencyCode,
+} from "@/lib/invoices/currencies";
 import {
   buildInvoiceEmailHtml,
   buildInvoiceEmailText,
@@ -54,7 +66,8 @@ export async function listInvoiceItems(invoiceId: string) {
 
 async function insertInvoiceItems(
   invoiceId: string,
-  items: InvoiceLineItemInput[]
+  items: InvoiceLineItemInput[],
+  currencyCode: InvoiceCurrencyCode
 ) {
   if (items.length === 0) {
     return [];
@@ -67,7 +80,7 @@ async function insertInvoiceItems(
         invoiceId,
         description: item.description.trim(),
         quantity: item.quantity.trim(),
-        unitAmount: normalizeStellarAmount(item.unitAmount.trim()),
+        unitAmount: parseFiatAmount(item.unitAmount.trim(), currencyCode),
         sortOrder: index,
       }))
     )
@@ -88,6 +101,7 @@ export async function listInvoices(
       subscriptionId: invoices.subscriptionId,
       checkoutSessionId: invoices.checkoutSessionId,
       amount: invoices.amount,
+      currencyCode: invoices.currencyCode,
       description: invoices.description,
       metadata: invoices.metadata,
       status: invoices.status,
@@ -199,12 +213,20 @@ export async function createInvoice(input: {
   environment: Organization["environment"];
   customerId: string;
   amount?: string;
+  currencyCode?: InvoiceCurrencyCode;
   description?: string | null;
   metadata?: Record<string, string> | null;
   dueInDays?: number;
+  dueAt?: Date;
   subscriptionId?: string | null;
   items?: InvoiceLineItemInput[];
 }) {
+  const currencyCode = input.currencyCode ?? "USD";
+
+  if (!isInvoiceCurrencyCode(currencyCode)) {
+    throw new Error("Unsupported invoice currency");
+  }
+
   const customer = await getCustomerByPublicId(input.customerId);
 
   if (!customer || customer.organizationId !== input.organizationId) {
@@ -218,9 +240,9 @@ export async function createInvoice(input: {
   const items = input.items ?? [];
   const amount =
     items.length > 0
-      ? calculateInvoiceTotal(items)
+      ? calculateInvoiceTotal(items, currencyCode)
       : input.amount
-        ? normalizeStellarAmount(input.amount)
+        ? parseFiatAmount(input.amount, currencyCode)
         : null;
 
   if (!amount) {
@@ -230,9 +252,10 @@ export async function createInvoice(input: {
   const publicId = createInvoicePublicId();
   const invoiceNumber = await createInvoiceNumber(input.organizationId);
   const dueAt =
-    input.dueInDays !== undefined
+    input.dueAt ??
+    (input.dueInDays !== undefined
       ? new Date(Date.now() + input.dueInDays * 24 * 60 * 60 * 1000)
-      : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+      : new Date(Date.now() + DEFAULT_INVOICE_DUE_DAYS * 24 * 60 * 60 * 1000));
 
   const [invoice] = await db
     .insert(invoices)
@@ -244,6 +267,7 @@ export async function createInvoice(input: {
       customerId: customer.id,
       subscriptionId: input.subscriptionId ?? null,
       amount,
+      currencyCode,
       description: input.description?.trim() || null,
       metadata: input.metadata ?? null,
       status: "draft",
@@ -252,15 +276,19 @@ export async function createInvoice(input: {
     .returning();
 
   if (items.length > 0) {
-    await insertInvoiceItems(invoice.id, items);
+    await insertInvoiceItems(invoice.id, items, currencyCode);
   } else if (input.description?.trim()) {
-    await insertInvoiceItems(invoice.id, [
-      {
-        description: input.description.trim(),
-        quantity: "1",
-        unitAmount: amount,
-      },
-    ]);
+    await insertInvoiceItems(
+      invoice.id,
+      [
+        {
+          description: input.description.trim(),
+          quantity: "1",
+          unitAmount: amount,
+        },
+      ],
+      currencyCode
+    );
   }
 
   return invoice;
@@ -300,7 +328,9 @@ export async function finalizeInvoice(
   const { session, payment } = await createCheckoutSession({
     organizationId: invoice.organizationId,
     environment: invoice.environment,
-    amount: invoice.amount,
+    amount: PLACEHOLDER_PRICING_PAYMENT_AMOUNT,
+    pricingCurrency: invoice.currencyCode,
+    pricingAmount: invoice.amount,
     description: invoice.description,
     metadata: invoice.metadata ?? undefined,
     customerId: customer.publicId,
@@ -309,7 +339,7 @@ export async function finalizeInvoice(
     subscriptionId: invoice.subscriptionId,
     expiresInMinutes: invoice.dueAt
       ? Math.max(
-          5,
+          MIN_PAYMENT_EXPIRY_MINUTES,
           Math.ceil((invoice.dueAt.getTime() - Date.now()) / (60 * 1000))
         )
       : undefined,
@@ -359,17 +389,22 @@ export async function buildInvoicePresentation(
     .limit(1);
 
   const storedItems = await listInvoiceItems(invoice.id);
+  const currencyCode = isInvoiceCurrencyCode(invoice.currencyCode)
+    ? invoice.currencyCode
+    : "USD";
   const paymentAssets = await getInvoicePaymentAssets(invoice);
 
   return {
     invoiceNumber: invoice.invoiceNumber ?? invoice.publicId,
     status: invoice.status,
     amount: invoice.amount,
-    asset: paymentAssets.settlement_asset.asset_code,
+    asset: currencyCode,
+    currencyCode,
     allowedAssets: paymentAssets.allowed_assets.map((a) => a.asset_code),
     description: invoice.description,
     dueAt: invoice.dueAt,
     createdAt: invoice.createdAt,
+    environmentLabel: getInvoiceEnvironmentLabel(invoice.environment),
     organization: organization ?? {
       name: "Merchant",
       logoUrl: null,
@@ -380,14 +415,18 @@ export async function buildInvoicePresentation(
       email: customer?.email ?? null,
     },
     items: storedItems.map((item) => ({
+      id: item.id,
       description: item.description,
       quantity: item.quantity,
       unitAmount: item.unitAmount,
-      lineAmount: lineItemAmount({
-        description: item.description,
-        quantity: item.quantity,
-        unitAmount: item.unitAmount,
-      }),
+      lineAmount: lineItemAmount(
+        {
+          description: item.description,
+          quantity: item.quantity,
+          unitAmount: item.unitAmount,
+        },
+        currencyCode
+      ),
     })),
     hostedInvoiceUrl: getHostedInvoiceUrl(invoice.publicId),
     checkoutUrl: options?.checkoutUrl ?? null,
@@ -422,6 +461,7 @@ export async function sendInvoice(
   const delivery = await sendInvoiceEmail({
     to: detail.customerEmail,
     presentation,
+    environment,
   });
 
   const [updated] = await db
@@ -450,18 +490,42 @@ export async function getPublicInvoiceDetail(publicId: string) {
   }
 
   let checkoutUrl: string | null = null;
+  let paymentPublicId: string | null = null;
+  let allowedAssets: Array<{ asset_code: string; issuer_address: string | null }> =
+    [];
 
   if (invoice.checkoutSessionId) {
     const { checkoutSessions } = await import("@/lib/db/schema");
     const [session] = await db
-      .select({ publicId: checkoutSessions.publicId })
+      .select({
+        publicId: checkoutSessions.publicId,
+        paymentId: checkoutSessions.paymentId,
+      })
       .from(checkoutSessions)
       .where(eq(checkoutSessions.id, invoice.checkoutSessionId))
       .limit(1);
 
     if (session) {
       checkoutUrl = getCheckoutSessionUrl(session.publicId);
+
+      const { payments } = await import("@/lib/db/schema");
+      const [payment] = await db
+        .select()
+        .from(payments)
+        .where(eq(payments.id, session.paymentId))
+        .limit(1);
+
+      if (payment) {
+        paymentPublicId = payment.publicId;
+        const assets = serializePaymentAssets(payment);
+        allowedAssets = assets.allowed_assets;
+      }
     }
+  }
+
+  if (allowedAssets.length === 0) {
+    const config = await getOrganizationDefaultAssetConfig(invoice.organizationId);
+    allowedAssets = config.allowed_assets;
   }
 
   const presentation = await buildInvoicePresentation(invoice, { checkoutUrl });
@@ -470,6 +534,8 @@ export async function getPublicInvoiceDetail(publicId: string) {
     invoice,
     presentation,
     checkoutUrl,
+    paymentPublicId,
+    allowedAssets,
   };
 }
 
@@ -583,12 +649,180 @@ export async function getInvoicePaymentAssets(invoice: Invoice) {
   return getOrganizationDefaultAssetConfig(invoice.organizationId);
 }
 
+function assertInvoiceEditable(status: Invoice["status"]) {
+  if (status !== "draft" && status !== "open") {
+    throw new Error("Only draft or unpaid invoices can be changed");
+  }
+}
+
+export async function updateInvoice(
+  publicId: string,
+  organizationId: string,
+  environment: Organization["environment"],
+  input: {
+    description?: string | null;
+    dueAt?: Date;
+    metadata?: Record<string, string> | null;
+    items?: InvoiceLineItemInput[];
+  }
+) {
+  const invoice = await getInvoiceForOrganization(
+    publicId,
+    organizationId,
+    environment
+  );
+
+  if (!invoice) {
+    throw new Error("Invoice not found");
+  }
+
+  assertInvoiceEditable(invoice.status);
+
+  const currencyCode = isInvoiceCurrencyCode(invoice.currencyCode)
+    ? invoice.currencyCode
+    : "USD";
+
+  let amount = invoice.amount;
+
+  if (input.items) {
+    if (input.items.length === 0) {
+      throw new Error("At least one line item is required");
+    }
+
+    amount = calculateInvoiceTotal(input.items, currencyCode);
+    await db.delete(invoiceItems).where(eq(invoiceItems.invoiceId, invoice.id));
+    await insertInvoiceItems(invoice.id, input.items, currencyCode);
+  }
+
+  const [updated] = await db
+    .update(invoices)
+    .set({
+      amount,
+      description:
+        input.description !== undefined
+          ? input.description?.trim() || null
+          : invoice.description,
+      metadata: input.metadata !== undefined ? input.metadata : invoice.metadata,
+      dueAt: input.dueAt ?? invoice.dueAt,
+      updatedAt: new Date(),
+    })
+    .where(eq(invoices.id, invoice.id))
+    .returning();
+
+  return updated;
+}
+
+export async function changeInvoiceCustomer(
+  publicId: string,
+  organizationId: string,
+  environment: Organization["environment"],
+  customerPublicId: string
+) {
+  const invoice = await getInvoiceForOrganization(
+    publicId,
+    organizationId,
+    environment
+  );
+
+  if (!invoice) {
+    throw new Error("Invoice not found");
+  }
+
+  assertInvoiceEditable(invoice.status);
+
+  const customer = await getCustomerByPublicId(customerPublicId);
+
+  if (!customer || customer.organizationId !== organizationId) {
+    throw new Error("Customer not found");
+  }
+
+  if (customer.environment !== environment) {
+    throw new Error("Customer environment does not match invoice environment");
+  }
+
+  const [updated] = await db
+    .update(invoices)
+    .set({
+      customerId: customer.id,
+      updatedAt: new Date(),
+    })
+    .where(eq(invoices.id, invoice.id))
+    .returning();
+
+  return updated;
+}
+
+export async function markInvoiceAsPaid(
+  publicId: string,
+  organizationId: string,
+  environment: Organization["environment"]
+) {
+  const invoice = await getInvoiceForOrganization(
+    publicId,
+    organizationId,
+    environment
+  );
+
+  if (!invoice) {
+    throw new Error("Invoice not found");
+  }
+
+  if (invoice.status !== "open") {
+    throw new Error("Only open invoices can be marked as paid");
+  }
+
+  const paidAt = new Date();
+  const [updated] = await db
+    .update(invoices)
+    .set({
+      status: "paid",
+      paidAt,
+      updatedAt: paidAt,
+    })
+    .where(eq(invoices.id, invoice.id))
+    .returning();
+
+  if (updated.subscriptionId) {
+    const { syncSubscriptionAfterInvoicePaid } = await import(
+      "@/lib/subscriptions/service"
+    );
+    await syncSubscriptionAfterInvoicePaid(updated.subscriptionId);
+  }
+
+  return updated;
+}
+
+export async function deleteInvoice(
+  publicId: string,
+  organizationId: string,
+  environment: Organization["environment"]
+) {
+  const invoice = await getInvoiceForOrganization(
+    publicId,
+    organizationId,
+    environment
+  );
+
+  if (!invoice) {
+    throw new Error("Invoice not found");
+  }
+
+  if (invoice.status !== "draft") {
+    throw new Error("Only draft invoices can be deleted");
+  }
+
+  await db.delete(invoices).where(eq(invoices.id, invoice.id));
+
+  return { deleted: true, publicId };
+}
+
 export function serializeInvoice(
   invoice: {
     publicId: string;
     invoiceNumber?: string | null;
     status: Invoice["status"];
     amount: string;
+    currencyCode?: string;
     description: string | null;
     metadata: Record<string, string> | null;
     dueAt: Date | null;
@@ -610,6 +844,8 @@ export function serializeInvoice(
     hostedInvoiceUrl?: string | null;
     settlementAsset?: string | null;
     allowedAssets?: string[] | null;
+    customerName?: string | null;
+    customerEmail?: string | null;
   }
 ) {
   return {
@@ -618,6 +854,7 @@ export function serializeInvoice(
     invoice_number: invoice.invoiceNumber ?? invoice.publicId,
     status: invoice.status,
     amount: invoice.amount,
+    currency_code: invoice.currencyCode ?? "USD",
     settlement_asset: options?.settlementAsset
       ? { asset_code: options.settlementAsset, issuer_address: null }
       : null,
@@ -629,6 +866,8 @@ export function serializeInvoice(
     description: invoice.description,
     metadata: invoice.metadata,
     customer_id: invoice.customerPublicId ?? null,
+    customer_name: options?.customerName ?? null,
+    customer_email: options?.customerEmail ?? null,
     subscription_id: options?.subscriptionPublicId ?? null,
     checkout_session_id: options?.checkoutSessionPublicId ?? null,
     checkout_url: options?.checkoutUrl ?? null,

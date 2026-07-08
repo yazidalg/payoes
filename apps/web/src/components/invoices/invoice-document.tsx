@@ -1,7 +1,7 @@
 "use client";
 
 import { OrganizationMark } from "@/components/organizations/organization-mark";
-import { formatInvoiceAmount } from "@/lib/invoices/amount";
+import { formatInvoiceAmount, calculateTotalQuantity } from "@/lib/invoices/amount";
 import type { InvoicePresentation } from "@/lib/invoices/presentation";
 import { cn } from "@/lib/utils";
 
@@ -26,6 +26,9 @@ export function InvoiceDocument({
   className?: string;
   compact?: boolean;
 }) {
+  const currencyCode = presentation.currencyCode ?? presentation.asset;
+  const totalQuantity = calculateTotalQuantity(presentation.items);
+
   return (
     <div
       className={cn(
@@ -83,7 +86,7 @@ export function InvoiceDocument({
 
       <div className="mt-8">
         <p className="text-2xl font-semibold">
-          {formatInvoiceAmount(presentation.amount, presentation.asset)} due{" "}
+          {formatInvoiceAmount(presentation.amount, currencyCode)} due{" "}
           {formatDate(presentation.dueAt)}
         </p>
         {presentation.description ? (
@@ -102,15 +105,20 @@ export function InvoiceDocument({
             </tr>
           </thead>
           <tbody>
-            {presentation.items.map((item) => (
-              <tr key={`${item.description}-${item.quantity}-${item.unitAmount}`} className="border-t border-slate-200">
-                <td className="px-4 py-3">{item.description}</td>
+            {presentation.items.map((item, index) => (
+              <tr
+                key={item.id ?? `${item.description}-${index}`}
+                className="border-t border-slate-200"
+              >
+                <td className="px-4 py-3">
+                  {item.description.trim() || "Untitled item"}
+                </td>
                 <td className="px-4 py-3 text-right">{item.quantity}</td>
                 <td className="px-4 py-3 text-right">
-                  {formatInvoiceAmount(item.unitAmount, presentation.asset)}
+                  {formatInvoiceAmount(item.unitAmount, currencyCode)}
                 </td>
                 <td className="px-4 py-3 text-right">
-                  {formatInvoiceAmount(item.lineAmount, presentation.asset)}
+                  {formatInvoiceAmount(item.lineAmount, currencyCode)}
                 </td>
               </tr>
             ))}
@@ -121,12 +129,16 @@ export function InvoiceDocument({
       <div className="mt-6 flex justify-end">
         <div className="w-full max-w-xs space-y-2 text-sm">
           <div className="flex justify-between">
+            <span className="text-slate-500">Total quantity</span>
+            <span>{totalQuantity}</span>
+          </div>
+          <div className="flex justify-between">
             <span className="text-slate-500">Subtotal</span>
-            <span>{formatInvoiceAmount(presentation.amount, presentation.asset)}</span>
+            <span>{formatInvoiceAmount(presentation.amount, currencyCode)}</span>
           </div>
           <div className="flex justify-between border-t border-slate-200 pt-2 text-base font-semibold">
             <span>Amount due</span>
-            <span>{formatInvoiceAmount(presentation.amount, presentation.asset)}</span>
+            <span>{formatInvoiceAmount(presentation.amount, currencyCode)}</span>
           </div>
         </div>
       </div>

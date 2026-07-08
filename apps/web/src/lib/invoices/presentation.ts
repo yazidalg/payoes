@@ -4,7 +4,9 @@ export type InvoicePresentation = {
   invoiceNumber: string;
   status: string;
   amount: string;
+  /** @deprecated Use currencyCode */
   asset: string;
+  currencyCode: string;
   description: string | null;
   dueAt: Date | null;
   createdAt: Date;
@@ -19,6 +21,7 @@ export type InvoicePresentation = {
     email: string | null;
   };
   items: {
+    id?: string;
     description: string;
     quantity: string;
     unitAmount: string;
@@ -49,8 +52,8 @@ export function buildInvoiceEmailHtml(input: InvoicePresentation) {
         <tr>
           <td style="padding:12px 0;border-bottom:1px solid #e5e7eb;">${item.description}</td>
           <td style="padding:12px 8px;border-bottom:1px solid #e5e7eb;text-align:right;">${item.quantity}</td>
-          <td style="padding:12px 8px;border-bottom:1px solid #e5e7eb;text-align:right;">${formatInvoiceAmount(item.unitAmount, input.asset)}</td>
-          <td style="padding:12px 0;border-bottom:1px solid #e5e7eb;text-align:right;">${formatInvoiceAmount(item.lineAmount, input.asset)}</td>
+          <td style="padding:12px 8px;border-bottom:1px solid #e5e7eb;text-align:right;">${formatInvoiceAmount(item.unitAmount, input.currencyCode)}</td>
+          <td style="padding:12px 0;border-bottom:1px solid #e5e7eb;text-align:right;">${formatInvoiceAmount(item.lineAmount, input.currencyCode)}</td>
         </tr>
       `
     )
@@ -61,7 +64,7 @@ export function buildInvoiceEmailHtml(input: InvoicePresentation) {
       <div style="max-width:640px;margin:0 auto;background:#ffffff;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;">
         <div style="padding:28px 32px 20px;border-bottom:1px solid #e5e7eb;">
           <p style="margin:0 0 8px;font-size:13px;color:#64748b;text-transform:uppercase;letter-spacing:0.08em;">Invoice from ${input.organization.name}</p>
-          <h1 style="margin:0;font-size:28px;color:#0f172a;">${formatInvoiceAmount(input.amount, input.asset)} due</h1>
+          <h1 style="margin:0;font-size:28px;color:#0f172a;">${formatInvoiceAmount(input.amount, input.currencyCode)} due</h1>
           <p style="margin:8px 0 0;color:#475569;">Invoice ${input.invoiceNumber} · Due ${formatDate(input.dueAt)}</p>
         </div>
         <div style="padding:24px 32px;">
@@ -69,7 +72,7 @@ export function buildInvoiceEmailHtml(input: InvoicePresentation) {
             Hi${input.customer.name ? ` ${input.customer.name}` : ""},
           </p>
           <p style="margin:0 0 24px;color:#334155;line-height:1.6;">
-            ${input.organization.name} sent you an invoice for ${formatInvoiceAmount(input.amount, input.asset)}.
+            ${input.organization.name} sent you an invoice for ${formatInvoiceAmount(input.amount, input.currencyCode)}.
             ${input.description ? `Memo: ${input.description}` : ""}
           </p>
           <table style="width:100%;border-collapse:collapse;font-size:14px;color:#0f172a;">
@@ -84,7 +87,7 @@ export function buildInvoiceEmailHtml(input: InvoicePresentation) {
             <tbody>${itemRows}</tbody>
           </table>
           <div style="margin-top:20px;text-align:right;font-size:15px;font-weight:600;color:#0f172a;">
-            Total due: ${formatInvoiceAmount(input.amount, input.asset)}
+            Total due: ${formatInvoiceAmount(input.amount, input.currencyCode)}
           </div>
           <div style="margin-top:28px;">
             <a href="${payUrl}" style="display:inline-block;padding:12px 18px;background:#111827;color:#ffffff;text-decoration:none;border-radius:8px;font-weight:600;">
@@ -105,13 +108,13 @@ export function buildInvoiceEmailText(input: InvoicePresentation) {
   const payUrl = input.checkoutUrl ?? input.hostedInvoiceUrl ?? "";
   const lines = [
     `${input.organization.name} sent you invoice ${input.invoiceNumber}`,
-    `Amount due: ${formatInvoiceAmount(input.amount, input.asset)}`,
+    `Amount due: ${formatInvoiceAmount(input.amount, input.currencyCode)}`,
     `Due date: ${formatDate(input.dueAt)}`,
     "",
     "Items:",
     ...input.items.map(
       (item) =>
-        `- ${item.description} (${item.quantity} x ${formatInvoiceAmount(item.unitAmount, input.asset)}) = ${formatInvoiceAmount(item.lineAmount, input.asset)}`
+        `- ${item.description} (${item.quantity} x ${formatInvoiceAmount(item.unitAmount, input.currencyCode)}) = ${formatInvoiceAmount(item.lineAmount, input.currencyCode)}`
     ),
     "",
     `Pay invoice: ${payUrl}`,
