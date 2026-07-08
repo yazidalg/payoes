@@ -1,37 +1,8 @@
-import { auth } from "@/auth";
-import { findUserByEmail } from "@/lib/auth/users";
 import { PaymentMethodsPanel } from "@/components/payment-methods/payment-methods-panel";
-import { getPrimaryOrganizationForUser } from "@/lib/organizations/wallet";
-import { redirect } from "next/navigation";
-
-async function resolveUserId(session: {
-  user?: { id?: string; email?: string | null };
-}) {
-  if (session.user?.id) {
-    return session.user.id;
-  }
-
-  if (!session.user?.email) {
-    return null;
-  }
-
-  const user = await findUserByEmail(session.user.email);
-  return user?.id ?? null;
-}
+import { getDashboardOrganization } from "@/lib/dashboard/get-organization";
 
 export default async function AssetsPage() {
-  const session = await auth();
-  const userId = session?.user ? await resolveUserId(session) : null;
-
-  if (!userId) {
-    redirect("/login");
-  }
-
-  const organization = await getPrimaryOrganizationForUser(userId);
-
-  if (!organization) {
-    redirect("/onboarding");
-  }
+  const organization = await getDashboardOrganization();
 
   return <PaymentMethodsPanel organizationId={organization.id} />;
 }

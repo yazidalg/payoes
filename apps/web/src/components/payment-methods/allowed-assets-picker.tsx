@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 type AllowedAssetsPickerProps = {
   organizationId: string;
   mode: "settlement" | "allowed" | "pay";
+  label?: string;
   settlementKey?: string;
   selectedKeys: string[];
   onChange: (keys: string[], issuers: Map<string, string | null>) => void;
@@ -16,6 +17,7 @@ type AllowedAssetsPickerProps = {
 export function AllowedAssetsPicker({
   organizationId,
   mode,
+  label: labelOverride,
   settlementKey,
   selectedKeys,
   onChange,
@@ -63,11 +65,12 @@ export function AllowedAssetsPicker({
   }
 
   const label =
-    mode === "settlement"
+    labelOverride ??
+    (mode === "settlement"
       ? "Settlement asset"
       : mode === "pay"
         ? "Pay with"
-        : "Allowed assets";
+        : "Allowed assets");
 
   return (
     <div className="space-y-2">

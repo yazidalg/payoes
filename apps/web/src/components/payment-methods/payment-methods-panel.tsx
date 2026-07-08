@@ -273,7 +273,7 @@ export function PaymentMethodsPanel({ organizationId }: { organizationId: string
         <CardHeader>
           <CardTitle>Accepted Assets</CardTitle>
           <CardDescription>
-            Assets available when creating payments, payment links, invoices, and subscriptions.
+            Assets available when creating payments, payment links, and invoices.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
