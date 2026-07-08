@@ -8,6 +8,7 @@ import {
   CreditCard,
   FileCode2,
   KeyRound,
+  LayoutDashboard,
   RefreshCw,
   Settings,
   Users,
@@ -28,6 +29,11 @@ export type DashboardNavItem = {
 };
 
 export const dashboardNav: DashboardNavItem[] = [
+  {
+    title: "Home",
+    url: "/dashboard",
+    icon: LayoutDashboard,
+  },
   {
     title: "Payments",
     url: "/dashboard/payments",
@@ -166,13 +172,6 @@ export function getDashboardPageTitle(pathname: string) {
     return pathname.endsWith("/new") ? "Create Invoice" : "Invoice Detail";
   }
 
-  if (
-    pathname.startsWith("/dashboard/payments/subscriptions/") &&
-    pathname !== "/dashboard/payments/subscriptions"
-  ) {
-    return "Subscription Detail";
-  }
-
   if (pathname.startsWith("/dashboard/customers/") && pathname !== "/dashboard/customers") {
     return "Customer Detail";
   }
@@ -202,6 +201,10 @@ export function isPaymentsRoute(pathname: string) {
 }
 
 export function isNavItemActive(pathname: string, url: string) {
+  if (url === "/dashboard") {
+    return pathname === "/dashboard";
+  }
+
   if (url === "/dashboard/payments") {
     return isPaymentsRoute(pathname);
   }
