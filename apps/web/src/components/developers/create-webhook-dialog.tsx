@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
+import { WebhookEventsPicker } from "@/components/developers/webhook-events-picker";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
 import {
@@ -30,27 +31,32 @@ export function CreateWebhookDialog({
   onCreated,
 }: CreateWebhookDialogProps) {
   const [url, setUrl] = useState("");
+  const [events, setEvents] = useState<string[]>([...WEBHOOK_EVENTS]);
   const [secret, setSecret] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   function resetForm() {
     setUrl("");
+    setEvents([...WEBHOOK_EVENTS]);
     setSecret(null);
     setError(null);
   }
 
   async function handleCreate() {
     setError(null);
+
+    if (events.length === 0) {
+      setError("Select at least one event");
+      return;
+    }
+
     setIsLoading(true);
 
     const response = await fetch(`/api/organizations/${organizationId}/webhooks`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        url,
-        events: [...WEBHOOK_EVENTS],
-      }),
+      body: JSON.stringify({ url, events }),
     });
 
     const data = (await response.json()) as {
@@ -86,11 +92,11 @@ export function CreateWebhookDialog({
         onOpenChange(nextOpen);
       }}
     >
-      <DialogContent>
+      <DialogContent className="max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Add webhook endpoint</DialogTitle>
           <DialogDescription>
-            Receive payment events at your server URL.
+            Receive signed HTTP callbacks when payment events occur.
           </DialogDescription>
         </DialogHeader>
 
@@ -99,19 +105,25 @@ export function CreateWebhookDialog({
         {secret ? (
           <AlertBlock type="success">
             <p className="font-medium">Webhook signing secret</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Copy this secret now. You will not be able to view it again.
+            </p>
             <code className="mt-2 block break-all rounded bg-background/80 p-2 text-xs">
               {secret}
             </code>
           </AlertBlock>
         ) : (
-          <div className="space-y-2">
-            <Label htmlFor="create-webhook-url">Endpoint URL</Label>
-            <Input
-              id="create-webhook-url"
-              placeholder="https://example.com/webhooks/payoes"
-              value={url}
-              onChange={(event) => setUrl(event.target.value)}
-            />
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="create-webhook-url">Endpoint URL</Label>
+              <Input
+                id="create-webhook-url"
+                placeholder="https://example.com/webhooks/payoes"
+                value={url}
+                onChange={(event) => setUrl(event.target.value)}
+              />
+            </div>
+            <WebhookEventsPicker value={events} onChange={setEvents} />
           </div>
         )}
 
