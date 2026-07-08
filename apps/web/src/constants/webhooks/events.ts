@@ -5,4 +5,11 @@ export const WEBHOOK_EVENTS = [
   "payment.expired",
 ] as const;
 
+export const WEBHOOK_TEST_EVENT = "webhook.test" as const;
+
+export const ALL_WEBHOOK_EVENT_TYPES = [
+  ...WEBHOOK_EVENTS,
+  WEBHOOK_TEST_EVENT,
+] as const;
+
 export type WebhookEvent = (typeof WEBHOOK_EVENTS)[number];
