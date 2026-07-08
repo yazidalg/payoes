@@ -2,6 +2,7 @@ import { randomBytes } from "node:crypto";
 import { desc, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { paymentLinks, type Organization } from "@/lib/db/schema";
+import { DEFAULT_AUTH_URL } from "@/constants/app";
 import type { AllowedAsset } from "@/lib/assets/types";
 import { resolveAssetConfig } from "@/lib/assets/config";
 import {
@@ -16,7 +17,7 @@ function createLinkPublicId() {
 }
 
 export function getPaymentLinkUrl(publicId: string) {
-  const baseUrl = process.env.AUTH_URL ?? "http://localhost:3000";
+  const baseUrl = process.env.AUTH_URL ?? DEFAULT_AUTH_URL;
   return `${baseUrl}/l/${publicId}`;
 }
 

@@ -10,6 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useAsyncData } from "@/hooks/use-async-data";
+import { formatTokenAmount } from "@/lib/format/amount";
 import type { SubscriptionRow } from "@/lib/payments/types";
 
 type SubscriptionsListPanelProps = {
@@ -79,7 +80,7 @@ export function SubscriptionsListPanel({
                       </Link>
                     </td>
                     <td className="px-4 py-3">
-                      {subscription.amount}
+                      {formatTokenAmount(subscription.amount)}
                     </td>
                     <td className="px-4 py-3 font-mono text-xs">
                       {subscription.customer_id ?? "N/A"}

@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/card";
 import { useAsyncData } from "@/hooks/use-async-data";
 import { getPaymentsHubHref } from "@/lib/navigation/payments-tabs";
-import { formatAssetRef, type CheckoutSessionRow } from "@/lib/payments/types";
+import { formatAssetAmount, type CheckoutSessionRow } from "@/lib/payments/types";
 
 export function CheckoutSessionDetailPanel({
   organizationId,
@@ -110,7 +110,9 @@ export function CheckoutSessionDetailPanel({
             <div className="flex justify-between gap-4">
               <span className="text-muted-foreground">Amount</span>
               <span>
-                {session.amount ?? "N/A"} {formatAssetRef(session.settlement_asset)}
+                {session.amount
+                  ? formatAssetAmount(session.amount, session.settlement_asset)
+                  : "N/A"}
               </span>
             </div>
             <div className="flex justify-between gap-4">

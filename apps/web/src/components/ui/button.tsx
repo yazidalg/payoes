@@ -48,6 +48,8 @@ function Button({
   isLoading = false,
   disabled,
   children,
+  render,
+  nativeButton,
   ...props
 }: ButtonPrimitive.Props &
   VariantProps<typeof buttonVariants> & {
@@ -58,6 +60,8 @@ function Button({
       data-slot="button"
       className={cn(buttonVariants({ variant, size }), className)}
       disabled={disabled || isLoading}
+      render={render}
+      nativeButton={nativeButton ?? (render ? false : true)}
       {...props}
     >
       {isLoading ? <Loader2 className="size-4 animate-spin" /> : null}

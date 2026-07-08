@@ -10,8 +10,9 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useAsyncData } from "@/hooks/use-async-data";
+import { formatAmountWithUnit } from "@/lib/format/amount";
 import type { PaymentRow } from "@/lib/payments/types";
-import { formatAssetRef } from "@/lib/payments/types";
+import { formatAssetAmount } from "@/lib/payments/types";
 
 export function TransactionsTable({ organizationId }: { organizationId: string }) {
   const fetchTransactions = useCallback(async () => {
@@ -44,8 +45,9 @@ export function TransactionsTable({ organizationId }: { organizationId: string }
               <thead className="bg-muted/40 text-left">
                 <tr>
                   <th className="px-4 py-3 font-medium">Payment</th>
+                  <th className="px-4 py-3 font-medium">Paid</th>
                   <th className="px-4 py-3 font-medium">Settlement</th>
-                  <th className="px-4 py-3 font-medium">Paid asset</th>
+                  <th className="px-4 py-3 font-medium">Invoice</th>
                   <th className="px-4 py-3 font-medium">Payer</th>
                   <th className="px-4 py-3 font-medium">Tx Hash</th>
                   <th className="px-4 py-3 font-medium">Confirmed</th>
@@ -54,7 +56,7 @@ export function TransactionsTable({ organizationId }: { organizationId: string }
               <tbody>
                 {(transactions ?? []).length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
+                    <td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">
                       No confirmed transactions yet.
                     </td>
                   </tr>
@@ -70,10 +72,29 @@ export function TransactionsTable({ organizationId }: { organizationId: string }
                         </Link>
                       </td>
                       <td className="px-4 py-3">
-                        {transaction.amount} {formatAssetRef(transaction.settlement_asset)}
+                        {formatAssetAmount(
+                          transaction.quoted_paid_amount ?? transaction.amount,
+                          transaction.paid_asset ?? transaction.settlement_asset
+                        )}
                       </td>
                       <td className="px-4 py-3">
-                        {formatAssetRef(transaction.paid_asset ?? transaction.settlement_asset)}
+                        {transaction.quoted_settlement_amount
+                          ? formatAssetAmount(
+                              transaction.quoted_settlement_amount,
+                              transaction.settlement_asset
+                            )
+                          : formatAssetAmount(
+                              transaction.amount,
+                              transaction.settlement_asset
+                            )}
+                      </td>
+                      <td className="px-4 py-3">
+                        {transaction.pricing_amount && transaction.pricing_currency
+                          ? formatAmountWithUnit(
+                              transaction.pricing_amount,
+                              transaction.pricing_currency
+                            )
+                          : "—"}
                       </td>
                       <td className="px-4 py-3 font-mono text-xs">
                         {transaction.payer_address

@@ -14,8 +14,30 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useAsyncData } from "@/hooks/use-async-data";
+import { formatAmountWithUnit } from "@/lib/format/amount";
 import { getPaymentsHubHref } from "@/lib/navigation/payments-tabs";
-import { formatAssetRef, type PaymentRow } from "@/lib/payments/types";
+import { formatAssetAmount, formatAssetRef, type PaymentRow } from "@/lib/payments/types";
+
+function formatPaidAmount(payment: PaymentRow) {
+  const amount = payment.quoted_paid_amount ?? payment.amount;
+  const asset = payment.paid_asset ?? payment.settlement_asset;
+  return formatAssetAmount(amount, asset);
+}
+
+function formatSettlementTarget(payment: PaymentRow) {
+  if (payment.pricing_amount && payment.pricing_currency) {
+    return formatAmountWithUnit(payment.pricing_amount, payment.pricing_currency);
+  }
+
+  if (payment.quoted_settlement_amount) {
+    return formatAssetAmount(
+      payment.quoted_settlement_amount,
+      payment.settlement_asset
+    );
+  }
+
+  return formatAssetAmount(payment.amount, payment.settlement_asset);
+}
 
 export function PaymentDetailPanel({
   organizationId,
@@ -83,9 +105,13 @@ export function PaymentDetailPanel({
           Back to payments
         </Button>
         <div>
+          <p className="text-sm text-muted-foreground">Customer paid</p>
           <h1 className="text-2xl font-semibold tracking-tight">
-            {payment.amount} {formatAssetRef(payment.settlement_asset)}
+            {formatPaidAmount(payment)}
           </h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Settlement target: {formatSettlementTarget(payment)}
+          </p>
           <p className="mt-1 font-mono text-xs text-muted-foreground">
             {payment.id}
           </p>
@@ -106,6 +132,32 @@ export function PaymentDetailPanel({
             <div>
               <dt className="text-muted-foreground">Description</dt>
               <dd className="mt-1">{payment.description ?? "N/A"}</dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground">Invoice total</dt>
+              <dd className="mt-1">
+                {payment.pricing_amount && payment.pricing_currency
+                  ? formatAmountWithUnit(
+                      payment.pricing_amount,
+                      payment.pricing_currency
+                    )
+                  : "N/A"}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground">Paid amount</dt>
+              <dd className="mt-1">{formatPaidAmount(payment)}</dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground">Settlement amount</dt>
+              <dd className="mt-1">
+                {payment.quoted_settlement_amount
+                  ? formatAssetAmount(
+                      payment.quoted_settlement_amount,
+                      payment.settlement_asset
+                    )
+                  : "N/A"}
+              </dd>
             </div>
             <div>
               <dt className="text-muted-foreground">Settlement asset</dt>

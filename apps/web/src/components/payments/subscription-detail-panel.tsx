@@ -15,6 +15,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useAsyncData } from "@/hooks/use-async-data";
+import { formatTokenAmount } from "@/lib/format/amount";
 import { getPaymentsHubHref } from "@/lib/navigation/payments-tabs";
 import type { SubscriptionRow } from "@/lib/payments/types";
 
@@ -156,7 +157,7 @@ export function SubscriptionDetailPanel({
           <div className="flex justify-between gap-4">
             <span className="text-muted-foreground">Amount</span>
             <span>
-              {subscription.amount}
+              {formatTokenAmount(subscription.amount)}
             </span>
           </div>
           <div className="flex justify-between gap-4">

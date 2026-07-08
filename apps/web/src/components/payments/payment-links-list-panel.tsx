@@ -11,7 +11,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useAsyncData } from "@/hooks/use-async-data";
-import { formatAssetRef, type PaymentLinkRow } from "@/lib/payments/types";
+import { formatAssetAmount, type PaymentLinkRow } from "@/lib/payments/types";
 import { toast } from "sonner";
 
 type PaymentLinksListPanelProps = {
@@ -81,7 +81,7 @@ export function PaymentLinksListPanel({
                       </Link>
                     </td>
                     <td className="px-4 py-3">
-                      {link.amount} {formatAssetRef(link.settlement_asset)}
+                      {formatAssetAmount(link.amount, link.settlement_asset)}
                     </td>
                     <td className="px-4 py-3">
                       {link.active ? "Active" : "Inactive"}
