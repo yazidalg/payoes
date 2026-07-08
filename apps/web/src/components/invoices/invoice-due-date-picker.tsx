@@ -27,10 +27,12 @@ export function InvoiceDueDatePicker({
   value,
   onChange,
   className,
+  allowPast = false,
 }: {
   value: Date;
   onChange: (date: Date) => void;
   className?: string;
+  allowPast?: boolean;
 }) {
   const [inputValue, setInputValue] = useState(formatDateInputValue(value));
 
@@ -44,7 +46,7 @@ export function InvoiceDueDatePicker({
       <Input
         type="date"
         value={inputValue}
-        min={formatDateInputValue(new Date())}
+        min={allowPast ? undefined : formatDateInputValue(new Date())}
         className="pl-9"
         onChange={(event) => {
           const nextValue = event.target.value;

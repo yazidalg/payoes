@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 
 type InvoiceCurrencyPickerProps = {
   id?: string;
+  label?: string;
   value: string;
   onChange: (code: string) => void;
   disabled?: boolean;
@@ -15,6 +16,7 @@ type InvoiceCurrencyPickerProps = {
 
 export function InvoiceCurrencyPicker({
   id = "invoice-currency",
+  label = "Invoice currency",
   value,
   onChange,
   disabled = false,
@@ -43,7 +45,7 @@ export function InvoiceCurrencyPicker({
 
   return (
     <div className="space-y-2">
-      <Label htmlFor={`${id}-search`}>Invoice currency</Label>
+      <Label htmlFor={`${id}-search`}>{label}</Label>
       <div className="relative">
         <Input
           id={`${id}-search`}

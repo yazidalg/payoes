@@ -98,7 +98,6 @@ export async function listInvoices(
       publicId: invoices.publicId,
       organizationId: invoices.organizationId,
       customerId: invoices.customerId,
-      subscriptionId: invoices.subscriptionId,
       checkoutSessionId: invoices.checkoutSessionId,
       amount: invoices.amount,
       currencyCode: invoices.currencyCode,
@@ -218,7 +217,6 @@ export async function createInvoice(input: {
   metadata?: Record<string, string> | null;
   dueInDays?: number;
   dueAt?: Date;
-  subscriptionId?: string | null;
   items?: InvoiceLineItemInput[];
 }) {
   const currencyCode = input.currencyCode ?? "USD";
@@ -265,7 +263,6 @@ export async function createInvoice(input: {
       organizationId: input.organizationId,
       environment: input.environment,
       customerId: customer.id,
-      subscriptionId: input.subscriptionId ?? null,
       amount,
       currencyCode,
       description: input.description?.trim() || null,
@@ -323,8 +320,6 @@ export async function finalizeInvoice(
     throw new Error("Customer not found");
   }
 
-  const sourceType = invoice.subscriptionId ? "subscription" : "invoice";
-
   const { session, payment } = await createCheckoutSession({
     organizationId: invoice.organizationId,
     environment: invoice.environment,
@@ -334,9 +329,8 @@ export async function finalizeInvoice(
     description: invoice.description,
     metadata: invoice.metadata ?? undefined,
     customerId: customer.publicId,
-    sourceType,
+    sourceType: "invoice",
     invoiceId: invoice.id,
-    subscriptionId: invoice.subscriptionId,
     expiresInMinutes: invoice.dueAt
       ? Math.max(
           MIN_PAYMENT_EXPIRY_MINUTES,
@@ -592,35 +586,11 @@ export async function syncInvoiceWithPayment(payment: {
       })
       .where(eq(invoices.id, payment.invoiceId));
 
-    const [invoice] = await db
-      .select()
-      .from(invoices)
-      .where(eq(invoices.id, payment.invoiceId))
-      .limit(1);
-
-    if (invoice?.subscriptionId) {
-      const { syncSubscriptionAfterInvoicePaid } = await import(
-        "@/lib/subscriptions/service"
-      );
-      await syncSubscriptionAfterInvoicePaid(invoice.subscriptionId);
-    }
-
     return;
   }
 
   if (payment.status === "expired") {
-    const [invoice] = await db
-      .select()
-      .from(invoices)
-      .where(eq(invoices.id, payment.invoiceId))
-      .limit(1);
-
-    if (invoice?.subscriptionId) {
-      const { markSubscriptionPastDue } = await import(
-        "@/lib/subscriptions/service"
-      );
-      await markSubscriptionPastDue(invoice.subscriptionId);
-    }
+    return;
   }
 }
 
@@ -782,13 +752,6 @@ export async function markInvoiceAsPaid(
     .where(eq(invoices.id, invoice.id))
     .returning();
 
-  if (updated.subscriptionId) {
-    const { syncSubscriptionAfterInvoicePaid } = await import(
-      "@/lib/subscriptions/service"
-    );
-    await syncSubscriptionAfterInvoicePaid(updated.subscriptionId);
-  }
-
   return updated;
 }
 
@@ -835,7 +798,6 @@ export function serializeInvoice(
   options?: {
     checkoutUrl?: string | null;
     checkoutSessionPublicId?: string | null;
-    subscriptionPublicId?: string | null;
     items?: Array<{
       description: string;
       quantity: string;
@@ -868,7 +830,6 @@ export function serializeInvoice(
     customer_id: invoice.customerPublicId ?? null,
     customer_name: options?.customerName ?? null,
     customer_email: options?.customerEmail ?? null,
-    subscription_id: options?.subscriptionPublicId ?? null,
     checkout_session_id: options?.checkoutSessionPublicId ?? null,
     checkout_url: options?.checkoutUrl ?? null,
     hosted_invoice_url:
@@ -894,7 +855,7 @@ export async function serializeInvoices(
     .map((row) => row.checkoutSessionId)
     .filter((id): id is string => Boolean(id));
 
-  const { checkoutSessions, subscriptions } = await import("@/lib/db/schema");
+  const { checkoutSessions } = await import("@/lib/db/schema");
   const sessionRows =
     sessionIds.length > 0
       ? await db
@@ -903,24 +864,8 @@ export async function serializeInvoices(
           .where(inArray(checkoutSessions.id, sessionIds))
       : [];
 
-  const subscriptionIds = rows
-    .map((row) => row.subscriptionId)
-    .filter((id): id is string => Boolean(id));
-
-  const subscriptionRows =
-    subscriptionIds.length > 0
-      ? await db
-          .select({ id: subscriptions.id, publicId: subscriptions.publicId })
-          .from(subscriptions)
-          .where(inArray(subscriptions.id, subscriptionIds))
-      : [];
-
   const sessionMap = new Map(
     sessionRows.map((row) => [row.id, row.publicId] as const)
-  );
-
-  const subscriptionMap = new Map(
-    subscriptionRows.map((row) => [row.id, row.publicId] as const)
   );
 
   return rows.map((row) => {
@@ -931,9 +876,6 @@ export async function serializeInvoices(
     return serializeInvoice(
       { ...row, customerPublicId: row.customerPublicId },
       {
-        subscriptionPublicId: row.subscriptionId
-          ? (subscriptionMap.get(row.subscriptionId) ?? null)
-          : null,
         checkoutSessionPublicId: sessionPublicId,
         checkoutUrl: sessionPublicId ? getCheckoutSessionUrl(sessionPublicId) : null,
         hostedInvoiceUrl: getHostedInvoiceUrl(row.publicId),
