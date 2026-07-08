@@ -1,39 +1,47 @@
 ---
 title: Webhooks
-description: Receive real-time HTTP notifications when payment events occur.
+description: Receive signed HTTP notifications when payment events occur.
 ---
 
-Webhooks let your backend react to payment events without polling the API.
+Webhooks push payment events to your server over HTTPS. Each request is signed with HMAC-SHA256 so you can confirm it came from Payoes.
 
-## Supported events
+## Events
 
 | Event | When it fires |
 |-------|---------------|
-| `payment.created` | A new payment is created |
-| `payment.completed` | Payment verified on Horizon |
-| `payment.failed` | Transaction failed on Stellar |
+| `payment.created` | A new payment intent is created |
+| `payment.completed` | Payment verified on Stellar (or recorded manually as completed) |
+| `payment.failed` | Payment failed on Stellar |
 | `payment.expired` | Payment passed its expiration time |
+| `webhook.test` | Sent when you click **Send test event** in the dashboard |
 
-## Register an endpoint
+Pick the events you need per endpoint under **Developers → Webhooks**.
 
-In the dashboard, go to **Developers → Webhooks** and add:
+## Create an endpoint
 
-- **URL**: your HTTPS endpoint (e.g. `https://api.example.com/webhooks/payoes`)
-- **Events**: which events to receive
+In **Developers → Webhooks**, add:
 
-On creation, Payoes returns a **signing secret**. Store it securely for signature verification.
+- **URL** — your HTTPS endpoint (e.g. `https://api.example.com/webhooks/payoes`)
+- **Events** — which events to receive
+- **Signing secret** — generated on creation (`whsec_...`)
 
-## Payload format
+<Warning>
+  Copy the signing secret when it is shown. After that you only get a masked preview. Use **Rotate secret** to issue a new one.
+</Warning>
 
-Payoes sends `POST` requests with JSON body:
+## Payload
+
+Payoes sends a `POST` with a JSON body:
 
 ```json
 {
   "event": "payment.completed",
   "data": {
     "id": "pay_nLU2gUDk-v3tdyd6",
+    "object": "payment_intent",
     "amount": "2.0000000",
-    "asset": "XLM",
+    "pricing_currency": "USD",
+    "pricing_amount": "10.00",
     "status": "completed",
     "description": "Invoice #1024",
     "metadata": { "order_id": "ord_123" },
@@ -46,41 +54,179 @@ Payoes sends `POST` requests with JSON body:
 }
 ```
 
-## Signature verification
+### Headers
 
-Each request includes an `X-Payoes-Signature` header: an HMAC-SHA256 hex digest of the raw request body using your webhook secret.
+| Header | Description |
+|--------|-------------|
+| `Payoes-Signature` | HMAC signature (`t=<unix>,v1=<hex>`) |
+| `Payoes-Event` | Event name (same as `event` in the body) |
+| `Payoes-Timestamp` | Unix timestamp in seconds, used when signing |
+| `Payoes-Delivery-ID` | Unique delivery ID — use for idempotency |
+
+```http
+POST /webhooks/payoes HTTP/1.1
+Content-Type: application/json
+Payoes-Signature: t=1719820800,v1=8f2b...
+Payoes-Event: payment.completed
+Payoes-Timestamp: 1719820800
+Payoes-Delivery-ID: 6f1e2f3a-4b5c-6d7e-8f9a-0b1c2d3e4f5a
+```
+
+## Verify the signature
+
+Payoes signs `{timestamp}.{raw_body}` with your webhook secret. The digest appears in `Payoes-Signature` as `v1=<hex>`.
+
+<Warning>
+  Verify the signature before you trust the payload. Use the **raw request body** as received — parsing and re-serializing JSON will break verification.
+</Warning>
+
+Reject timestamps more than five minutes old.
+
+### Node.js
 
 ```typescript
 import { createHmac, timingSafeEqual } from "node:crypto";
 
-function verifyPayoesSignature(
-  secret: string,
-  rawBody: string,
-  signature: string
-): boolean {
-  const expected = createHmac("sha256", secret)
-    .update(rawBody)
+const WEBHOOK_TOLERANCE_SECONDS = 300;
+
+function extractSignatureDigest(signatureHeader: string) {
+  const match = signatureHeader.match(/v1=([a-f0-9]+)/i);
+  return match?.[1] ?? null;
+}
+
+export function verifyPayoesWebhook(input: {
+  secret: string;
+  rawBody: string;
+  signatureHeader: string;
+  timestampHeader: string;
+}) {
+  const timestamp = Number(input.timestampHeader);
+
+  if (!Number.isFinite(timestamp)) {
+    return false;
+  }
+
+  const now = Math.floor(Date.now() / 1000);
+
+  if (Math.abs(now - timestamp) > WEBHOOK_TOLERANCE_SECONDS) {
+    return false;
+  }
+
+  const providedDigest = extractSignatureDigest(input.signatureHeader);
+
+  if (!providedDigest) {
+    return false;
+  }
+
+  const expected = createHmac("sha256", input.secret)
+    .update(`${timestamp}.${input.rawBody}`)
     .digest("hex");
 
   const a = Buffer.from(expected, "utf8");
-  const b = Buffer.from(signature, "utf8");
+  const b = Buffer.from(providedDigest, "utf8");
 
   return a.length === b.length && timingSafeEqual(a, b);
 }
 ```
 
-<Warning>
-  Always verify signatures before processing webhook payloads. Use the raw request body, not a re-serialized JSON object.
-</Warning>
+### Next.js App Router
 
-## Delivery behavior
+```typescript
+import { NextResponse } from "next/server";
 
-- Deliveries are attempted once per event per endpoint
-- Failed deliveries are recorded in the dashboard with response status and body
-- Automatic retry queues are planned. Implement idempotent handlers today.
+export async function POST(request: Request) {
+  const rawBody = await request.text();
+  const signature = request.headers.get("payoes-signature") ?? "";
+  const timestamp = request.headers.get("payoes-timestamp") ?? "";
+  const deliveryId = request.headers.get("payoes-delivery-id") ?? "";
+  const event = request.headers.get("payoes-event") ?? "";
 
-## Handler best practices
+  const valid = verifyPayoesWebhook({
+    secret: process.env.PAYOES_WEBHOOK_SECRET!,
+    rawBody,
+    signatureHeader: signature,
+    timestampHeader: timestamp,
+  });
 
-- Return `2xx` quickly; process heavy work asynchronously
-- Make handlers **idempotent**. The same event may be delivered more than once.
-- Match `data.id` to your internal order records via `metadata`
+  if (!valid) {
+    return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
+  }
+
+  const payload = JSON.parse(rawBody) as {
+    event: string;
+    data: Record<string, unknown>;
+  };
+
+  // Store deliveryId after processing to skip duplicates on retry.
+  console.log({ deliveryId, event, data: payload.data });
+
+  return NextResponse.json({ received: true });
+}
+```
+
+### Python (Flask)
+
+```python
+import hmac
+import hashlib
+import re
+import time
+
+TOLERANCE_SECONDS = 300
+
+def verify_payoes_webhook(secret: str, raw_body: bytes, signature: str, timestamp: str) -> bool:
+    try:
+        ts = int(timestamp)
+    except ValueError:
+        return False
+
+    if abs(int(time.time()) - ts) > TOLERANCE_SECONDS:
+        return False
+
+    match = re.search(r"v1=([a-f0-9]+)", signature, re.I)
+    if not match:
+        return False
+
+    signed_payload = f"{ts}.".encode() + raw_body
+    expected = hmac.new(secret.encode(), signed_payload, hashlib.sha256).hexdigest()
+
+    return hmac.compare_digest(expected, match.group(1))
+```
+
+## Test events
+
+Click **Send test event** on a webhook in the dashboard. Payoes delivers a `webhook.test` payload with sample payment data (`metadata.payoes_test = "true"`). It shows up in delivery logs the same way as live events.
+
+## Retries
+
+If your endpoint returns a non-2xx status or times out, Payoes retries up to five times:
+
+| Attempt | Delay after failure |
+|---------|---------------------|
+| 1 | 1 minute |
+| 2 | 5 minutes |
+| 3 | 30 minutes |
+| 4 | 2 hours |
+| 5 | 24 hours |
+
+A failed delivery stays **pending** until the next attempt. After the fifth failure it moves to **failed**. You can also hit **Retry** in the dashboard delivery log.
+
+Return `2xx` as soon as you've accepted the event. Queue any slow work — Payoes will retry if your handler is slow or errors.
+
+## Delivery logs
+
+On the webhook detail page you can inspect each delivery:
+
+- Delivery ID (`Payoes-Delivery-ID`)
+- Event, status, and HTTP response code
+- Attempt count and next retry time
+- Request payload, response body, and last error
+
+## Troubleshooting
+
+| Problem | What to check |
+|---------|---------------|
+| Signature verification fails | Raw body was altered, or wrong `whsec_...` secret |
+| No events arriving | Endpoint disabled, events not subscribed, or firewall rules |
+| Same event delivered multiple times | Handler returned non-2xx; deduplicate on `Payoes-Delivery-ID` |
+| Test events work, payments don't | Payment events not selected on the endpoint |
