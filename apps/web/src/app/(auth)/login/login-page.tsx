@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { signIn } from "next-auth/react";
 import { toast } from "sonner";
@@ -22,6 +22,10 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
+import {
+  AUTH_ERROR_CODES,
+  AUTH_ERROR_MESSAGES,
+} from "@/constants/auth";
 
 const loginSchema = z.object({
   email: z
@@ -40,8 +44,8 @@ type Login = z.infer<typeof loginSchema>;
 export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get("callbackUrl") ?? "/dashboard";
-  const registered = searchParams.get("registered") === "1";
+  const callbackUrl = searchParams.get("callbackUrl") ?? "/onboarding";
+  const authError = searchParams.get("error");
 
   const [error, setError] = useState<string | null>(null);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
@@ -51,8 +55,41 @@ export default function LoginPage() {
     resolver: zodResolver(loginSchema),
   });
 
+  useEffect(() => {
+    if (authError === "credentials_account") {
+      setError(AUTH_ERROR_MESSAGES.CREDENTIALS_ACCOUNT);
+    }
+  }, [authError]);
+
   const onSubmit = async (values: Login) => {
     setError(null);
+
+    const validation = await fetch("/api/auth/validate-login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(values),
+    });
+
+    const validationData = (await validation.json()) as {
+      error?: string;
+      code?: string;
+      ok?: boolean;
+      redirectTo?: string;
+    };
+
+    if (!validation.ok) {
+      setError(
+        validationData.error ?? AUTH_ERROR_MESSAGES.INVALID_CREDENTIALS
+      );
+
+      if (validationData.code === AUTH_ERROR_CODES.EMAIL_NOT_VERIFIED) {
+        router.push(
+          `/verify-email?email=${encodeURIComponent(values.email)}&pending=1`
+        );
+      }
+
+      return;
+    }
 
     const result = await signIn("credentials", {
       email: values.email,
@@ -61,19 +98,19 @@ export default function LoginPage() {
     });
 
     if (result?.error) {
-      setError("Invalid email or password.");
+      setError(AUTH_ERROR_MESSAGES.INVALID_CREDENTIALS);
       return;
     }
 
     toast.success("Welcome to Payoes");
-    router.push(callbackUrl);
+    router.push(validationData.redirectTo ?? "/onboarding");
     router.refresh();
   };
 
   async function handleGoogleSignIn() {
     setError(null);
     setIsGoogleLoading(true);
-    await signIn("google", { callbackUrl });
+    await signIn("google", { callbackUrl: "/onboarding" });
   }
 
   return (
@@ -86,19 +123,13 @@ export default function LoginPage() {
         Access your dashboard, payments, and Stellar wallet
       </CardDescription>
 
-      {registered && (
-        <AlertBlock type="success" className="w-full">
-          Account created successfully. Sign in to continue.
-        </AlertBlock>
-      )}
-
       <div className="w-full">
         <CardContent className="space-y-4 p-0">
-          {error && (
+          {error ? (
             <AlertBlock type="error" className="my-2">
               {error}
             </AlertBlock>
-          )}
+          ) : null}
 
           <Button
             type="button"
@@ -177,7 +208,10 @@ export default function LoginPage() {
           <div className="mt-4 flex flex-row flex-wrap justify-between gap-2">
             <div className="flex gap-2 text-center text-sm text-muted-foreground">
               Don&apos;t have an account?
-              <Link className="underline" href="/register">
+              <Link
+                className="underline"
+                href={`/register?callbackUrl=${encodeURIComponent(callbackUrl)}`}
+              >
                 Create an account
               </Link>
             </div>

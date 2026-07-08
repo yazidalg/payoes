@@ -11,7 +11,9 @@ export default auth((req) => {
   requestHeaders.set("x-pathname", pathname);
 
   if (
-    (pathname.startsWith("/dashboard") || pathname.startsWith("/onboarding")) &&
+    (pathname.startsWith("/dashboard") ||
+      pathname.startsWith("/onboarding") ||
+      pathname.startsWith("/organizations")) &&
     !isLoggedIn
   ) {
     const loginUrl = new URL("/login", req.nextUrl.origin);
@@ -20,7 +22,11 @@ export default auth((req) => {
   }
 
   if ((pathname === "/login" || pathname === "/register") && isLoggedIn) {
-    return NextResponse.redirect(new URL("/dashboard/payments", req.nextUrl.origin));
+    return NextResponse.redirect(new URL("/dashboard", req.nextUrl.origin));
+  }
+
+  if (pathname === "/verify-email" && isLoggedIn) {
+    return NextResponse.redirect(new URL("/onboarding", req.nextUrl.origin));
   }
 
   return NextResponse.next({
@@ -35,8 +41,11 @@ export const config = {
     "/dashboard/:path*",
     "/onboarding/:path*",
     "/onboarding",
+    "/organizations/:path*",
+    "/organizations",
     "/login",
     "/register",
+    "/verify-email",
     "/invite/:path*",
     "/c/:path*",
   ],
