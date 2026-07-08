@@ -1,40 +1,11 @@
-import { auth } from "@/auth";
-import { findUserByEmail } from "@/lib/auth/users";
 import { ReceivingWalletForm } from "@/components/wallet/receiving-wallet-form";
+import { getDashboardOrganization } from "@/lib/dashboard/get-organization";
 import {
-  getPrimaryOrganizationForUser,
   getReceivingWallet,
 } from "@/lib/organizations/wallet";
-import { redirect } from "next/navigation";
-
-async function resolveUserId(session: {
-  user?: { id?: string; email?: string | null };
-}) {
-  if (session.user?.id) {
-    return session.user.id;
-  }
-
-  if (!session.user?.email) {
-    return null;
-  }
-
-  const user = await findUserByEmail(session.user.email);
-  return user?.id ?? null;
-}
 
 export default async function ReceivingWalletPage() {
-  const session = await auth();
-  const userId = session?.user ? await resolveUserId(session) : null;
-
-  if (!userId) {
-    redirect("/login");
-  }
-
-  const organization = await getPrimaryOrganizationForUser(userId);
-
-  if (!organization) {
-    redirect("/onboarding");
-  }
+  const organization = await getDashboardOrganization();
 
   const wallet = await getReceivingWallet(
     organization.id,
