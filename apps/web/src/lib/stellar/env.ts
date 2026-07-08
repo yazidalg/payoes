@@ -1,9 +1,8 @@
 import { StrKey } from "@stellar/stellar-sdk";
 import type { Organization } from "@/lib/db/schema";
-import {
-  getBuiltinOfficialIssuer,
-  type OfficialIssuerAssetCode,
-} from "@/lib/payment-methods/official-issuer-registry";
+import { ISSUER_ENV_KEYS } from "@/constants/assets/issuer-env-keys";
+import type { OfficialIssuerAssetCode } from "@/constants/assets/issuers";
+import { getBuiltinOfficialIssuer } from "@/lib/payment-methods/official-issuer-registry";
 
 function readOptionalIssuerEnv(name: string): string | null {
   const value = process.env[name]?.trim();
@@ -18,32 +17,6 @@ function readOptionalIssuerEnv(name: string): string | null {
 
   return value;
 }
-
-const ISSUER_ENV_KEYS: Record<
-  OfficialIssuerAssetCode,
-  { sandbox: string; production: string }
-> = {
-  USDC: {
-    sandbox: "STELLAR_TESTNET_USDC_ISSUER",
-    production: "STELLAR_MAINNET_USDC_ISSUER",
-  },
-  EURC: {
-    sandbox: "STELLAR_TESTNET_EURC_ISSUER",
-    production: "STELLAR_MAINNET_EURC_ISSUER",
-  },
-  PYUSD: {
-    sandbox: "STELLAR_TESTNET_PYUSD_ISSUER",
-    production: "STELLAR_MAINNET_PYUSD_ISSUER",
-  },
-  AUDD: {
-    sandbox: "STELLAR_TESTNET_AUDD_ISSUER",
-    production: "STELLAR_MAINNET_AUDD_ISSUER",
-  },
-  NGNC: {
-    sandbox: "STELLAR_TESTNET_NGNC_ISSUER",
-    production: "STELLAR_MAINNET_NGNC_ISSUER",
-  },
-};
 
 export function getOfficialAssetIssuer(
   code: OfficialIssuerAssetCode,

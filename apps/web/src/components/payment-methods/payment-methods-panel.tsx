@@ -297,8 +297,8 @@ export function PaymentMethodsPanel({ organizationId }: { organizationId: string
         <CardHeader>
           <CardTitle>Settlement Asset</CardTitle>
           <CardDescription>
-            All payments will be settled using this asset when automatic asset conversion is
-            enabled in the future.
+            Cross-asset payments are settled on-chain via Stellar path payments when the
+            customer pays with a different asset than your settlement asset.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -327,7 +327,7 @@ export function PaymentMethodsPanel({ organizationId }: { organizationId: string
           {settlementId ? (
             <p className="text-muted-foreground flex items-center gap-2 text-sm">
               <CheckCircle2Icon className="size-4 text-emerald-600" />
-              Future conversion and path payments will target this asset.
+              Path payments and checkout quotes convert customer payments into this asset.
             </p>
           ) : null}
         </CardContent>

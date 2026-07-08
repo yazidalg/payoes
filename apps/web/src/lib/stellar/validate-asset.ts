@@ -1,12 +1,11 @@
 import { Asset } from "@stellar/stellar-sdk";
 import type { Organization } from "@/lib/db/schema";
+import { STELLAR_ASSET_CODE_PATTERN } from "@/constants/stellar";
 import { getHorizonUrl } from "@/lib/stellar/network";
 import { isValidStellarAddress } from "@/lib/stellar/validate-address";
 
-const ASSET_CODE_PATTERN = /^[A-Za-z0-9]{1,12}$/;
-
 export function isValidAssetCode(code: string) {
-  return ASSET_CODE_PATTERN.test(code);
+  return STELLAR_ASSET_CODE_PATTERN.test(code);
 }
 
 export async function validateCustomAssetOnHorizon(input: {

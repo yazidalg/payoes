@@ -1,7 +1,5 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
-
-const PERSONA_API_URL = "https://api.withpersona.com/api/v1";
-const PERSONA_VERSION = "2025-10-27";
+import { PERSONA_API_URL, PERSONA_API_VERSION } from "@/constants/kyc";
 
 export type PersonaInquiryStatus =
   | "created"
@@ -55,7 +53,7 @@ async function personaRequest<T>(path: string, init?: RequestInit): Promise<T> {
     headers: {
       Authorization: `Bearer ${getPersonaApiKey()}`,
       "Content-Type": "application/json",
-      "Persona-Version": PERSONA_VERSION,
+      "Persona-Version": PERSONA_API_VERSION,
       ...init?.headers,
     },
   });

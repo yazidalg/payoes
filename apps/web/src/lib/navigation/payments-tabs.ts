@@ -1,25 +1,18 @@
-export const PAYMENTS_TABS = [
-  "payment-intents",
-  "invoices",
-  "payment-links",
-  "subscriptions",
-] as const;
+import {
+  DEFAULT_PAYMENTS_TAB,
+  PAYMENTS_TABS,
+  PAYMENTS_TAB_LABELS,
+  type PaymentsTab,
+} from "@/constants/navigation/payments-tabs";
 
-export type PaymentsTab = (typeof PAYMENTS_TABS)[number];
-
-export const PAYMENTS_TAB_LABELS: Record<PaymentsTab, string> = {
-  "payment-intents": "Payment intents",
-  invoices: "Invoices",
-  "payment-links": "Payment links",
-  subscriptions: "Subscriptions",
-};
+export { PAYMENTS_TABS, PAYMENTS_TAB_LABELS, type PaymentsTab };
 
 export function isPaymentsTab(value: string | null | undefined): value is PaymentsTab {
   return PAYMENTS_TABS.includes(value as PaymentsTab);
 }
 
-export function getPaymentsHubHref(tab: PaymentsTab = "payment-intents") {
-  if (tab === "payment-intents") {
+export function getPaymentsHubHref(tab: PaymentsTab = DEFAULT_PAYMENTS_TAB) {
+  if (tab === DEFAULT_PAYMENTS_TAB) {
     return "/dashboard/payments";
   }
 
@@ -33,5 +26,5 @@ export function parsePaymentsTab(
     return value;
   }
 
-  return "payment-intents";
+  return DEFAULT_PAYMENTS_TAB;
 }

@@ -2,11 +2,14 @@ import { and, asc, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { paymentMethods } from "@/lib/db/schema";
 import {
+  DEFAULT_ORGANIZATION_ASSET_CODES,
+  OFFICIAL_ASSETS,
+} from "@/constants/assets/official";
+import {
   getOfficialAsset,
   getOfficialAssetSubtitle,
   isOfficialAssetAvailable,
   isOfficialAssetCode,
-  OFFICIAL_ASSETS,
   type OfficialAssetCode,
 } from "@/lib/payment-methods/official-assets";
 import { validateCustomAssetOnHorizon } from "@/lib/stellar/validate-asset";
@@ -53,14 +56,15 @@ export function serializePaymentMethod(method: PaymentMethod): SerializedPayment
 }
 
 async function seedDefaultPaymentMethods(organizationId: string) {
-  const defaults: Array<{
-    assetCode: string;
-    displayName: string;
-    isDefault: number;
-  }> = [
-    { assetCode: "USDC", displayName: "USDC", isDefault: 1 },
-    { assetCode: "XLM", displayName: "XLM", isDefault: 0 },
-  ];
+  const defaults = DEFAULT_ORGANIZATION_ASSET_CODES.map((code) => {
+    const asset = OFFICIAL_ASSETS.find((item) => item.code === code);
+
+    return {
+      assetCode: code,
+      displayName: asset?.displayName ?? code,
+      isDefault: code === "USDC" ? 1 : 0,
+    };
+  });
 
   for (const item of defaults) {
     const existing = await db

@@ -11,7 +11,7 @@ import {
 import { sendOrganizationInviteEmail } from "@/lib/email/send-organization-invite";
 import { findUserByEmail } from "@/lib/auth/users";
 
-const INVITE_TTL_DAYS = 7;
+import { INVITE_TTL_DAYS } from "@/constants/organizations/invites";
 
 export class MembersServiceError extends Error {
   constructor(

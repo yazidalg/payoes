@@ -1,5 +1,9 @@
 import { Networks } from "@stellar/stellar-sdk";
 import type { Organization } from "@/lib/db/schema";
+import {
+  HORIZON_MAINNET_URL,
+  HORIZON_TESTNET_URL,
+} from "@/constants/stellar";
 
 export type StellarEnvironment = Organization["environment"];
 
@@ -8,9 +12,7 @@ export function getNetworkPassphrase(environment: StellarEnvironment) {
 }
 
 export function getHorizonUrl(environment: StellarEnvironment) {
-  return environment === "production"
-    ? "https://horizon.stellar.org"
-    : "https://horizon-testnet.stellar.org";
+  return environment === "production" ? HORIZON_MAINNET_URL : HORIZON_TESTNET_URL;
 }
 
 export function getNetworkLabel(environment: StellarEnvironment) {

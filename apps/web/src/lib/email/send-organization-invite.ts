@@ -1,7 +1,8 @@
+import { DEFAULT_AUTH_URL } from "@/constants/app";
 import { sendEmail } from "@/lib/email/client";
 
 function getAppUrl() {
-  return process.env.AUTH_URL ?? "http://localhost:3000";
+  return process.env.AUTH_URL ?? DEFAULT_AUTH_URL;
 }
 
 export async function sendOrganizationInviteEmail(input: {

@@ -12,15 +12,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { WEBHOOK_EVENTS } from "@/constants/webhooks/events";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-
-const WEBHOOK_EVENTS = [
-  "payment.created",
-  "payment.completed",
-  "payment.failed",
-  "payment.expired",
-] as const;
 
 type CreateWebhookDialogProps = {
   organizationId: string;

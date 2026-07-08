@@ -12,9 +12,8 @@ import {
   resumePersonaInquiry,
 } from "@/lib/kyc/persona";
 import { normalizeCountryCode } from "@/lib/kyc/country";
+import { VERIFICATION_VALIDITY_DAYS } from "@/constants/kyc";
 import { getMembershipForUser } from "@/lib/organizations/members";
-
-const VERIFICATION_VALIDITY_DAYS = 365;
 
 export class KycServiceError extends Error {
   constructor(

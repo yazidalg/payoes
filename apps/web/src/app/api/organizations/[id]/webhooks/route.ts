@@ -1,6 +1,7 @@
 import { auth } from "@/auth";
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { WEBHOOK_EVENTS } from "@/constants/webhooks/events";
 import { getOrganizationForMember } from "@/lib/organizations/wallet";
 import {
   createWebhookEndpoint,
@@ -10,14 +11,7 @@ import {
 const webhookSchema = z.object({
   url: z.string().url("Webhook URL must be valid"),
   events: z
-    .array(
-      z.enum([
-        "payment.created",
-        "payment.completed",
-        "payment.failed",
-        "payment.expired",
-      ])
-    )
+    .array(z.enum(WEBHOOK_EVENTS))
     .min(1),
 });
 

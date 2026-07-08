@@ -1,4 +1,5 @@
 import nodemailer from "nodemailer";
+import { DEFAULT_SMTP_PORT } from "@/constants/app";
 
 export function isSmtpConfigured() {
   return Boolean(process.env.SMTP_HOST && process.env.SMTP_FROM);
@@ -6,7 +7,7 @@ export function isSmtpConfigured() {
 
 function createTransporter() {
   const host = process.env.SMTP_HOST;
-  const port = Number(process.env.SMTP_PORT ?? 587);
+  const port = Number(process.env.SMTP_PORT ?? DEFAULT_SMTP_PORT);
   const user = process.env.SMTP_USER;
   const pass = process.env.SMTP_PASSWORD;
 

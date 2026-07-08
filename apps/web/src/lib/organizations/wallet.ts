@@ -7,9 +7,6 @@ import {
   type Organization,
   type OrganizationReceivingWallet,
 } from "@/lib/db/schema";
-import type { AcceptedAsset } from "@/lib/organizations/wallet-constants";
-
-export { ACCEPTED_ASSET_OPTIONS, type AcceptedAsset } from "@/lib/organizations/wallet-constants";
 
 export async function getReceivingWallet(
   organizationId: string,
@@ -64,7 +61,6 @@ export async function upsertReceivingWallet(input: {
   organizationId: string;
   environment: Organization["environment"];
   stellarAddress: string;
-  acceptedAssets: AcceptedAsset[];
   walletProvider?: string | null;
 }): Promise<OrganizationReceivingWallet> {
   const existing = await getReceivingWallet(
@@ -77,7 +73,6 @@ export async function upsertReceivingWallet(input: {
       .update(organizationReceivingWallets)
       .set({
         stellarAddress: input.stellarAddress,
-        acceptedAssets: input.acceptedAssets,
         walletProvider: input.walletProvider ?? null,
         connectedAt: new Date(),
         updatedAt: new Date(),
@@ -94,7 +89,6 @@ export async function upsertReceivingWallet(input: {
       organizationId: input.organizationId,
       environment: input.environment,
       stellarAddress: input.stellarAddress,
-      acceptedAssets: input.acceptedAssets,
       walletProvider: input.walletProvider ?? null,
     })
     .returning();
