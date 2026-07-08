@@ -12,6 +12,12 @@ import { organizationEnvironmentWhere } from "@/lib/organizations/environment-sc
 import { requireReceivingWallet } from "@/lib/organizations/wallet";
 import { getCustomerByPublicId } from "@/lib/customers/service";
 import { normalizeStellarAmount } from "@/lib/stellar/amount";
+import { DEFAULT_AUTH_URL } from "@/constants/app";
+import {
+  DEFAULT_PAYMENT_EXPIRY_MINUTES,
+  PLACEHOLDER_PRICING_PAYMENT_AMOUNT,
+} from "@/constants/payments/defaults";
+
 import { dispatchWebhookEvent } from "@/lib/webhooks/delivery";
 
 function createPublicId() {
@@ -19,7 +25,7 @@ function createPublicId() {
 }
 
 export function getCheckoutUrl(publicId: string) {
-  const baseUrl = process.env.AUTH_URL ?? "http://localhost:3000";
+  const baseUrl = process.env.AUTH_URL ?? DEFAULT_AUTH_URL;
   return `${baseUrl}/c/${publicId}`;
 }
 
@@ -120,6 +126,8 @@ export async function createPayment(input: {
   paymentLinkId?: string | null;
   invoiceId?: string | null;
   subscriptionId?: string | null;
+  pricingCurrency?: string | null;
+  pricingAmount?: string | null;
 }) {
   const wallet = await requireReceivingWallet(
     input.organizationId,
@@ -151,7 +159,7 @@ export async function createPayment(input: {
   }
 
   const expiresAt = new Date(
-    Date.now() + (input.expiresInMinutes ?? 60) * 60 * 1000
+    Date.now() + (input.expiresInMinutes ?? DEFAULT_PAYMENT_EXPIRY_MINUTES) * 60 * 1000
   );
 
   const publicId = createPublicId();
@@ -167,7 +175,11 @@ export async function createPayment(input: {
       invoiceId: input.invoiceId ?? null,
       subscriptionId: input.subscriptionId ?? null,
       environment: input.environment,
-      amount: normalizeStellarAmount(input.amount),
+      amount: input.pricingAmount
+        ? PLACEHOLDER_PRICING_PAYMENT_AMOUNT
+        : normalizeStellarAmount(input.amount),
+      pricingCurrency: input.pricingCurrency ?? null,
+      pricingAmount: input.pricingAmount ?? null,
       settlementAsset: assetConfig.settlement_asset.asset_code,
       settlementAssetIssuer: assetConfig.settlement_asset.issuer_address,
       allowedAssets: dbAllowedAssets(assetConfig.allowed_assets),
@@ -199,6 +211,35 @@ export async function setPaymentPaidAsset(
     .set({
       paidAsset: paidAsset.asset_code,
       paidAssetIssuer: paidAsset.issuer_address,
+      updatedAt: new Date(),
+    })
+    .where(eq(payments.id, payment.id))
+    .returning();
+
+  return updated;
+}
+
+export async function applyPaymentQuote(
+  payment: Payment,
+  quote: {
+    paidAmount: string;
+    rate: string;
+    expiresAt: Date;
+    settlementAmount?: string;
+    settlementQuoteRate?: string;
+  }
+) {
+  const [updated] = await db
+    .update(payments)
+    .set({
+      amount: normalizeStellarAmount(quote.paidAmount),
+      quotedPaidAmount: normalizeStellarAmount(quote.paidAmount),
+      quotedSettlementAmount: quote.settlementAmount
+        ? normalizeStellarAmount(quote.settlementAmount)
+        : null,
+      quoteRate: quote.rate,
+      settlementQuoteRate: quote.settlementQuoteRate ?? null,
+      quoteExpiresAt: quote.expiresAt,
       updatedAt: new Date(),
     })
     .where(eq(payments.id, payment.id))
@@ -289,6 +330,13 @@ export function serializePayment(
     id: payment.publicId,
     object: "payment_intent",
     amount: payment.amount,
+    pricing_currency: payment.pricingCurrency,
+    pricing_amount: payment.pricingAmount,
+    quoted_paid_amount: payment.quotedPaidAmount,
+    quoted_settlement_amount: payment.quotedSettlementAmount,
+    quote_rate: payment.quoteRate,
+    settlement_quote_rate: payment.settlementQuoteRate,
+    quote_expires_at: payment.quoteExpiresAt,
     ...assets,
     status: payment.status,
     description: payment.description,

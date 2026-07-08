@@ -1,3 +1,5 @@
+import { formatAmountWithAsset } from "@/lib/format/amount";
+
 export type AllowedAssetRef = {
   asset_code: string;
   issuer_address: string | null;
@@ -7,6 +9,13 @@ export type PaymentRow = {
   id: string;
   object?: string;
   amount: string;
+  pricing_currency?: string | null;
+  pricing_amount?: string | null;
+  quoted_paid_amount?: string | null;
+  quoted_settlement_amount?: string | null;
+  quote_rate?: string | null;
+  settlement_quote_rate?: string | null;
+  quote_expires_at?: string | null;
   settlement_asset: AllowedAssetRef;
   allowed_assets: AllowedAssetRef[];
   paid_asset: AllowedAssetRef | null;
@@ -20,6 +29,22 @@ export type PaymentRow = {
   confirmed_at: string | null;
   expires_at: string | null;
   created_at: string;
+};
+
+export type SettlementConversionRow = {
+  payment_id: string;
+  invoice_id: string | null;
+  paid_asset: AllowedAssetRef | null;
+  quoted_paid_amount: string;
+  settlement_asset: AllowedAssetRef;
+  quoted_settlement_amount: string;
+  pricing_amount: string | null;
+  pricing_currency: string | null;
+  quote_rate: string | null;
+  settlement_quote_rate: string | null;
+  tx_hash: string | null;
+  confirmed_at: string | null;
+  converted_on_chain: boolean;
 };
 
 export type CheckoutSessionRow = {
@@ -55,20 +80,40 @@ export type PaymentLinkRow = {
   updated_at: string;
 };
 
+export type InvoiceLineItemRow = {
+  description: string;
+  quantity: string;
+  unit_amount: string;
+};
+
+export type InvoiceActivityRow = {
+  id: string;
+  label: string;
+  at: string;
+};
+
 export type InvoiceRow = {
   id: string;
   object: string;
+  invoice_number: string;
   status: string;
   amount: string;
+  currency_code: string;
   settlement_asset: AllowedAssetRef | null;
   allowed_assets: AllowedAssetRef[];
   description: string | null;
   customer_id: string | null;
+  customer_name: string | null;
+  customer_email: string | null;
   subscription_id: string | null;
   checkout_session_id: string | null;
   checkout_url: string | null;
+  hosted_invoice_url: string | null;
+  items: InvoiceLineItemRow[];
+  activity: InvoiceActivityRow[];
   due_at: string | null;
   paid_at: string | null;
+  sent_at: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -114,4 +159,11 @@ export function customerLabel(customer: CustomerOption) {
 
 export function formatAssetRef(asset: AllowedAssetRef | null | undefined) {
   return asset?.asset_code ?? "—";
+}
+
+export function formatAssetAmount(
+  amount: string | number | null | undefined,
+  asset: AllowedAssetRef | null | undefined
+) {
+  return formatAmountWithAsset(amount, asset);
 }
