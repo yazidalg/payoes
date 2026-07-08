@@ -39,27 +39,11 @@ async function getSerializedInvoice(
     return null;
   }
 
-  let subscriptionPublicId: string | null = null;
-
-  if (detail.invoice.subscriptionId) {
-    const { subscriptions } = await import("@/lib/db/schema");
-    const { db } = await import("@/lib/db");
-    const { eq } = await import("drizzle-orm");
-    const [sub] = await db
-      .select({ publicId: subscriptions.publicId })
-      .from(subscriptions)
-      .where(eq(subscriptions.id, detail.invoice.subscriptionId))
-      .limit(1);
-
-    subscriptionPublicId = sub?.publicId ?? null;
-  }
-
   const serialized = serializeInvoice(
     { ...detail.invoice, customerPublicId: detail.customerPublicId },
     {
       checkoutUrl: detail.checkoutUrl,
       checkoutSessionPublicId: detail.checkoutSessionPublicId,
-      subscriptionPublicId,
       items: detail.items,
       hostedInvoiceUrl: getHostedInvoiceUrl(detail.invoice.publicId),
       customerName: detail.customerName,

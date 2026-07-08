@@ -1,25 +1,18 @@
 import { auth } from "@/auth";
 import { NextResponse } from "next/server";
-import { z } from "zod";
 import { parseAndResolveAssetConfig } from "@/lib/assets/validation";
-import { getOrganizationForMember } from "@/lib/organizations/wallet";
-import { paymentAssetConfigFields } from "@/lib/payment-methods/schemas";
+import { parseFiatAmount } from "@/lib/invoices/amount";
 import {
-  createPayment,
+  DEFAULT_INVOICE_CURRENCY_CODE,
+  isInvoiceCurrencyCode,
+} from "@/lib/invoices/currencies";
+import { getOrganizationForMember } from "@/lib/organizations/wallet";
+import { createManualPaymentBodySchema } from "@/lib/payments/schemas";
+import {
+  createManualPayment,
   listPayments,
   serializePayments,
 } from "@/lib/payments/service";
-
-const createPaymentSchema = z.object({
-  amount: z
-    .string()
-    .regex(/^\d+(\.\d{1,7})?$/, "Amount must be a valid Stellar amount"),
-  ...paymentAssetConfigFields,
-  description: z.string().max(500).optional().nullable(),
-  metadata: z.record(z.string(), z.string()).optional().nullable(),
-  expires_in_minutes: z.number().int().min(5).max(10080).optional(),
-  customer_id: z.string().optional().nullable(),
-});
 
 export async function GET(
   _request: Request,
@@ -62,7 +55,7 @@ export async function POST(
   }
 
   const body = await request.json();
-  const parsed = createPaymentSchema.safeParse(body);
+  const parsed = createManualPaymentBodySchema.safeParse(body);
 
   if (!parsed.success) {
     return NextResponse.json(
@@ -71,21 +64,42 @@ export async function POST(
     );
   }
 
+  const currencyCode = parsed.data.currency_code.trim().toUpperCase();
+
+  if (!isInvoiceCurrencyCode(currencyCode)) {
+    return NextResponse.json({ error: "Unsupported currency" }, { status: 400 });
+  }
+
+  const paidAt = new Date(parsed.data.paid_at);
+
+  if (Number.isNaN(paidAt.getTime())) {
+    return NextResponse.json({ error: "Invalid date" }, { status: 400 });
+  }
+
   try {
+    const pricingAmount = parseFiatAmount(
+      parsed.data.amount,
+      currencyCode ?? DEFAULT_INVOICE_CURRENCY_CODE
+    );
+
     const assetConfig = await parseAndResolveAssetConfig(organization.id, {
       settlement_asset: parsed.data.settlement_asset,
       allowed_assets: parsed.data.allowed_assets,
     });
 
-    const payment = await createPayment({
+    const paidAsset =
+      assetConfig.allowed_assets[0] ?? assetConfig.settlement_asset;
+
+    const payment = await createManualPayment({
       organizationId: organization.id,
       environment: organization.environment,
-      amount: parsed.data.amount,
+      pricingAmount,
+      pricingCurrency: currencyCode,
       settlementAsset: assetConfig.settlement_asset,
       allowedAssets: assetConfig.allowed_assets,
-      description: parsed.data.description,
-      metadata: parsed.data.metadata,
-      expiresInMinutes: parsed.data.expires_in_minutes,
+      paidAsset,
+      description: parsed.data.notes?.trim() || null,
+      paidAt,
       customerId: parsed.data.customer_id,
     });
 

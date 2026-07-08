@@ -1,6 +1,7 @@
 import { auth } from "@/auth";
 import { NextResponse } from "next/server";
 import { acceptOrganizationInvite } from "@/lib/organizations/members";
+import { setActiveOrganizationCookie } from "@/lib/organizations/active-organization";
 import { membersErrorResponse } from "@/lib/organizations/members-api";
 
 export async function POST(
@@ -21,6 +22,8 @@ export async function POST(
       userId: session.user.id,
       userEmail: session.user.email,
     });
+
+    await setActiveOrganizationCookie(result.organizationId);
 
     return NextResponse.json(result);
   } catch (error) {

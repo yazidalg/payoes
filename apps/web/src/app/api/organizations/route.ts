@@ -8,6 +8,7 @@ import {
   createOrganizationForUser,
   getOrganizationsForUser,
 } from "@/lib/organizations/service";
+import { setActiveOrganizationCookie } from "@/lib/organizations/active-organization";
 import { uploadOrganizationLogo } from "@/lib/storage/minio";
 
 const organizationSchema = z.object({
@@ -96,6 +97,8 @@ export async function POST(request: Request) {
 
       organization = updated;
     }
+
+    await setActiveOrganizationCookie(organization.id);
 
     return NextResponse.json({ organization }, { status: 201 });
   } catch (error) {
