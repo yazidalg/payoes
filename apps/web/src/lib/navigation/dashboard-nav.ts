@@ -8,6 +8,7 @@ import {
   CreditCard,
   FileCode2,
   KeyRound,
+  RefreshCw,
   Settings,
   Users,
   Wallet,
@@ -36,6 +37,11 @@ export const dashboardNav: DashboardNavItem[] = [
     title: "Transactions",
     url: "/dashboard/transactions",
     icon: ArrowLeftRight,
+  },
+  {
+    title: "Settlements",
+    url: "/dashboard/settlements",
+    icon: RefreshCw,
   },
   {
     title: "Customers",
@@ -121,6 +127,7 @@ const pageTitles: Record<string, string> = {
   "/dashboard": "Dashboard",
   "/dashboard/payments": "Payments",
   "/dashboard/transactions": "Transactions",
+  "/dashboard/settlements": "Settlements",
   "/dashboard/customers": "Customers",
   "/dashboard/developers/api-keys": "API Keys",
   "/dashboard/developers/webhooks": "Webhooks",
