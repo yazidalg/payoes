@@ -8,7 +8,12 @@ import {
   getPaymentByPublicId,
   updatePaymentStatus,
 } from "@/lib/payments/service";
-import { verifyPaymentOnHorizon } from "@/lib/stellar/payments";
+import { ensurePayablePayment } from "@/lib/payments/quote-service";
+import { isQuoteExpired } from "@/lib/pricing/quotes";
+import {
+  verifyPathPaymentStrictReceiveOnHorizon,
+  verifyPaymentOnHorizon,
+} from "@/lib/stellar/payments";
 
 async function resolveCustomerForCompletedPayment(
   payment: Payment,
@@ -44,7 +49,7 @@ export async function confirmPaymentWithTxHash(
   publicId: string,
   txHash: string
 ) {
-  const payment = await getPaymentByPublicId(publicId);
+  let payment = await getPaymentByPublicId(publicId);
 
   if (!payment) {
     return { ok: false as const, error: "Payment not found" };
@@ -54,13 +59,19 @@ export async function confirmPaymentWithTxHash(
     return { ok: true as const, payment };
   }
 
-  if (payment.status !== "pending" && payment.status !== "failed") {
-    return { ok: false as const, error: `Payment is ${payment.status}` };
+  const payable = await ensurePayablePayment(payment);
+
+  if (payable.error) {
+    return { ok: false as const, error: payable.error };
   }
 
-  if (payment.expiresAt && payment.expiresAt < new Date()) {
-    await updatePaymentStatus(payment, "expired");
-    return { ok: false as const, error: "Payment has expired" };
+  payment = payable.payment;
+
+  if (payment.quoteExpiresAt && isQuoteExpired(payment.quoteExpiresAt)) {
+    return {
+      ok: false as const,
+      error: "Rate lock expired. Wait for the rate to refresh and try again.",
+    };
   }
 
   const paidAssetCode = payment.paidAsset ?? payment.settlementAsset;
@@ -68,17 +79,61 @@ export async function confirmPaymentWithTxHash(
     ? payment.paidAssetIssuer
     : payment.settlementAssetIssuer;
 
+  const usesPathSettlement = Boolean(
+    payment.quotedSettlementAmount &&
+      payment.paidAsset &&
+      payment.paidAsset !== payment.settlementAsset
+  );
+
   try {
+    if (usesPathSettlement) {
+      const verification = await verifyPathPaymentStrictReceiveOnHorizon({
+        txHash,
+        destination: payment.receivingAddress,
+        destAmount: payment.quotedSettlementAmount!,
+        destAsset: {
+          assetCode: payment.settlementAsset,
+          issuerAddress: payment.settlementAssetIssuer,
+        },
+        environment: payment.environment,
+        slippageBps: 50,
+      });
+
+      if (!verification.valid) {
+        if (verification.reason === "Transaction was not successful") {
+          await updatePaymentStatus(payment, "failed");
+        }
+
+        return { ok: false as const, error: verification.reason };
+      }
+
+      const customerId = await resolveCustomerForCompletedPayment(
+        payment,
+        verification.payerAddress
+      );
+
+      const updated = await updatePaymentStatus(payment, "completed", {
+        txHash,
+        confirmedAt: new Date(),
+        customerId,
+        payerAddress: verification.payerAddress,
+        paidAsset: verification.paidAsset,
+      });
+
+      return { ok: true as const, payment: updated };
+    }
+
     const verification = await verifyPaymentOnHorizon({
       txHash,
       destination: payment.receivingAddress,
-      amount: payment.amount,
+      amount: payment.quotedPaidAmount ?? payment.amount,
       asset: {
         assetCode: paidAssetCode,
         issuerAddress: paidAssetIssuer,
       },
       environment: payment.environment,
       memo: payment.memo,
+      slippageBps: payment.quotedPaidAmount ? 50 : undefined,
     });
 
     if (!verification.valid) {
