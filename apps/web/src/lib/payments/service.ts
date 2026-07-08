@@ -11,6 +11,8 @@ import {
 import { organizationEnvironmentWhere } from "@/lib/organizations/environment-scope";
 import { requireReceivingWallet } from "@/lib/organizations/wallet";
 import { getCustomerByPublicId } from "@/lib/customers/service";
+import type { InvoiceCurrencyCode } from "@/lib/invoices/currencies";
+import { buildPaymentQuote } from "@/lib/pricing/quotes";
 import { normalizeStellarAmount } from "@/lib/stellar/amount";
 import { DEFAULT_AUTH_URL } from "@/constants/app";
 import {
@@ -121,11 +123,11 @@ export async function createPayment(input: {
   description?: string | null;
   metadata?: Record<string, string> | null;
   expiresInMinutes?: number;
+  expiresAt?: Date;
   customerId?: string | null;
   sourceType?: Payment["sourceType"];
   paymentLinkId?: string | null;
   invoiceId?: string | null;
-  subscriptionId?: string | null;
   pricingCurrency?: string | null;
   pricingAmount?: string | null;
 }) {
@@ -158,9 +160,11 @@ export async function createPayment(input: {
     customerPublicId = customer.publicId;
   }
 
-  const expiresAt = new Date(
-    Date.now() + (input.expiresInMinutes ?? DEFAULT_PAYMENT_EXPIRY_MINUTES) * 60 * 1000
-  );
+  const expiresAt =
+    input.expiresAt ??
+    new Date(
+      Date.now() + (input.expiresInMinutes ?? DEFAULT_PAYMENT_EXPIRY_MINUTES) * 60 * 1000
+    );
 
   const publicId = createPublicId();
 
@@ -173,7 +177,6 @@ export async function createPayment(input: {
       sourceType: input.sourceType ?? "direct",
       paymentLinkId: input.paymentLinkId ?? null,
       invoiceId: input.invoiceId ?? null,
-      subscriptionId: input.subscriptionId ?? null,
       environment: input.environment,
       amount: input.pricingAmount
         ? PLACEHOLDER_PRICING_PAYMENT_AMOUNT
@@ -197,6 +200,103 @@ export async function createPayment(input: {
     environment: input.environment,
     event: "payment.created",
     payload: serializePayment(payment, { customerPublicId }),
+  });
+
+  return payment;
+}
+
+export async function createManualPayment(input: {
+  organizationId: string;
+  environment: Organization["environment"];
+  pricingAmount: string;
+  pricingCurrency: InvoiceCurrencyCode;
+  settlementAsset: AllowedAsset;
+  allowedAssets: AllowedAsset[];
+  paidAsset: AllowedAsset;
+  description?: string | null;
+  paidAt: Date;
+  customerId?: string | null;
+}) {
+  const wallet = await requireReceivingWallet(
+    input.organizationId,
+    input.environment
+  );
+
+  let customerInternalId: string | null = null;
+  let customerPublicId: string | null = null;
+  let payerAddress: string | null = null;
+
+  if (input.customerId) {
+    const customer = await getCustomerByPublicId(input.customerId);
+
+    if (!customer || customer.organizationId !== input.organizationId) {
+      throw new Error("Customer not found");
+    }
+
+    if (customer.environment !== input.environment) {
+      throw new Error("Customer environment does not match payment environment");
+    }
+
+    customerInternalId = customer.id;
+    customerPublicId = customer.publicId;
+    payerAddress = customer.primaryStellarAddress;
+  }
+
+  const quote = await buildPaymentQuote({
+    pricingAmount: input.pricingAmount,
+    pricingCurrency: input.pricingCurrency,
+    paidAsset: input.paidAsset,
+    settlementAsset: input.settlementAsset,
+  });
+
+  const publicId = createPublicId();
+
+  const [payment] = await db
+    .insert(payments)
+    .values({
+      publicId,
+      organizationId: input.organizationId,
+      customerId: customerInternalId,
+      sourceType: "direct",
+      environment: input.environment,
+      amount: PLACEHOLDER_PRICING_PAYMENT_AMOUNT,
+      pricingCurrency: input.pricingCurrency,
+      pricingAmount: input.pricingAmount,
+      quotedPaidAmount: quote.paid_amount,
+      quotedSettlementAmount: quote.settlement_amount,
+      quoteRate: quote.rate,
+      settlementQuoteRate: quote.settlement_quote_rate,
+      settlementAsset: input.settlementAsset.asset_code,
+      settlementAssetIssuer: input.settlementAsset.issuer_address,
+      allowedAssets: dbAllowedAssets(input.allowedAssets),
+      paidAsset: input.paidAsset.asset_code,
+      paidAssetIssuer: input.paidAsset.issuer_address,
+      status: "completed",
+      receivingAddress: wallet.stellarAddress,
+      payerAddress,
+      description: input.description?.trim() || null,
+      metadata: { manual: "true" },
+      memo: publicId.slice(0, 28),
+      confirmedAt: input.paidAt,
+      expiresAt: null,
+      quoteExpiresAt: null,
+    })
+    .returning();
+
+  const serialized = serializePayment(payment, { customerPublicId });
+
+  await dispatchWebhookEvent({
+    organizationId: input.organizationId,
+    environment: input.environment,
+    event: "payment.created",
+    payload: serialized,
+  });
+
+  await dispatchWebhookEvent({
+    organizationId: input.organizationId,
+    environment: input.environment,
+    event: "payment.completed",
+    payload: serialized,
   });
 
   return payment;
@@ -341,7 +441,10 @@ export function serializePayment(
     status: payment.status,
     description: payment.description,
     metadata: payment.metadata,
-    checkout_url: getCheckoutUrl(payment.publicId),
+    checkout_url:
+      payment.metadata?.manual === "true" || payment.status === "completed"
+        ? null
+        : getCheckoutUrl(payment.publicId),
     source_type: payment.sourceType,
     customer_id: options?.customerPublicId ?? null,
     payer_address: payment.payerAddress,

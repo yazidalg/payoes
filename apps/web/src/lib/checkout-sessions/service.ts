@@ -144,10 +144,9 @@ export async function createCheckoutSession(input: {
   customerId?: string | null;
   successUrl?: string | null;
   cancelUrl?: string | null;
-  sourceType?: "checkout_session" | "payment_link" | "invoice" | "subscription";
+  sourceType?: "checkout_session" | "payment_link" | "invoice";
   paymentLinkId?: string | null;
   invoiceId?: string | null;
-  subscriptionId?: string | null;
   pricingCurrency?: string | null;
   pricingAmount?: string | null;
 }) {
@@ -166,7 +165,6 @@ export async function createCheckoutSession(input: {
     sourceType: input.sourceType ?? "checkout_session",
     paymentLinkId: input.paymentLinkId ?? null,
     invoiceId: input.invoiceId ?? null,
-    subscriptionId: input.subscriptionId ?? null,
   });
 
   const publicId = createSessionPublicId();

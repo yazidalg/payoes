@@ -69,15 +69,32 @@ export type PaymentLinkRow = {
   id: string;
   object: string;
   amount: string;
+  currency_code: string | null;
   settlement_asset: AllowedAssetRef;
   allowed_assets: AllowedAssetRef[];
+  product_name: string | null;
+  product_description: string | null;
+  items?: PaymentLinkLineItemRow[];
   description: string | null;
+  customer_collection: {
+    collect_customer_name: boolean;
+    collect_business_name: boolean;
+    collect_customer_address: boolean;
+    require_phone_number: boolean;
+  };
   active: boolean;
   metadata: Record<string, string> | null;
   url: string;
   environment: string;
   created_at: string;
   updated_at: string;
+};
+
+export type PaymentLinkLineItemRow = {
+  description: string;
+  quantity: string;
+  unit_amount: string;
+  line_amount: string;
 };
 
 export type InvoiceLineItemRow = {
@@ -105,7 +122,6 @@ export type InvoiceRow = {
   customer_id: string | null;
   customer_name: string | null;
   customer_email: string | null;
-  subscription_id: string | null;
   checkout_session_id: string | null;
   checkout_url: string | null;
   hosted_invoice_url: string | null;
@@ -114,22 +130,6 @@ export type InvoiceRow = {
   due_at: string | null;
   paid_at: string | null;
   sent_at: string | null;
-  created_at: string;
-  updated_at: string;
-};
-
-export type SubscriptionRow = {
-  id: string;
-  object: string;
-  status: string;
-  amount: string;
-  description: string | null;
-  customer_id: string | null;
-  interval: string;
-  interval_count: number;
-  current_period_start: string;
-  current_period_end: string;
-  canceled_at: string | null;
   created_at: string;
   updated_at: string;
 };
