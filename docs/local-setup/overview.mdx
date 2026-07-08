@@ -12,7 +12,7 @@ This section is for **developers who clone the Payoes repository** and want to r
 | **Web app** (`apps/web`) | Dashboard, checkout, REST API | `npm run dev` |
 | **PostgreSQL** | Organizations, payments, verification data | `docker compose up -d` |
 | **MinIO** | Organization logos | `docker compose up -d` |
-| **Docs** (optional) | Mintlify preview on port 3001 | `npm run docs:dev` |
+| **Docs** | Mintlify preview on port 3001 | `npm run docs:dev` |
 
 After setup, open:
 
@@ -30,7 +30,7 @@ Install these before you start:
     - **Git**
     - **Docker Desktop** (or Docker Engine + Compose) for PostgreSQL and MinIO
   </Accordion>
-  <Accordion title="Optional — only if you need these features">
+  <Accordion title="Additional features">
     - **Google OAuth credentials** — sign in with Google (email/password demo login works without this)
     - **SMTP settings** — send real team invitation emails
     - **Persona API keys** — identity verification for production mode ([KYC setup](/local-setup/kyc-verification))
@@ -56,8 +56,11 @@ payoes/
   <Step title="Environment variables">
     Use [Environment variables](/local-setup/environment-variables) as a reference when you enable OAuth, SMTP, or Persona KYC.
   </Step>
-  <Step title="KYC verification (optional)">
-    If you need to test production mode, continue with [KYC verification](/local-setup/kyc-verification).
+  <Step title="KYC verification">
+    Needed to test production mode — see [KYC verification](/local-setup/kyc-verification).
+  </Step>
+  <Step title="Webhook retry worker">
+    For self-hosted production with low traffic — see [Webhook retry worker](/local-setup/webhook-retry-worker).
   </Step>
 </Steps>
 

@@ -89,7 +89,6 @@ Examples include:
 - Creator platforms
 - Digital product stores
 - Donation platforms
-- Subscription businesses
 - Developer tools
 
 ---
@@ -228,19 +227,6 @@ Flow:
 
 ---
 
-## Subscriptions
-
-Recurring billing (`sub_...`) with manual period billing.
-
-Capabilities:
-
-- Monthly or yearly intervals
-- Linked customer
-- Bill now creates a finalized invoice for the current period
-- Period advances when the linked invoice is paid
-
----
-
 ## Hosted Checkout
 
 Ready-to-use payment page.
@@ -295,7 +281,7 @@ Customers can be reused across multiple payments.
 
 ## Webhooks
 
-Receive real-time payment events.
+Receive real-time payment events over HTTPS with HMAC-signed payloads.
 
 Supported events:
 
@@ -303,8 +289,13 @@ Supported events:
 - payment.completed
 - payment.failed
 - payment.expired
+- webhook.test (dashboard test only)
 
-Webhook retries should be automatic.
+Each delivery includes headers: `Payoes-Signature`, `Payoes-Event`, `Payoes-Timestamp`, `Payoes-Delivery-ID`.
+
+Signing: HMAC-SHA256 over `{timestamp}.{raw_body}` using the endpoint `whsec_...` secret.
+
+Retries: up to 5 attempts with exponential backoff (1m → 5m → 30m → 2h → 24h). Manual retry and delivery logs in the dashboard. Self-hosted operators schedule `POST /api/cron/webhook-retries` — see local-setup docs.
 
 ---
 

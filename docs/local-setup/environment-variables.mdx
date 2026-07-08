@@ -75,9 +75,19 @@ Team invitation emails are sent only when SMTP is configured. Without SMTP, you 
 | `PERSONA_WEBHOOK_SECRET` | For webhooks | Webhook signing secret from Persona dashboard |
 | `PERSONA_INQUIRY_TEMPLATE_ID` | For production gate | KYC inquiry template ID (`itmpl_...`) |
 | `NEXT_PUBLIC_PERSONA_ENVIRONMENT_ID` | For production gate | Persona environment ID (`env_...`) |
-| `NEXT_PUBLIC_PERSONA_INQUIRY_TEMPLATE_ID` | Optional | Client-side template ID if needed by SDK |
+| `NEXT_PUBLIC_PERSONA_INQUIRY_TEMPLATE_ID` | SDK only | Client-side template ID for the Persona SDK |
 
 See [KYC verification](/local-setup/kyc-verification) for Persona sandbox setup.
+
+## Background jobs
+
+Self-hosted deployments only.
+
+| Variable | When to set | Description |
+|----------|-------------|-------------|
+| `CRON_SECRET` | Running the retry worker | Bearer token for `POST /api/cron/webhook-retries` |
+
+See [Webhook retry worker](/local-setup/webhook-retry-worker) for scheduling setup.
 
 ## Docs
 

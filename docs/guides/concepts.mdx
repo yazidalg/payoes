@@ -56,7 +56,7 @@ Each organization maintains a list of **assets** it accepts (USDC, XLM, EURC, cu
 | **Enabled** | Asset can appear in `allowed_assets` on payments |
 | **Settlement (default)** | Asset used for merchant settlement and amount display |
 
-All payment products inherit asset configuration from organization assets. Invoices and subscriptions do not store their own asset — a payment is created automatically with the organization's default settlement asset and enabled allowed assets.
+All payment products inherit asset configuration from organization assets. Invoices do not store their own asset — a payment is created automatically with the organization's default settlement asset and enabled allowed assets.
 
 ### Payment intent
 
@@ -112,19 +112,6 @@ A bill sent to a customer, equivalent to a Stripe Invoice.
 | `customer_id` | Linked customer |
 
 Create an invoice in draft, then finalize it to spawn a checkout session and payment intent.
-
-### Subscription
-
-Recurring billing for a customer, equivalent to a Stripe Subscription.
-
-| Field | Meaning |
-|-------|---------|
-| `id` | Public ID (`sub_...`) |
-| `status` | `active`, `canceled`, or `past_due` |
-| `interval` | `month` or `year` |
-| `current_period_end` | End of the current billing period |
-
-Use **Bill now** on a subscription to create and finalize an invoice for the current period.
 
 ### Checkout
 

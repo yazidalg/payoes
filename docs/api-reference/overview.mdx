@@ -58,7 +58,6 @@ Resources include an `object` field for identification:
 | `checkout.session` | Checkout session |
 | `payment_link` | Payment link |
 | `invoice` | Invoice |
-| `subscription` | Subscription |
 
 ## Available endpoints
 
@@ -105,15 +104,6 @@ Resources include an `object` field for identification:
 
 Invoices can also be created with line items and sent by email from the dashboard. The hosted invoice page is available at `/i/{invoice_id}` after finalize.
 
-### Subscriptions
-
-| Method | Path | Description |
-|--------|------|-------------|
-| `POST` | `/subscriptions` | Create a subscription |
-| `GET` | `/subscriptions` | List subscriptions |
-| `GET` | `/subscriptions/{id}` | Retrieve a subscription |
-| `POST` | `/subscriptions/{id}/bill` | Bill the current period (creates and finalizes an invoice) |
-
 Full request and response schemas are in the endpoint sections of this API reference, generated from `docs/openapi/v1.yaml`.
 
 ## Hosted URLs
@@ -136,4 +126,4 @@ Idempotency keys are planned. Until then, use unique `metadata` values and guard
 
 | Version | Changes |
 |---------|---------|
-| `v1` | Payments, customers, checkout sessions, payment links, invoices, and subscriptions APIs |
+| `v1` | Payments, customers, checkout sessions, payment links, and invoices APIs |

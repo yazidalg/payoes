@@ -36,6 +36,7 @@
             "local-setup/overview",
             "local-setup/getting-started",
             "local-setup/environment-variables",
+            "local-setup/webhook-retry-worker",
             "local-setup/kyc-verification"
           ]
         }
@@ -92,16 +93,6 @@
             "POST /invoices",
             "GET /invoices/{id}",
             "POST /invoices/{id}/finalize"
-          ]
-        },
-        {
-          "group": "Subscriptions",
-          "openapi": "openapi/v1.yaml",
-          "pages": [
-            "GET /subscriptions",
-            "POST /subscriptions",
-            "GET /subscriptions/{id}",
-            "POST /subscriptions/{id}/bill"
           ]
         }
       ]
