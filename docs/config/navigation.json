@@ -50,12 +50,59 @@
         },
         {
           "group": "Payments",
-          "openapi": "openapi/v1.yaml"
+          "openapi": "openapi/v1.yaml",
+          "pages": [
+            "GET /payments",
+            "POST /payments",
+            "GET /payments/{id}"
+          ]
         },
         {
           "group": "Customers",
           "openapi": "openapi/v1.yaml",
-          "expanded": false
+          "pages": [
+            "GET /customers",
+            "POST /customers",
+            "GET /customers/{id}"
+          ]
+        },
+        {
+          "group": "Checkout sessions",
+          "openapi": "openapi/v1.yaml",
+          "pages": [
+            "GET /checkout-sessions",
+            "POST /checkout-sessions",
+            "GET /checkout-sessions/{id}"
+          ]
+        },
+        {
+          "group": "Payment links",
+          "openapi": "openapi/v1.yaml",
+          "pages": [
+            "GET /payment-links",
+            "POST /payment-links",
+            "GET /payment-links/{id}"
+          ]
+        },
+        {
+          "group": "Invoices",
+          "openapi": "openapi/v1.yaml",
+          "pages": [
+            "GET /invoices",
+            "POST /invoices",
+            "GET /invoices/{id}",
+            "POST /invoices/{id}/finalize"
+          ]
+        },
+        {
+          "group": "Subscriptions",
+          "openapi": "openapi/v1.yaml",
+          "pages": [
+            "GET /subscriptions",
+            "POST /subscriptions",
+            "GET /subscriptions/{id}",
+            "POST /subscriptions/{id}/bill"
+          ]
         }
       ]
     }

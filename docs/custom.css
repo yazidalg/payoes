@@ -1,0 +1,4 @@
+/* Hide Mintlify "Powered by" footer badge */
+#footer a[href*="utm_campaign=poweredBy"] {
+  display: none !important;
+}

@@ -1,18 +1,19 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { withApiKeyAuth } from "@/lib/api-keys/auth";
+import { parseAndResolveAssetConfig } from "@/lib/assets/validation";
 import {
   createPaymentLink,
   listPaymentLinks,
   serializePaymentLink,
 } from "@/lib/payment-links/service";
-import { ACCEPTED_ASSET_OPTIONS } from "@/lib/organizations/wallet-constants";
+import { paymentAssetConfigFields } from "@/lib/payment-methods/schemas";
 
 const createPaymentLinkSchema = z.object({
   amount: z
     .string()
     .regex(/^\d+(\.\d{1,7})?$/, "Amount must be a valid Stellar amount"),
-  asset: z.enum(ACCEPTED_ASSET_OPTIONS),
+  ...paymentAssetConfigFields,
   description: z.string().max(500).optional().nullable(),
   metadata: z.record(z.string(), z.string()).optional().nullable(),
 });
@@ -43,11 +44,17 @@ export async function POST(request: Request) {
     }
 
     try {
+      const assetConfig = await parseAndResolveAssetConfig(apiKey.organizationId, {
+        settlement_asset: parsed.data.settlement_asset,
+        allowed_assets: parsed.data.allowed_assets,
+      });
+
       const link = await createPaymentLink({
         organizationId: apiKey.organizationId,
         environment: apiKey.environment,
         amount: parsed.data.amount,
-        asset: parsed.data.asset,
+        settlementAsset: assetConfig.settlement_asset,
+        allowedAssets: assetConfig.allowed_assets,
         description: parsed.data.description,
         metadata: parsed.data.metadata,
       });

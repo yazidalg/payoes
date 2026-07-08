@@ -3,9 +3,18 @@ info:
   title: Payoes API
   version: 1.0.0
   description: |
-    REST API for creating and managing Stellar payments.
+    REST API for creating and managing Stellar payments, customers, checkout sessions,
+    payment links, invoices, and subscriptions.
 
-    Authenticate with a Bearer API key (`pk_test_...` or `pk_live_...`).
+    ## Authentication
+
+    Send your API key as a Bearer token. Sandbox keys use the `pk_test_` prefix and
+    only access sandbox data. Live keys use `pk_live_` and only access production data.
+
+    ## Environments
+
+    Sandbox and production are fully isolated. Resources created in one environment
+    are not visible from API keys scoped to the other.
 servers:
   - url: https://payoes.com/api/v1
     description: Production host (replace with your deployment URL)
@@ -15,16 +24,24 @@ security:
   - bearerAuth: []
 tags:
   - name: Payments
-    description: Create and retrieve blockchain payment requests
+    description: Direct payment intents with hosted Stellar checkout
   - name: Customers
-    description: Manage payer profiles and payment history
+    description: Payer profiles scoped to your organization and environment
+  - name: Checkout sessions
+    description: Hosted checkout flows with optional redirect URLs
+  - name: Payment links
+    description: Reusable shareable links that start checkout on each visit
+  - name: Invoices
+    description: Customer invoices with draft, finalize, and checkout lifecycle
+  - name: Subscriptions
+    description: Recurring billing schedules and manual billing runs
 paths:
   /payments:
     get:
       operationId: listPayments
       tags: [Payments]
       summary: List payments
-      description: Returns payments for the organization tied to the API key.
+      description: Returns payments for the organization and environment tied to the API key.
       responses:
         "200":
           description: Payment list
@@ -46,7 +63,7 @@ paths:
       summary: Create a payment
       description: |
         Creates a pending payment and returns a hosted checkout URL.
-        The receiving wallet and network are resolved from your organization settings.
+        The receiving wallet and Stellar network are resolved from your organization settings.
       requestBody:
         required: true
         content:
@@ -70,13 +87,7 @@ paths:
       tags: [Payments]
       summary: Retrieve a payment
       parameters:
-        - name: id
-          in: path
-          required: true
-          description: Public payment ID (e.g. `pay_abc123`)
-          schema:
-            type: string
-            example: pay_nLU2gUDk-v3tdyd6
+        - $ref: "#/components/parameters/PaymentId"
       responses:
         "200":
           description: Payment details
@@ -93,6 +104,7 @@ paths:
       operationId: listCustomers
       tags: [Customers]
       summary: List customers
+      description: Returns customers for the organization and environment tied to the API key.
       responses:
         "200":
           description: Customer list
@@ -134,13 +146,9 @@ paths:
       operationId: getCustomer
       tags: [Customers]
       summary: Retrieve a customer
+      description: Returns the customer and their payment history in the current environment.
       parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-            example: cus_abc123xyz
+        - $ref: "#/components/parameters/CustomerId"
       responses:
         "200":
           description: Customer with payment history
@@ -159,53 +167,453 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "404":
           $ref: "#/components/responses/NotFound"
+  /checkout-sessions:
+    get:
+      operationId: listCheckoutSessions
+      tags: [Checkout sessions]
+      summary: List checkout sessions
+      responses:
+        "200":
+          description: Checkout session list
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [checkout_sessions]
+                properties:
+                  checkout_sessions:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/CheckoutSession"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    post:
+      operationId: createCheckoutSession
+      tags: [Checkout sessions]
+      summary: Create a checkout session
+      description: |
+        Creates a checkout session and underlying payment intent. Returns a hosted
+        checkout URL (`/c/cs_...`) for the payer.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCheckoutSessionRequest"
+      responses:
+        "201":
+          description: Checkout session created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CheckoutSession"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /checkout-sessions/{id}:
+    get:
+      operationId: getCheckoutSession
+      tags: [Checkout sessions]
+      summary: Retrieve a checkout session
+      parameters:
+        - $ref: "#/components/parameters/CheckoutSessionId"
+      responses:
+        "200":
+          description: Checkout session details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CheckoutSession"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /payment-links:
+    get:
+      operationId: listPaymentLinks
+      tags: [Payment links]
+      summary: List payment links
+      responses:
+        "200":
+          description: Payment link list
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [payment_links]
+                properties:
+                  payment_links:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/PaymentLink"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    post:
+      operationId: createPaymentLink
+      tags: [Payment links]
+      summary: Create a payment link
+      description: |
+        Creates a reusable payment link. Each visit starts a new checkout session.
+        Share the returned `url` (`/l/plink_...`).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePaymentLinkRequest"
+      responses:
+        "201":
+          description: Payment link created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentLink"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /payment-links/{id}:
+    get:
+      operationId: getPaymentLink
+      tags: [Payment links]
+      summary: Retrieve a payment link
+      parameters:
+        - $ref: "#/components/parameters/PaymentLinkId"
+      responses:
+        "200":
+          description: Payment link details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentLink"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /invoices:
+    get:
+      operationId: listInvoices
+      tags: [Invoices]
+      summary: List invoices
+      responses:
+        "200":
+          description: Invoice list
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [invoices]
+                properties:
+                  invoices:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Invoice"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    post:
+      operationId: createInvoice
+      tags: [Invoices]
+      summary: Create an invoice
+      description: |
+        Creates a draft invoice for a customer. Finalize the invoice to generate a
+        checkout session and payment link. Use the dashboard to send invoices by email.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateInvoiceRequest"
+      responses:
+        "201":
+          description: Invoice created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Invoice"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /invoices/{id}:
+    get:
+      operationId: getInvoice
+      tags: [Invoices]
+      summary: Retrieve an invoice
+      parameters:
+        - $ref: "#/components/parameters/InvoiceId"
+      responses:
+        "200":
+          description: Invoice details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Invoice"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /invoices/{id}/finalize:
+    post:
+      operationId: finalizeInvoice
+      tags: [Invoices]
+      summary: Finalize an invoice
+      description: |
+        Moves a draft invoice to `open`, creates a checkout session, and returns the
+        checkout URL for the customer to pay.
+      parameters:
+        - $ref: "#/components/parameters/InvoiceId"
+      responses:
+        "200":
+          description: Invoice finalized
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [invoice, checkout_url]
+                properties:
+                  invoice:
+                    $ref: "#/components/schemas/Invoice"
+                  checkout_url:
+                    type: string
+                    format: uri
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /subscriptions:
+    get:
+      operationId: listSubscriptions
+      tags: [Subscriptions]
+      summary: List subscriptions
+      responses:
+        "200":
+          description: Subscription list
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [subscriptions]
+                properties:
+                  subscriptions:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Subscription"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    post:
+      operationId: createSubscription
+      tags: [Subscriptions]
+      summary: Create a subscription
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSubscriptionRequest"
+      responses:
+        "201":
+          description: Subscription created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Subscription"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /subscriptions/{id}:
+    get:
+      operationId: getSubscription
+      tags: [Subscriptions]
+      summary: Retrieve a subscription
+      parameters:
+        - $ref: "#/components/parameters/SubscriptionId"
+      responses:
+        "200":
+          description: Subscription details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Subscription"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /subscriptions/{id}/bill:
+    post:
+      operationId: billSubscription
+      tags: [Subscriptions]
+      summary: Bill a subscription
+      description: |
+        Creates and finalizes an invoice for the current billing period and returns
+        the checkout URL for the customer to pay.
+      parameters:
+        - $ref: "#/components/parameters/SubscriptionId"
+      responses:
+        "200":
+          description: Subscription billed
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [invoice, checkout_url]
+                properties:
+                  invoice:
+                    $ref: "#/components/schemas/Invoice"
+                  checkout_url:
+                    type: string
+                    format: uri
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
 components:
   securitySchemes:
     bearerAuth:
       type: http
       scheme: bearer
-      description: API key issued from the Payoes dashboard (pk_test_ or pk_live_)
+      description: API key from the Payoes dashboard (`pk_test_...` or `pk_live_...`)
+  parameters:
+    PaymentId:
+      name: id
+      in: path
+      required: true
+      description: Public payment ID
+      schema:
+        type: string
+        example: pay_nLU2gUDk-v3tdyd6
+    CustomerId:
+      name: id
+      in: path
+      required: true
+      description: Public customer ID
+      schema:
+        type: string
+        example: cus_abc123xyz
+    CheckoutSessionId:
+      name: id
+      in: path
+      required: true
+      description: Public checkout session ID
+      schema:
+        type: string
+        example: cs_abc123xyz
+    PaymentLinkId:
+      name: id
+      in: path
+      required: true
+      description: Public payment link ID
+      schema:
+        type: string
+        example: plink_abc123xyz
+    InvoiceId:
+      name: id
+      in: path
+      required: true
+      description: Public invoice ID
+      schema:
+        type: string
+        example: inv_abc123xyz
+    SubscriptionId:
+      name: id
+      in: path
+      required: true
+      description: Public subscription ID
+      schema:
+        type: string
+        example: sub_abc123xyz
   schemas:
+    AssetRef:
+      type: object
+      required: [asset_code]
+      properties:
+        asset_code:
+          type: string
+          description: Stellar asset code (1–12 alphanumeric characters, or XLM)
+          example: USDC
+        issuer_address:
+          type: string
+          nullable: true
+          description: Issuer public key for credit assets. Null for XLM.
+    PaymentAssetConfig:
+      type: object
+      properties:
+        settlement_asset:
+          $ref: "#/components/schemas/AssetRef"
+          description: Asset the merchant settles in
+        allowed_assets:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/AssetRef"
+          description: Assets the customer may pay with at checkout
+    PaymentAsset:
+      type: string
+      deprecated: true
+      description: Deprecated. Use settlement_asset and allowed_assets on payments.
+      enum: [USDC, XLM]
     PaymentStatus:
       type: string
       enum: [pending, completed, failed, expired]
-    PaymentAsset:
+    PaymentSourceType:
       type: string
-      enum: [USDC, XLM]
+      enum: [direct, checkout_session, payment_link, invoice, subscription]
+    CheckoutSessionStatus:
+      type: string
+      enum: [open, complete, expired]
+    InvoiceStatus:
+      type: string
+      enum: [draft, open, paid, void]
+    SubscriptionStatus:
+      type: string
+      enum: [active, past_due, canceled]
+    BillingInterval:
+      type: string
+      enum: [month, year]
+    Environment:
+      type: string
+      enum: [sandbox, production]
+    StellarAmount:
+      type: string
+      description: Stellar amount with up to 7 decimal places
+      pattern: '^\d+(\.\d{1,7})?$'
+      example: "10.5"
+    StringMetadata:
+      type: object
+      additionalProperties:
+        type: string
+      nullable: true
     CreatePaymentRequest:
       type: object
-      required: [amount, asset]
+      required: [amount]
       properties:
         amount:
-          type: string
-          description: Stellar amount with up to 7 decimal places
-          example: "10.5"
-          pattern: '^\d+(\.\d{1,7})?$'
-        asset:
-          $ref: "#/components/schemas/PaymentAsset"
+          $ref: "#/components/schemas/StellarAmount"
+        settlement_asset:
+          $ref: "#/components/schemas/AssetRef"
+          description: Optional. Defaults to the organization settlement asset.
+        allowed_assets:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/AssetRef"
+          description: Optional. Defaults to all enabled organization assets.
         description:
           type: string
           maxLength: 500
           nullable: true
-          example: Invoice #1024
         metadata:
-          type: object
-          additionalProperties:
-            type: string
-          nullable: true
-          example:
-            order_id: ord_123
+          $ref: "#/components/schemas/StringMetadata"
         expires_in_minutes:
           type: integer
           minimum: 5
           maximum: 10080
           description: Minutes until the payment expires (default 60)
-          example: 60
         customer_id:
           type: string
           nullable: true
-          description: Optional customer to link before checkout
-          example: cus_abc123xyz
+          description: Customer public ID to link before checkout
     CreateCustomerRequest:
       type: object
       properties:
@@ -226,10 +634,111 @@ components:
           maxLength: 2000
           nullable: true
         metadata:
-          type: object
-          additionalProperties:
-            type: string
+          $ref: "#/components/schemas/StringMetadata"
+    CreateCheckoutSessionRequest:
+      type: object
+      required: [amount]
+      properties:
+        amount:
+          $ref: "#/components/schemas/StellarAmount"
+        settlement_asset:
+          $ref: "#/components/schemas/AssetRef"
+        allowed_assets:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/AssetRef"
+        description:
+          type: string
+          maxLength: 500
           nullable: true
+        metadata:
+          $ref: "#/components/schemas/StringMetadata"
+        expires_in_minutes:
+          type: integer
+          minimum: 5
+          maximum: 10080
+        customer_id:
+          type: string
+          nullable: true
+        success_url:
+          type: string
+          format: uri
+          nullable: true
+        cancel_url:
+          type: string
+          format: uri
+          nullable: true
+    CreatePaymentLinkRequest:
+      type: object
+      required: [amount]
+      properties:
+        amount:
+          $ref: "#/components/schemas/StellarAmount"
+        settlement_asset:
+          $ref: "#/components/schemas/AssetRef"
+        allowed_assets:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/AssetRef"
+        description:
+          type: string
+          maxLength: 500
+          nullable: true
+        metadata:
+          $ref: "#/components/schemas/StringMetadata"
+    CreateInvoiceRequest:
+      type: object
+      required: [amount, customer_id]
+      properties:
+        amount:
+          $ref: "#/components/schemas/StellarAmount"
+        customer_id:
+          type: string
+          description: Customer public ID
+        description:
+          type: string
+          maxLength: 500
+          nullable: true
+        metadata:
+          $ref: "#/components/schemas/StringMetadata"
+        due_in_days:
+          type: integer
+          minimum: 1
+          maximum: 365
+          description: Days until due (default 30)
+    CreateSubscriptionRequest:
+      type: object
+      required: [amount, customer_id]
+      properties:
+        amount:
+          $ref: "#/components/schemas/StellarAmount"
+        customer_id:
+          type: string
+        description:
+          type: string
+          maxLength: 500
+          nullable: true
+        metadata:
+          $ref: "#/components/schemas/StringMetadata"
+        interval:
+          $ref: "#/components/schemas/BillingInterval"
+        interval_count:
+          type: integer
+          minimum: 1
+          maximum: 12
+          description: Number of intervals between bills (default 1)
+    InvoiceItem:
+      type: object
+      required: [description, quantity, unit_amount]
+      properties:
+        description:
+          type: string
+        quantity:
+          type: string
+        unit_amount:
+          $ref: "#/components/schemas/StellarAmount"
     Customer:
       type: object
       required: [id, environment, created_at, updated_at]
@@ -250,13 +759,9 @@ components:
           type: string
           nullable: true
         metadata:
-          type: object
-          additionalProperties:
-            type: string
-          nullable: true
+          $ref: "#/components/schemas/StringMetadata"
         environment:
-          type: string
-          enum: [sandbox, production]
+          $ref: "#/components/schemas/Environment"
         created_at:
           type: string
           format: date-time
@@ -265,48 +770,49 @@ components:
           format: date-time
     Payment:
       type: object
-      required:
-        - id
-        - amount
-        - asset
-        - status
-        - checkout_url
-        - created_at
+      required: [id, object, amount, settlement_asset, allowed_assets, status, checkout_url, created_at]
       properties:
         id:
           type: string
           example: pay_nLU2gUDk-v3tdyd6
+        object:
+          type: string
+          enum: [payment_intent]
         amount:
           type: string
           example: "2.0000000"
-        asset:
-          $ref: "#/components/schemas/PaymentAsset"
+        settlement_asset:
+          $ref: "#/components/schemas/AssetRef"
+        allowed_assets:
+          type: array
+          items:
+            $ref: "#/components/schemas/AssetRef"
+        paid_asset:
+          allOf:
+            - $ref: "#/components/schemas/AssetRef"
+          nullable: true
+          description: Asset the customer actually paid with (set after checkout)
         status:
           $ref: "#/components/schemas/PaymentStatus"
         description:
           type: string
           nullable: true
         metadata:
-          type: object
-          additionalProperties:
-            type: string
-          nullable: true
+          $ref: "#/components/schemas/StringMetadata"
         checkout_url:
           type: string
           format: uri
-          example: https://payoes.com/c/pay_nLU2gUDk-v3tdyd6
+        source_type:
+          $ref: "#/components/schemas/PaymentSourceType"
         customer_id:
           type: string
           nullable: true
-          description: Linked customer public ID
         payer_address:
           type: string
           nullable: true
-          description: Stellar wallet that submitted the payment
         tx_hash:
           type: string
           nullable: true
-          description: Stellar transaction hash after confirmation
         confirmed_at:
           type: string
           format: date-time
@@ -316,6 +822,219 @@ components:
           format: date-time
           nullable: true
         created_at:
+          type: string
+          format: date-time
+    CheckoutSession:
+      type: object
+      required: [id, object, status, checkout_url, created_at]
+      properties:
+        id:
+          type: string
+          example: cs_abc123xyz
+        object:
+          type: string
+          enum: [checkout.session]
+        status:
+          $ref: "#/components/schemas/CheckoutSessionStatus"
+        payment_intent_id:
+          type: string
+          nullable: true
+        amount:
+          type: string
+          nullable: true
+        settlement_asset:
+          allOf:
+            - $ref: "#/components/schemas/AssetRef"
+          nullable: true
+        allowed_assets:
+          type: array
+          items:
+            $ref: "#/components/schemas/AssetRef"
+        paid_asset:
+          allOf:
+            - $ref: "#/components/schemas/AssetRef"
+          nullable: true
+        payment_status:
+          $ref: "#/components/schemas/PaymentStatus"
+        customer_id:
+          type: string
+          nullable: true
+        success_url:
+          type: string
+          format: uri
+          nullable: true
+        cancel_url:
+          type: string
+          format: uri
+          nullable: true
+        checkout_url:
+          type: string
+          format: uri
+        expires_at:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+    PaymentLink:
+      type: object
+      required: [id, object, amount, settlement_asset, allowed_assets, active, url, environment, created_at, updated_at]
+      properties:
+        id:
+          type: string
+          example: plink_abc123xyz
+        object:
+          type: string
+          enum: [payment_link]
+        amount:
+          type: string
+        settlement_asset:
+          $ref: "#/components/schemas/AssetRef"
+        allowed_assets:
+          type: array
+          items:
+            $ref: "#/components/schemas/AssetRef"
+        description:
+          type: string
+          nullable: true
+        active:
+          type: boolean
+        metadata:
+          $ref: "#/components/schemas/StringMetadata"
+        url:
+          type: string
+          format: uri
+          description: Hosted payment link URL (`/l/plink_...`)
+        environment:
+          $ref: "#/components/schemas/Environment"
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    Invoice:
+      type: object
+      required: [id, object, invoice_number, status, amount, created_at, updated_at]
+      properties:
+        id:
+          type: string
+          example: inv_abc123xyz
+        object:
+          type: string
+          enum: [invoice]
+        invoice_number:
+          type: string
+          example: INV-000001
+        status:
+          $ref: "#/components/schemas/InvoiceStatus"
+        amount:
+          type: string
+        settlement_asset:
+          allOf:
+            - $ref: "#/components/schemas/AssetRef"
+          nullable: true
+          description: From the linked payment after finalize (null on draft)
+        allowed_assets:
+          type: array
+          items:
+            $ref: "#/components/schemas/AssetRef"
+        description:
+          type: string
+          nullable: true
+        metadata:
+          $ref: "#/components/schemas/StringMetadata"
+        customer_id:
+          type: string
+          nullable: true
+        subscription_id:
+          type: string
+          nullable: true
+        checkout_session_id:
+          type: string
+          nullable: true
+        checkout_url:
+          type: string
+          format: uri
+          nullable: true
+        hosted_invoice_url:
+          type: string
+          format: uri
+          nullable: true
+          description: Public invoice page (`/i/inv_...`)
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/InvoiceItem"
+        due_at:
+          type: string
+          format: date-time
+          nullable: true
+        paid_at:
+          type: string
+          format: date-time
+          nullable: true
+        sent_at:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    Subscription:
+      type: object
+      required:
+        - id
+        - object
+        - status
+        - amount
+        - interval
+        - interval_count
+        - current_period_start
+        - current_period_end
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          example: sub_abc123xyz
+        object:
+          type: string
+          enum: [subscription]
+        status:
+          $ref: "#/components/schemas/SubscriptionStatus"
+        amount:
+          type: string
+        description:
+          type: string
+          nullable: true
+        metadata:
+          $ref: "#/components/schemas/StringMetadata"
+        customer_id:
+          type: string
+          nullable: true
+        interval:
+          $ref: "#/components/schemas/BillingInterval"
+        interval_count:
+          type: integer
+        current_period_start:
+          type: string
+          format: date-time
+        current_period_end:
+          type: string
+          format: date-time
+        canceled_at:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
           type: string
           format: date-time
     Error:

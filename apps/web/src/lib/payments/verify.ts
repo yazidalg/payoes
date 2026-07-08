@@ -63,12 +63,20 @@ export async function confirmPaymentWithTxHash(
     return { ok: false as const, error: "Payment has expired" };
   }
 
+  const paidAssetCode = payment.paidAsset ?? payment.settlementAsset;
+  const paidAssetIssuer = payment.paidAsset
+    ? payment.paidAssetIssuer
+    : payment.settlementAssetIssuer;
+
   try {
     const verification = await verifyPaymentOnHorizon({
       txHash,
       destination: payment.receivingAddress,
       amount: payment.amount,
-      asset: payment.asset,
+      asset: {
+        assetCode: paidAssetCode,
+        issuerAddress: paidAssetIssuer,
+      },
       environment: payment.environment,
       memo: payment.memo,
     });
@@ -86,11 +94,23 @@ export async function confirmPaymentWithTxHash(
       verification.payerAddress
     );
 
+    const paidAsset =
+      payment.paidAsset && paidAssetCode
+        ? {
+            asset_code: paidAssetCode,
+            issuer_address: paidAssetIssuer,
+          }
+        : {
+            asset_code: payment.settlementAsset,
+            issuer_address: payment.settlementAssetIssuer,
+          };
+
     const updated = await updatePaymentStatus(payment, "completed", {
       txHash,
       confirmedAt: new Date(),
       customerId,
       payerAddress: verification.payerAddress,
+      paidAsset,
     });
 
     return { ok: true as const, payment: updated };

@@ -15,24 +15,27 @@ https://your-payoes-host/c/{payment_id}
 
 Share this link directly or redirect users from your application after creating a payment via API.
 
+Checkout sessions (`cs_...`) also resolve to the same hosted page.
+
 ## Customer flow
 
 1. Customer opens the checkout URL
-2. Checkout loads payment amount, asset, merchant name, and logo
-3. Customer clicks **Connect wallet** (Stellar Wallet Kit: Freighter, xBull, etc.)
-4. Customer clicks **Pay** and approves the transaction in their wallet
-5. Payoes submits the signed transaction to Horizon
-6. Payoes verifies the payment and shows a success state
+2. Checkout loads payment amount, **settlement asset**, **allowed assets**, merchant name, and logo
+3. If multiple allowed assets are configured, the customer selects which asset to pay with
+4. Customer clicks **Connect wallet** (Stellar Wallet Kit: Freighter, xBull, etc.)
+5. Customer clicks **Pay** and approves the transaction in their wallet
+6. Payoes submits the signed transaction to Horizon
+7. Payoes verifies the payment, records `paid_asset`, and shows a success state
 
 No Payoes login is required for customers.
 
 ## What Payoes handles
 
-- Building the unsigned Stellar payment transaction
+- Building the unsigned Stellar payment transaction in the customer's chosen **paid asset**
 - Setting the correct destination (merchant receiving wallet)
 - Attaching a payment memo for reconciliation
-- USDC trustline preflight checks before signing
-- Horizon submission and verification
+- Trustline preflight checks before signing
+- Horizon submission and verification against the paid asset
 - Status updates and webhook delivery
 
 ## Checkout API (internal)
@@ -41,8 +44,8 @@ The hosted page uses public endpoints under `/api/checkout/{payment_id}`:
 
 | Method | Purpose |
 |--------|---------|
-| `GET` | Load payment and merchant details |
-| `POST` `{ action: "build_transaction", sourcePublicKey }` | Build unsigned transaction XDR |
+| `GET` | Load payment (`settlement_asset`, `allowed_assets`) and merchant details |
+| `POST` `{ action: "build_transaction", sourcePublicKey, paid_asset }` | Build unsigned transaction XDR |
 | `POST` `{ txHash }` | Confirm payment after wallet submission |
 
 These endpoints are used by the checkout UI. Integrations should use `/api/v1/payments` instead.
@@ -58,7 +61,7 @@ If a transaction succeeds on Stellar but confirmation fails (e.g. temporary Hori
 ## Integration pattern
 
 ```typescript
-// 1. Create payment on your server
+// 1. Create payment on your server (uses organization asset defaults when omitted)
 const payment = await fetch("https://payoes.example.com/api/v1/payments", {
   method: "POST",
   headers: {
@@ -67,7 +70,11 @@ const payment = await fetch("https://payoes.example.com/api/v1/payments", {
   },
   body: JSON.stringify({
     amount: "25",
-    asset: "USDC",
+    settlement_asset: { asset_code: "USDC", issuer_address: "..." },
+    allowed_assets: [
+      { asset_code: "USDC", issuer_address: "..." },
+      { asset_code: "XLM", issuer_address: null },
+    ],
     description: "Pro plan (monthly)",
     metadata: { user_id: "usr_123" },
   }),
@@ -77,4 +84,4 @@ const payment = await fetch("https://payoes.example.com/api/v1/payments", {
 return Response.redirect(payment.checkout_url);
 ```
 
-After payment, listen for `payment.completed` webhooks or poll `GET /api/v1/payments/{id}`.
+After payment, listen for `payment.completed` webhooks or poll `GET /api/v1/payments/{id}`. Completed payments include both `settlement_asset` and `paid_asset`.

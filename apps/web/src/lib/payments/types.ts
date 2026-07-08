@@ -1,8 +1,15 @@
+export type AllowedAssetRef = {
+  asset_code: string;
+  issuer_address: string | null;
+};
+
 export type PaymentRow = {
   id: string;
   object?: string;
   amount: string;
-  asset: string;
+  settlement_asset: AllowedAssetRef;
+  allowed_assets: AllowedAssetRef[];
+  paid_asset: AllowedAssetRef | null;
   status: string;
   description: string | null;
   checkout_url: string;
@@ -21,7 +28,9 @@ export type CheckoutSessionRow = {
   status: string;
   payment_intent_id: string | null;
   amount: string | null;
-  asset: string | null;
+  settlement_asset: AllowedAssetRef | null;
+  allowed_assets: AllowedAssetRef[];
+  paid_asset: AllowedAssetRef | null;
   payment_status: string | null;
   customer_id: string | null;
   success_url: string | null;
@@ -35,7 +44,8 @@ export type PaymentLinkRow = {
   id: string;
   object: string;
   amount: string;
-  asset: string;
+  settlement_asset: AllowedAssetRef;
+  allowed_assets: AllowedAssetRef[];
   description: string | null;
   active: boolean;
   metadata: Record<string, string> | null;
@@ -50,7 +60,8 @@ export type InvoiceRow = {
   object: string;
   status: string;
   amount: string;
-  asset: string;
+  settlement_asset: AllowedAssetRef | null;
+  allowed_assets: AllowedAssetRef[];
   description: string | null;
   customer_id: string | null;
   subscription_id: string | null;
@@ -67,7 +78,6 @@ export type SubscriptionRow = {
   object: string;
   status: string;
   amount: string;
-  asset: string;
   description: string | null;
   customer_id: string | null;
   interval: string;
@@ -100,4 +110,8 @@ export function customerLabel(customer: CustomerOption) {
   }
 
   return customer.id;
+}
+
+export function formatAssetRef(asset: AllowedAssetRef | null | undefined) {
+  return asset?.asset_code ?? "—";
 }

@@ -3,6 +3,7 @@ import {
   ArrowLeftRight,
   BookOpen,
   Building2,
+  Coins,
   Code2,
   CreditCard,
   FileCode2,
@@ -84,6 +85,11 @@ export const dashboardNav: DashboardNavItem[] = [
         icon: Wallet,
       },
       {
+        title: "Assets",
+        url: "/dashboard/settings/assets",
+        icon: Coins,
+      },
+      {
         title: "Team Members",
         url: "/dashboard/settings/team",
         icon: Users,
@@ -92,20 +98,10 @@ export const dashboardNav: DashboardNavItem[] = [
   },
 ];
 
-export function getSettingsNavItems(environment: Organization["environment"]) {
+export function getSettingsNavItems(_environment: Organization["environment"]) {
   const settingsGroup = dashboardNav.find((item) => item.title === "Settings");
 
-  if (!settingsGroup?.items) {
-    return [];
-  }
-
-  return settingsGroup.items.filter((item) => {
-    if (item.url === "/dashboard/settings/receiving-wallet") {
-      return environment === "production";
-    }
-
-    return true;
-  });
+  return settingsGroup?.items ?? [];
 }
 
 export function getDashboardNav(environment: Organization["environment"]) {
@@ -132,6 +128,8 @@ const pageTitles: Record<string, string> = {
   "/dashboard/developers/documentation": "Documentation",
   "/dashboard/settings/organization": "Organization",
   "/dashboard/settings/receiving-wallet": "Receiving Wallet",
+  "/dashboard/settings/assets": "Assets",
+  "/dashboard/settings/payment-methods": "Assets",
   "/dashboard/settings/team": "Team Members",
 };
 
@@ -158,7 +156,7 @@ export function getDashboardPageTitle(pathname: string) {
     pathname.startsWith("/dashboard/payments/invoices/") &&
     pathname !== "/dashboard/payments/invoices"
   ) {
-    return "Invoice Detail";
+    return pathname.endsWith("/new") ? "Create Invoice" : "Invoice Detail";
   }
 
   if (

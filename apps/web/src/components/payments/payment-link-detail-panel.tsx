@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/card";
 import { useAsyncData } from "@/hooks/use-async-data";
 import { getPaymentsHubHref } from "@/lib/navigation/payments-tabs";
-import type { PaymentLinkRow } from "@/lib/payments/types";
+import { formatAssetRef, type PaymentLinkRow } from "@/lib/payments/types";
 
 export function PaymentLinkDetailPanel({
   organizationId,
@@ -106,7 +106,7 @@ export function PaymentLinkDetailPanel({
             <div className="flex justify-between gap-4">
               <span className="text-muted-foreground">Amount</span>
               <span>
-                {link.amount} {link.asset}
+                {link.amount} {formatAssetRef(link.settlement_asset)}
               </span>
             </div>
             <div className="flex justify-between gap-4">

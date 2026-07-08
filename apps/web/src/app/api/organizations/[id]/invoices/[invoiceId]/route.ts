@@ -1,6 +1,7 @@
 import { auth } from "@/auth";
 import { NextResponse } from "next/server";
 import { getInvoiceDetail, serializeInvoice } from "@/lib/invoices/service";
+import { getHostedInvoiceUrl } from "@/lib/invoices/url";
 import { getOrganizationForMember } from "@/lib/organizations/wallet";
 
 export async function GET(
@@ -52,6 +53,8 @@ export async function GET(
         checkoutUrl: detail.checkoutUrl,
         checkoutSessionPublicId: detail.checkoutSessionPublicId,
         subscriptionPublicId,
+        items: detail.items,
+        hostedInvoiceUrl: getHostedInvoiceUrl(detail.invoice.publicId),
       }
     )
   );

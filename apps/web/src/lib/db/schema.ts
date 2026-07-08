@@ -25,6 +25,24 @@ export const paymentStatusEnum = pgEnum("payment_status", [
 
 export const paymentAssetEnum = pgEnum("payment_asset", ["USDC", "XLM"]);
 
+export const organizationAssets = pgTable("assets", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  organizationId: uuid("organization_id")
+    .notNull()
+    .references(() => organizations.id, { onDelete: "cascade" }),
+  assetCode: text("asset_code").notNull(),
+  issuerAddress: text("issuer_address"),
+  displayName: text("display_name").notNull(),
+  isVerified: integer("is_verified").notNull().default(1),
+  isEnabled: integer("is_enabled").notNull().default(1),
+  isDefault: integer("is_default").notNull().default(0),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+/** @deprecated Use organizationAssets */
+export const paymentMethods = organizationAssets;
+
 export const paymentSourceTypeEnum = pgEnum("payment_source_type", [
   "direct",
   "checkout_session",
@@ -225,8 +243,16 @@ export const organizationsRelations = relations(organizations, ({ many }) => ({
   members: many(organizationMembers),
   invites: many(organizationInvites),
   receivingWallets: many(organizationReceivingWallets),
+  paymentMethods: many(paymentMethods),
   customers: many(customers),
   verificationApplications: many(organizationVerificationApplications),
+}));
+
+export const organizationAssetsRelations = relations(organizationAssets, ({ one }) => ({
+  organization: one(organizations, {
+    fields: [organizationAssets.organizationId],
+    references: [organizations.id],
+  }),
 }));
 
 export const organizationVerificationApplicationsRelations = relations(
@@ -345,7 +371,11 @@ export const paymentLinks = pgTable(
       .references(() => organizations.id, { onDelete: "cascade" }),
     environment: environmentModeEnum("environment").notNull().default("sandbox"),
     amount: text("amount").notNull(),
-    asset: paymentAssetEnum("asset").notNull(),
+    settlementAsset: text("settlement_asset").notNull(),
+    settlementAssetIssuer: text("settlement_asset_issuer"),
+    allowedAssets: jsonb("allowed_assets")
+      .$type<Array<{ asset_code: string; issuer_address: string | null }>>()
+      .notNull(),
     description: text("description"),
     active: integer("active").notNull().default(1),
     metadata: jsonb("metadata").$type<Record<string, string>>(),
@@ -374,7 +404,13 @@ export const payments = pgTable(
     subscriptionId: uuid("subscription_id"),
     environment: environmentModeEnum("environment").notNull().default("sandbox"),
     amount: text("amount").notNull(),
-    asset: paymentAssetEnum("asset").notNull(),
+    settlementAsset: text("settlement_asset").notNull(),
+    settlementAssetIssuer: text("settlement_asset_issuer"),
+    allowedAssets: jsonb("allowed_assets")
+      .$type<Array<{ asset_code: string; issuer_address: string | null }>>()
+      .notNull(),
+    paidAsset: text("paid_asset"),
+    paidAssetIssuer: text("paid_asset_issuer"),
     status: paymentStatusEnum("status").notNull().default("pending"),
     receivingAddress: text("receiving_address").notNull(),
     payerAddress: text("payer_address"),
@@ -427,7 +463,6 @@ export const subscriptions = pgTable(
       .notNull()
       .references(() => customers.id, { onDelete: "cascade" }),
     amount: text("amount").notNull(),
-    asset: paymentAssetEnum("asset").notNull(),
     description: text("description"),
     status: subscriptionStatusEnum("status").notNull().default("active"),
     interval: billingIntervalEnum("interval").notNull().default("month"),
@@ -463,17 +498,30 @@ export const invoices = pgTable(
     }),
     checkoutSessionId: uuid("checkout_session_id"),
     amount: text("amount").notNull(),
-    asset: paymentAssetEnum("asset").notNull(),
     description: text("description"),
     status: invoiceStatusEnum("status").notNull().default("draft"),
     metadata: jsonb("metadata").$type<Record<string, string>>(),
     dueAt: timestamp("due_at", { withTimezone: true }),
     paidAt: timestamp("paid_at", { withTimezone: true }),
+    invoiceNumber: text("invoice_number"),
+    sentAt: timestamp("sent_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [uniqueIndex("invoices_public_id_idx").on(table.publicId)]
 );
+
+export const invoiceItems = pgTable("invoice_items", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  invoiceId: uuid("invoice_id")
+    .notNull()
+    .references(() => invoices.id, { onDelete: "cascade" }),
+  description: text("description").notNull(),
+  quantity: text("quantity").notNull().default("1"),
+  unitAmount: text("unit_amount").notNull(),
+  sortOrder: integer("sort_order").notNull().default(0),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
 
 export const webhookEndpoints = pgTable("webhook_endpoints", {
   id: uuid("id").defaultRandom().primaryKey(),

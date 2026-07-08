@@ -33,7 +33,7 @@ export async function accountTrustsAsset(
   }
 }
 
-export async function assertUsdcTrustlines(input: {
+export async function assertAssetTrustlines(input: {
   sourcePublicKey: string;
   destinationPublicKey: string;
   asset: Asset;
@@ -42,6 +42,8 @@ export async function assertUsdcTrustlines(input: {
   if (input.asset.isNative()) {
     return;
   }
+
+  const assetLabel = input.asset.code;
 
   const [sourceTrusts, destinationTrusts] = await Promise.all([
     accountTrustsAsset(input.sourcePublicKey, input.asset, input.environment),
@@ -54,13 +56,16 @@ export async function assertUsdcTrustlines(input: {
 
   if (!sourceTrusts) {
     throw new Error(
-      "Your wallet does not have a USDC trustline on this network. Add a USDC trustline in your wallet, then fund it from the Circle testnet faucet."
+      `Your wallet does not have a ${assetLabel} trustline on this network. Add the trustline in your wallet before paying.`
     );
   }
 
   if (!destinationTrusts) {
     throw new Error(
-      "The merchant receiving wallet does not have a USDC trustline on this network. The merchant must add a USDC trustline to their receiving address before accepting USDC payments."
+      `The merchant receiving wallet does not have a ${assetLabel} trustline on this network. The merchant must add a trustline to their receiving address before accepting ${assetLabel} payments.`
     );
   }
 }
+
+/** @deprecated Use assertAssetTrustlines */
+export const assertUsdcTrustlines = assertAssetTrustlines;

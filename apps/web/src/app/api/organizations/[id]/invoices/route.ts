@@ -8,18 +8,31 @@ import {
   serializeInvoice,
   serializeInvoices,
 } from "@/lib/invoices/service";
-import { ACCEPTED_ASSET_OPTIONS } from "@/lib/organizations/wallet-constants";
 import { getOrganizationForMember } from "@/lib/organizations/wallet";
+
+const invoiceItemSchema = z.object({
+  description: z.string().min(1).max(500),
+  quantity: z
+    .string()
+    .regex(/^\d+(\.\d{1,4})?$/, "Quantity must be a valid number"),
+  unit_amount: z
+    .string()
+    .regex(/^\d+(\.\d{1,7})?$/, "Unit amount must be a valid Stellar amount"),
+});
 
 const createInvoiceSchema = z.object({
   amount: z
     .string()
-    .regex(/^\d+(\.\d{1,7})?$/, "Amount must be a valid Stellar amount"),
-  asset: z.enum(ACCEPTED_ASSET_OPTIONS),
+    .regex(/^\d+(\.\d{1,7})?$/, "Amount must be a valid Stellar amount")
+    .optional(),
   customer_id: z.string().min(1),
   description: z.string().max(500).optional().nullable(),
   metadata: z.record(z.string(), z.string()).optional().nullable(),
   due_in_days: z.number().int().min(1).max(365).optional(),
+  items: z.array(invoiceItemSchema).optional(),
+}).refine((data) => Boolean(data.amount) || (data.items && data.items.length > 0), {
+  message: "Amount or at least one item is required",
+  path: ["items"],
 });
 
 export async function GET(
@@ -79,10 +92,14 @@ export async function POST(
       environment: organization.environment,
       customerId: parsed.data.customer_id,
       amount: parsed.data.amount,
-      asset: parsed.data.asset,
       description: parsed.data.description,
       metadata: parsed.data.metadata,
       dueInDays: parsed.data.due_in_days,
+      items: parsed.data.items?.map((item) => ({
+        description: item.description,
+        quantity: item.quantity,
+        unitAmount: item.unit_amount,
+      })),
     });
 
     const detail = await getInvoiceDetail(

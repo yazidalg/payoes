@@ -14,7 +14,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useAsyncData } from "@/hooks/use-async-data";
-import type { CheckoutSessionRow } from "@/lib/payments/types";
+import { formatAssetRef, type CheckoutSessionRow } from "@/lib/payments/types";
 
 export function CheckoutSessionsListPanel({
   organizationId,
@@ -96,7 +96,7 @@ export function CheckoutSessionsListPanel({
                         </Link>
                       </td>
                       <td className="px-4 py-3">
-                        {session.amount ?? "N/A"} {session.asset ?? ""}
+                        {session.amount ?? "N/A"} {formatAssetRef(session.settlement_asset)}
                       </td>
                       <td className="px-4 py-3 font-mono text-xs">
                         {session.payment_intent_id ? (

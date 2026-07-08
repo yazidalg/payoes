@@ -9,8 +9,9 @@ import {
   type Organization,
   type Payment,
 } from "@/lib/db/schema";
-import type { AcceptedAsset } from "@/lib/organizations/wallet-constants";
+import type { AllowedAsset } from "@/lib/assets/types";
 import { createPayment, getPaymentById, getPaymentByPublicId } from "@/lib/payments/service";
+import { serializePaymentAssets } from "@/lib/assets/serialize";
 
 function createSessionPublicId() {
   return `cs_${randomBytes(12).toString("base64url")}`;
@@ -41,7 +42,7 @@ export async function listCheckoutSessions(
       updatedAt: checkoutSessions.updatedAt,
       paymentPublicId: payments.publicId,
       amount: payments.amount,
-      asset: payments.asset,
+      settlementAsset: payments.settlementAsset,
       paymentStatus: payments.status,
     })
     .from(checkoutSessions)
@@ -134,7 +135,8 @@ export async function createCheckoutSession(input: {
   organizationId: string;
   environment: Organization["environment"];
   amount: string;
-  asset: AcceptedAsset;
+  settlementAsset?: AllowedAsset | null;
+  allowedAssets?: AllowedAsset[] | null;
   description?: string | null;
   metadata?: Record<string, string> | null;
   expiresInMinutes?: number;
@@ -150,7 +152,8 @@ export async function createCheckoutSession(input: {
     organizationId: input.organizationId,
     environment: input.environment,
     amount: input.amount,
-    asset: input.asset,
+    settlementAsset: input.settlementAsset,
+    allowedAssets: input.allowedAssets,
     description: input.description,
     metadata: input.metadata,
     expiresInMinutes: input.expiresInMinutes,
@@ -247,22 +250,35 @@ export function serializeCheckoutSession(
   session: CheckoutSession & {
     paymentPublicId?: string;
     amount?: string;
-    asset?: string;
+    settlementAsset?: string;
     paymentStatus?: string;
+    payment?: Payment;
   },
   options?: {
     customerPublicId?: string | null;
     paymentPublicId?: string;
+    payment?: Payment;
   }
 ) {
+  const payment = options?.payment ?? session.payment;
+  const assetFields = payment
+    ? serializePaymentAssets(payment)
+    : {
+        settlement_asset: session.settlementAsset
+          ? { asset_code: session.settlementAsset, issuer_address: null }
+          : null,
+        allowed_assets: [] as Array<{ asset_code: string; issuer_address: string | null }>,
+        paid_asset: null,
+      };
+
   return {
     id: session.publicId,
     object: "checkout.session",
     status: session.status,
     payment_intent_id: options?.paymentPublicId ?? session.paymentPublicId ?? null,
-    amount: session.amount ?? null,
-    asset: session.asset ?? null,
-    payment_status: session.paymentStatus ?? null,
+    amount: session.amount ?? payment?.amount ?? null,
+    ...assetFields,
+    payment_status: session.paymentStatus ?? payment?.status ?? null,
     customer_id: options?.customerPublicId ?? null,
     success_url: session.successUrl,
     cancel_url: session.cancelUrl,

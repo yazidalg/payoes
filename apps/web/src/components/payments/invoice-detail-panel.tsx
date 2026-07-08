@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/card";
 import { useAsyncData } from "@/hooks/use-async-data";
 import { getPaymentsHubHref } from "@/lib/navigation/payments-tabs";
-import type { InvoiceRow } from "@/lib/payments/types";
+import { formatAssetRef, type InvoiceRow } from "@/lib/payments/types";
 
 export function InvoiceDetailPanel({
   organizationId,
@@ -153,7 +153,7 @@ export function InvoiceDetailPanel({
             <div className="flex justify-between gap-4">
               <span className="text-muted-foreground">Amount</span>
               <span>
-                {invoice.amount} {invoice.asset}
+                {invoice.amount} {formatAssetRef(invoice.settlement_asset)}
               </span>
             </div>
             <div className="flex justify-between gap-4">

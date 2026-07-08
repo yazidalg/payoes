@@ -2,9 +2,14 @@ import { randomBytes } from "node:crypto";
 import { and, desc, eq, inArray, lt } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { customers, payments, type Organization, type Payment } from "@/lib/db/schema";
-import type { AcceptedAsset } from "@/lib/organizations/wallet-constants";
+import type { AllowedAsset } from "@/lib/assets/types";
+import { resolveAssetConfig } from "@/lib/assets/config";
+import {
+  dbAllowedAssets,
+  serializePaymentAssets,
+} from "@/lib/assets/serialize";
 import { organizationEnvironmentWhere } from "@/lib/organizations/environment-scope";
-import { getReceivingWallet } from "@/lib/organizations/wallet";
+import { requireReceivingWallet } from "@/lib/organizations/wallet";
 import { getCustomerByPublicId } from "@/lib/customers/service";
 import { normalizeStellarAmount } from "@/lib/stellar/amount";
 import { dispatchWebhookEvent } from "@/lib/webhooks/delivery";
@@ -105,7 +110,8 @@ export async function createPayment(input: {
   organizationId: string;
   environment: Organization["environment"];
   amount: string;
-  asset: AcceptedAsset;
+  settlementAsset?: AllowedAsset | null;
+  allowedAssets?: AllowedAsset[] | null;
   description?: string | null;
   metadata?: Record<string, string> | null;
   expiresInMinutes?: number;
@@ -115,15 +121,16 @@ export async function createPayment(input: {
   invoiceId?: string | null;
   subscriptionId?: string | null;
 }) {
-  const wallet = await getReceivingWallet(input.organizationId, input.environment);
+  const wallet = await requireReceivingWallet(
+    input.organizationId,
+    input.environment
+  );
 
-  if (!wallet) {
-    throw new Error("Receiving wallet is not configured");
-  }
-
-  if (!wallet.acceptedAssets.includes(input.asset)) {
-    throw new Error(`Asset ${input.asset} is not accepted by this organization`);
-  }
+  const assetConfig = await resolveAssetConfig({
+    organizationId: input.organizationId,
+    settlementAsset: input.settlementAsset,
+    allowedAssets: input.allowedAssets,
+  });
 
   let customerInternalId: string | null = null;
   let customerPublicId: string | null = null;
@@ -161,7 +168,9 @@ export async function createPayment(input: {
       subscriptionId: input.subscriptionId ?? null,
       environment: input.environment,
       amount: normalizeStellarAmount(input.amount),
-      asset: input.asset,
+      settlementAsset: assetConfig.settlement_asset.asset_code,
+      settlementAssetIssuer: assetConfig.settlement_asset.issuer_address,
+      allowedAssets: dbAllowedAssets(assetConfig.allowed_assets),
       receivingAddress: wallet.stellarAddress,
       description: input.description?.trim() || null,
       metadata: input.metadata ?? null,
@@ -181,6 +190,23 @@ export async function createPayment(input: {
   return payment;
 }
 
+export async function setPaymentPaidAsset(
+  payment: Payment,
+  paidAsset: AllowedAsset
+) {
+  const [updated] = await db
+    .update(payments)
+    .set({
+      paidAsset: paidAsset.asset_code,
+      paidAssetIssuer: paidAsset.issuer_address,
+      updatedAt: new Date(),
+    })
+    .where(eq(payments.id, payment.id))
+    .returning();
+
+  return updated;
+}
+
 export async function updatePaymentStatus(
   payment: Payment,
   status: Payment["status"],
@@ -189,6 +215,7 @@ export async function updatePaymentStatus(
     confirmedAt?: Date;
     customerId?: string | null;
     payerAddress?: string | null;
+    paidAsset?: AllowedAsset | null;
   }
 ) {
   const [updated] = await db
@@ -203,6 +230,14 @@ export async function updatePaymentStatus(
         extra?.payerAddress !== undefined
           ? extra.payerAddress
           : payment.payerAddress,
+      paidAsset:
+        extra?.paidAsset !== undefined
+          ? extra.paidAsset?.asset_code ?? null
+          : payment.paidAsset,
+      paidAssetIssuer:
+        extra?.paidAsset !== undefined
+          ? extra.paidAsset?.issuer_address ?? null
+          : payment.paidAssetIssuer,
       updatedAt: new Date(),
     })
     .where(eq(payments.id, payment.id))
@@ -248,11 +283,13 @@ export function serializePayment(
   payment: Payment,
   options?: { customerPublicId?: string | null }
 ) {
+  const assets = serializePaymentAssets(payment);
+
   return {
     id: payment.publicId,
     object: "payment_intent",
     amount: payment.amount,
-    asset: payment.asset,
+    ...assets,
     status: payment.status,
     description: payment.description,
     metadata: payment.metadata,

@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/card";
 import { useAsyncData } from "@/hooks/use-async-data";
 import type { PaymentRow } from "@/lib/payments/types";
+import { formatAssetRef } from "@/lib/payments/types";
 
 type PaymentsListPanelProps = {
   organizationId: string;
@@ -80,7 +81,7 @@ export function PaymentsListPanel({
                       </Link>
                     </td>
                     <td className="px-4 py-3">
-                      {payment.amount} {payment.asset}
+                      {payment.amount} {formatAssetRef(payment.settlement_asset)}
                     </td>
                     <td className="px-4 py-3 font-mono text-xs">
                       {payment.customer_id ??

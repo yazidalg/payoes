@@ -47,6 +47,17 @@ The Stellar public key where customer payments are sent. Configured during onboa
 
 Payoes reads this address when building checkout transactions and when verifying payments on Horizon.
 
+### Organization assets
+
+Each organization maintains a list of **assets** it accepts (USDC, XLM, EURC, custom Stellar assets, etc.) in **Settings → Assets**.
+
+| Setting | Meaning |
+|---------|---------|
+| **Enabled** | Asset can appear in `allowed_assets` on payments |
+| **Settlement (default)** | Asset used for merchant settlement and amount display |
+
+All payment products inherit asset configuration from organization assets. Invoices and subscriptions do not store their own asset — a payment is created automatically with the organization's default settlement asset and enabled allowed assets.
+
 ### Payment intent
 
 A single payment request, equivalent to a Stripe Payment Intent.
@@ -55,10 +66,12 @@ A single payment request, equivalent to a Stripe Payment Intent.
 |-------|---------|
 | `id` | Public ID (`pay_...`) used in API calls |
 | `amount` | Stellar amount (up to 7 decimal places) |
-| `asset` | `XLM` (native) or `USDC` |
+| `settlement_asset` | Asset the merchant settles in |
+| `allowed_assets` | Assets the customer may pay with at checkout |
+| `paid_asset` | Asset the customer actually paid with (set after checkout) |
 | `status` | `pending`, `completed`, `failed`, or `expired` |
 | `source_type` | How the payment was created (`direct`, `checkout_session`, `payment_link`, etc.) |
-| `checkout_url` | Legacy hosted page at `/c/pay_...` |
+| `checkout_url` | Hosted page at `/c/pay_...` |
 
 Payment intents are created directly via the dashboard or API, or automatically when you create a checkout session or start checkout from a payment link.
 

@@ -1,9 +1,9 @@
 ---
 title: API overview
-description: Payoes REST API conventions, base URL, and authentication.
+description: Payoes REST API conventions, base URL, authentication, and available resources.
 ---
 
-The Payoes API is a REST JSON API for creating and managing Stellar payments.
+The Payoes API is a REST JSON API for creating and managing Stellar payments, customers, and billing resources.
 
 ## Base URL
 
@@ -17,6 +17,19 @@ All public integration endpoints are under `/api/v1`.
 
 See [Authentication](/guides/authentication) for key management and rotation.
 
+## Environments
+
+API keys are scoped to a single environment:
+
+| Key prefix | Environment | Stellar network |
+|------------|-------------|-----------------|
+| `pk_test_...` | Sandbox | Testnet |
+| `pk_live_...` | Production | Mainnet |
+
+List and retrieve operations only return resources created in the same environment as the API key. Sandbox and production data are fully isolated.
+
+See [Environments](/guides/environments) for dashboard mode switching and receiving wallets.
+
 ## Request format
 
 - Send JSON bodies with `Content-Type: application/json`
@@ -25,7 +38,9 @@ See [Authentication](/guides/authentication) for key management and rotation.
 
 ## Response format
 
-Successful responses return JSON objects. Errors return:
+Successful responses return JSON objects. List endpoints wrap resources in a plural key (for example `payments`, `customers`).
+
+Errors return:
 
 ```json
 {
@@ -33,21 +48,85 @@ Successful responses return JSON objects. Errors return:
 }
 ```
 
-## Rate limiting
+## Object types
 
-Rate limits are not enforced in the current release. Production deployments should implement limits. Check release notes for updates.
+Resources include an `object` field for identification:
+
+| `object` value | Resource |
+|----------------|----------|
+| `payment_intent` | Payment |
+| `checkout.session` | Checkout session |
+| `payment_link` | Payment link |
+| `invoice` | Invoice |
+| `subscription` | Subscription |
 
 ## Available endpoints
 
-The v1 API currently exposes payment resources:
+### Payments
 
 | Method | Path | Description |
 |--------|------|-------------|
-| `POST` | `/payments` | Create a payment |
+| `POST` | `/payments` | Create a payment intent |
 | `GET` | `/payments` | List payments |
 | `GET` | `/payments/{id}` | Retrieve a payment |
 
-Full request and response schemas are documented in the **Payments** section of this API reference, generated from the OpenAPI specification at `docs/openapi/v1.yaml`.
+### Customers
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/customers` | Create a customer |
+| `GET` | `/customers` | List customers |
+| `GET` | `/customers/{id}` | Retrieve a customer and payment history |
+
+### Checkout sessions
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/checkout-sessions` | Create a hosted checkout session |
+| `GET` | `/checkout-sessions` | List checkout sessions |
+| `GET` | `/checkout-sessions/{id}` | Retrieve a checkout session |
+
+### Payment links
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/payment-links` | Create a reusable payment link |
+| `GET` | `/payment-links` | List payment links |
+| `GET` | `/payment-links/{id}` | Retrieve a payment link |
+
+### Invoices
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/invoices` | Create a draft invoice |
+| `GET` | `/invoices` | List invoices |
+| `GET` | `/invoices/{id}` | Retrieve an invoice |
+| `POST` | `/invoices/{id}/finalize` | Finalize a draft invoice and get a checkout URL |
+
+Invoices can also be created with line items and sent by email from the dashboard. The hosted invoice page is available at `/i/{invoice_id}` after finalize.
+
+### Subscriptions
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/subscriptions` | Create a subscription |
+| `GET` | `/subscriptions` | List subscriptions |
+| `GET` | `/subscriptions/{id}` | Retrieve a subscription |
+| `POST` | `/subscriptions/{id}/bill` | Bill the current period (creates and finalizes an invoice) |
+
+Full request and response schemas are in the endpoint sections of this API reference, generated from `docs/openapi/v1.yaml`.
+
+## Hosted URLs
+
+| Resource | URL pattern |
+|----------|-------------|
+| Payment checkout | `/c/{payment_id}` or `/c/{checkout_session_id}` |
+| Payment link | `/l/{payment_link_id}` |
+| Hosted invoice | `/i/{invoice_id}` |
+
+## Rate limiting
+
+Rate limits are not enforced in the current release. Production deployments should implement limits. Check release notes for updates.
 
 ## Idempotency
 
@@ -57,4 +136,4 @@ Idempotency keys are planned. Until then, use unique `metadata` values and guard
 
 | Version | Changes |
 |---------|---------|
-| `v1` | Initial payments API: create, list, retrieve |
+| `v1` | Payments, customers, checkout sessions, payment links, invoices, and subscriptions APIs |

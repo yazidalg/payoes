@@ -156,7 +156,7 @@ export function SubscriptionDetailPanel({
           <div className="flex justify-between gap-4">
             <span className="text-muted-foreground">Amount</span>
             <span>
-              {subscription.amount} {subscription.asset}
+              {subscription.amount}
             </span>
           </div>
           <div className="flex justify-between gap-4">

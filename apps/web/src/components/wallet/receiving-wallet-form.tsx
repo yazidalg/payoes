@@ -124,8 +124,10 @@ export function ReceivingWalletForm({
         {isOnboarding ? "Configure your receiving wallet" : "Receiving wallet"}
       </CardTitle>
       <CardDescription className="text-center">
-        Connect a Stellar wallet to choose where payments are sent. Payoes never
-        stores your private keys.
+        {environment === "production"
+          ? "Connect a mainnet Stellar wallet for live payments. This is separate from your sandbox testnet wallet."
+          : "Connect a testnet Stellar wallet for sandbox payments. Production uses a separate mainnet wallet."}{" "}
+        Payoes never stores your private keys.
       </CardDescription>
 
       <div className="w-full space-y-4">

@@ -15,6 +15,7 @@ import {
 import { useAsyncData } from "@/hooks/use-async-data";
 import type { CustomerDetail } from "@/lib/customers/types";
 import { formatCustomerLabel } from "@/lib/customers/types";
+import { formatAssetRef } from "@/lib/payments/types";
 
 export function CustomerDetailPanel({
   organizationId,
@@ -153,7 +154,7 @@ export function CustomerDetailPanel({
                     <tr key={payment.id} className="border-t border-border/60">
                       <td className="px-4 py-3 font-mono text-xs">{payment.id}</td>
                       <td className="px-4 py-3">
-                        {payment.amount} {payment.asset}
+                        {payment.amount} {formatAssetRef(payment.settlement_asset)}
                       </td>
                       <td className="px-4 py-3 capitalize">{payment.status}</td>
                       <td className="px-4 py-3 font-mono text-xs">

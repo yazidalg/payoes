@@ -10,7 +10,6 @@ import {
   PlusIcon,
   RefreshCwIcon,
 } from "lucide-react";
-import { CreateInvoiceDialog } from "@/components/payments/create-invoice-dialog";
 import { CreatePaymentDialog } from "@/components/payments/create-payment-dialog";
 import { CreatePaymentLinkDialog } from "@/components/payments/create-payment-link-dialog";
 import { CreateSubscriptionDialog } from "@/components/payments/create-subscription-dialog";
@@ -64,7 +63,6 @@ export function CreatePaymentMenu({
   onCreated,
 }: CreatePaymentMenuProps) {
   const router = useRouter();
-  const [invoiceOpen, setInvoiceOpen] = useState(false);
   const [linkOpen, setLinkOpen] = useState(false);
   const [subscriptionOpen, setSubscriptionOpen] = useState(false);
   const [paymentOpen, setPaymentOpen] = useState(false);
@@ -96,7 +94,7 @@ export function CreatePaymentMenu({
               className="items-start gap-3 rounded-lg px-2 py-2"
               onClick={() => {
                 if (option.id === "invoices") {
-                  setInvoiceOpen(true);
+                  router.push("/dashboard/payments/invoices/new");
                 } else if (option.id === "payment-links") {
                   setLinkOpen(true);
                 } else if (option.id === "subscriptions") {
@@ -117,19 +115,6 @@ export function CreatePaymentMenu({
           ))}
         </DropdownMenuContent>
       </DropdownMenu>
-
-      <CreateInvoiceDialog
-        organizationId={organizationId}
-        open={invoiceOpen}
-        onOpenChange={setInvoiceOpen}
-        onCreated={(invoiceId) => {
-          handleCreated(
-            "invoices",
-            invoiceId,
-            `/dashboard/payments/invoices/${invoiceId}`
-          );
-        }}
-      />
 
       <CreatePaymentLinkDialog
         organizationId={organizationId}

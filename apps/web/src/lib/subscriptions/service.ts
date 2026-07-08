@@ -7,7 +7,6 @@ import {
   type Organization,
   type Subscription,
 } from "@/lib/db/schema";
-import type { AcceptedAsset } from "@/lib/organizations/wallet-constants";
 import { getCustomerByPublicId } from "@/lib/customers/service";
 import { organizationEnvironmentWhere } from "@/lib/organizations/environment-scope";
 import { createInvoice, finalizeInvoice } from "@/lib/invoices/service";
@@ -45,7 +44,6 @@ export async function listSubscriptions(
       organizationId: subscriptions.organizationId,
       customerId: subscriptions.customerId,
       amount: subscriptions.amount,
-      asset: subscriptions.asset,
       description: subscriptions.description,
       metadata: subscriptions.metadata,
       status: subscriptions.status,
@@ -132,7 +130,6 @@ export async function createSubscription(input: {
   environment: Organization["environment"];
   customerId: string;
   amount: string;
-  asset: AcceptedAsset;
   description?: string | null;
   metadata?: Record<string, string> | null;
   interval?: Subscription["interval"];
@@ -166,7 +163,6 @@ export async function createSubscription(input: {
       environment: input.environment,
       customerId: customer.id,
       amount: normalizeStellarAmount(input.amount),
-      asset: input.asset,
       description: input.description?.trim() || null,
       metadata: input.metadata ?? null,
       status: "active",
@@ -253,7 +249,6 @@ export async function billSubscription(
     environment: subscription.environment,
     customerId: customer.publicId,
     amount: subscription.amount,
-    asset: subscription.asset,
     description:
       subscription.description ??
       `Subscription ${subscription.publicId} billing`,
@@ -325,7 +320,6 @@ export function serializeSubscription(
     publicId: string;
     status: Subscription["status"];
     amount: string;
-    asset: string;
     description: string | null;
     metadata: Record<string, string> | null;
     interval: Subscription["interval"];
@@ -343,7 +337,6 @@ export function serializeSubscription(
     object: "subscription",
     status: subscription.status,
     amount: subscription.amount,
-    asset: subscription.asset,
     description: subscription.description,
     metadata: subscription.metadata,
     customer_id: subscription.customerPublicId ?? null,

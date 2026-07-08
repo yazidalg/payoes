@@ -7,36 +7,23 @@ import {
   TransactionBuilder,
 } from "@stellar/stellar-sdk";
 import type { Organization } from "@/lib/db/schema";
-import type { AcceptedAsset } from "@/lib/organizations/wallet-constants";
-import {
-  STELLAR_MAINNET_USDC_ISSUER,
-  STELLAR_TESTNET_USDC_ISSUER,
-} from "@/lib/stellar/env";
+import { resolveStellarAsset, type PaymentAssetInput } from "@/lib/stellar/assets";
 import { stellarAmountsEqual } from "@/lib/stellar/amount";
 import { getHorizonUrl, getNetworkPassphrase } from "@/lib/stellar/network";
-import { assertUsdcTrustlines } from "@/lib/stellar/trustlines";
+import { assertAssetTrustlines } from "@/lib/stellar/trustlines";
 
 export function getAssetCode(
-  asset: AcceptedAsset,
+  asset: PaymentAssetInput,
   environment: Organization["environment"]
 ) {
-  if (asset === "XLM") {
-    return Asset.native();
-  }
-
-  const issuer =
-    environment === "production"
-      ? STELLAR_MAINNET_USDC_ISSUER
-      : STELLAR_TESTNET_USDC_ISSUER;
-
-  return new Asset("USDC", issuer);
+  return resolveStellarAsset(asset, environment);
 }
 
 export async function buildPaymentTransactionXdr(input: {
   sourcePublicKey: string;
   destinationPublicKey: string;
   amount: string;
-  asset: AcceptedAsset;
+  asset: PaymentAssetInput;
   environment: Organization["environment"];
   memo?: string | null;
 }) {
@@ -44,7 +31,7 @@ export async function buildPaymentTransactionXdr(input: {
   const sourceAccount = await server.loadAccount(input.sourcePublicKey);
   const stellarAsset = getAssetCode(input.asset, input.environment);
 
-  await assertUsdcTrustlines({
+  await assertAssetTrustlines({
     sourcePublicKey: input.sourcePublicKey,
     destinationPublicKey: input.destinationPublicKey,
     asset: stellarAsset,
@@ -75,7 +62,7 @@ export async function verifyPaymentOnHorizon(input: {
   txHash: string;
   destination: string;
   amount: string;
-  asset: AcceptedAsset;
+  asset: PaymentAssetInput;
   environment: Organization["environment"];
   memo?: string | null;
 }) {

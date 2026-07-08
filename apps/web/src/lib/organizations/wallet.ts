@@ -29,6 +29,29 @@ export async function getReceivingWallet(
   return wallet ?? null;
 }
 
+export function receivingWalletNotConfiguredMessage(
+  environment: Organization["environment"]
+) {
+  if (environment === "production") {
+    return "Production receiving wallet is not configured. Open Settings → Receiving Wallet, connect your mainnet wallet, and click Save changes.";
+  }
+
+  return "Sandbox receiving wallet is not configured. Open Settings → Receiving Wallet, connect your testnet wallet, and click Save changes.";
+}
+
+export async function requireReceivingWallet(
+  organizationId: string,
+  environment: Organization["environment"]
+) {
+  const wallet = await getReceivingWallet(organizationId, environment);
+
+  if (!wallet) {
+    throw new Error(receivingWalletNotConfiguredMessage(environment));
+  }
+
+  return wallet;
+}
+
 export async function organizationHasReceivingWallet(
   organizationId: string,
   environment: Organization["environment"]

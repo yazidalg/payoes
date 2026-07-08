@@ -14,8 +14,6 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ACCEPTED_ASSET_OPTIONS } from "@/lib/organizations/wallet-constants";
-import { cn } from "@/lib/utils";
 
 type CreatePaymentLinkDialogProps = {
   organizationId: string;
@@ -31,14 +29,12 @@ export function CreatePaymentLinkDialog({
   onCreated,
 }: CreatePaymentLinkDialogProps) {
   const [amount, setAmount] = useState("10");
-  const [asset, setAsset] = useState<(typeof ACCEPTED_ASSET_OPTIONS)[number]>("USDC");
   const [description, setDescription] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   function resetForm() {
     setAmount("10");
-    setAsset("USDC");
     setDescription("");
     setError(null);
   }
@@ -54,7 +50,6 @@ export function CreatePaymentLinkDialog({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           amount,
-          asset,
           description: description || null,
         }),
       }
@@ -89,7 +84,8 @@ export function CreatePaymentLinkDialog({
         <DialogHeader>
           <DialogTitle>Create payment link</DialogTitle>
           <DialogDescription>
-            Create a reusable link that starts checkout on each visit.
+            Create a reusable link that opens checkout using your organization asset
+            configuration.
           </DialogDescription>
         </DialogHeader>
 
@@ -103,26 +99,6 @@ export function CreatePaymentLinkDialog({
               value={amount}
               onChange={(event) => setAmount(event.target.value)}
             />
-          </div>
-          <div className="space-y-2">
-            <Label>Asset</Label>
-            <div className="flex gap-2">
-              {ACCEPTED_ASSET_OPTIONS.map((option) => (
-                <button
-                  key={option}
-                  type="button"
-                  onClick={() => setAsset(option)}
-                  className={cn(
-                    "rounded-lg border px-3 py-1.5 text-sm font-medium",
-                    asset === option
-                      ? "border-primary bg-primary/10"
-                      : "border-border"
-                  )}
-                >
-                  {option}
-                </button>
-              ))}
-            </div>
           </div>
           <div className="space-y-2">
             <Label htmlFor="create-link-description">Description</Label>

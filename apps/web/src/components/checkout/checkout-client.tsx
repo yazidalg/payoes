@@ -2,21 +2,30 @@
 
 import { StellarWalletsKit } from "@creit.tech/stellar-wallets-kit/sdk";
 import { Horizon, TransactionBuilder } from "@stellar/stellar-sdk";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { OrganizationMark } from "@/components/organizations/organization-mark";
+import { EnvironmentBadge } from "@/components/shared/environment-badge";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
 import { useStellarWallet } from "@/hooks/use-stellar-wallet";
 import { getHorizonUrl, getNetworkPassphrase } from "@/lib/stellar/network";
 import { formatHorizonSubmitError } from "@/lib/stellar/errors";
 import type { Organization } from "@/lib/db/schema";
+import { cn } from "@/lib/utils";
 import { CheckCircle2Icon } from "lucide-react";
+
+type AllowedAsset = {
+  asset_code: string;
+  issuer_address: string | null;
+};
 
 type CheckoutData = {
   payment: {
     id: string;
     amount: string;
-    asset: string;
+    settlement_asset: AllowedAsset;
+    allowed_assets: AllowedAsset[];
+    paid_asset: AllowedAsset | null;
     status: string;
     description: string | null;
     environment: Organization["environment"];
@@ -28,6 +37,10 @@ type CheckoutData = {
     logoInitials: string;
   } | null;
 };
+
+function assetKey(asset: AllowedAsset) {
+  return `${asset.asset_code}:${asset.issuer_address ?? ""}`;
+}
 
 function getStoredCheckoutTxHash(paymentId: string) {
   if (typeof window === "undefined") {
@@ -42,6 +55,7 @@ export function CheckoutClient({ paymentId }: { paymentId: string }) {
   const [error, setError] = useState<string | null>(null);
   const [isPaying, setIsPaying] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedPaidAssetKey, setSelectedPaidAssetKey] = useState("");
   const [pendingTxHash, setPendingTxHash] = useState<string | null>(() =>
     getStoredCheckoutTxHash(paymentId)
   );
@@ -56,6 +70,15 @@ export function CheckoutClient({ paymentId }: { paymentId: string }) {
   const { address, connect, isConnecting, networkLabel } =
     useStellarWallet(environment);
 
+  const allowedAssets = data?.payment.allowed_assets ?? [];
+  const selectedPaidAsset = useMemo(() => {
+    return (
+      allowedAssets.find((asset) => assetKey(asset) === selectedPaidAssetKey) ??
+      allowedAssets[0] ??
+      null
+    );
+  }, [allowedAssets, selectedPaidAssetKey]);
+
   useEffect(() => {
     async function load() {
       const response = await fetch(`/api/checkout/${paymentId}`);
@@ -68,6 +91,10 @@ export function CheckoutClient({ paymentId }: { paymentId: string }) {
       }
 
       setData(json);
+      const firstAsset = json.payment.allowed_assets[0];
+      if (firstAsset) {
+        setSelectedPaidAssetKey(assetKey(firstAsset));
+      }
       setIsLoading(false);
     }
 
@@ -111,7 +138,7 @@ export function CheckoutClient({ paymentId }: { paymentId: string }) {
   }
 
   async function handlePay() {
-    if (!data || !address) {
+    if (!data || !address || !selectedPaidAsset) {
       return;
     }
 
@@ -125,6 +152,7 @@ export function CheckoutClient({ paymentId }: { paymentId: string }) {
         body: JSON.stringify({
           action: "build_transaction",
           sourcePublicKey: address,
+          paid_asset: selectedPaidAsset,
         }),
       });
 
@@ -183,6 +211,7 @@ export function CheckoutClient({ paymentId }: { paymentId: string }) {
   }
 
   const isCompleted = data.payment.status === "completed";
+  const settlementLabel = data.payment.settlement_asset.asset_code;
 
   return (
     <div className="flex min-h-svh items-center justify-center bg-muted/30 p-6">
@@ -208,7 +237,7 @@ export function CheckoutClient({ paymentId }: { paymentId: string }) {
 
         <div className="mt-6 rounded-xl bg-muted/40 p-4">
           <p className="text-3xl font-bold tracking-tight">
-            {data.payment.amount} {data.payment.asset}
+            {data.payment.amount} {settlementLabel}
           </p>
           {data.payment.description ? (
             <p className="mt-1 text-sm text-muted-foreground">
@@ -216,7 +245,7 @@ export function CheckoutClient({ paymentId }: { paymentId: string }) {
             </p>
           ) : null}
           <p className="mt-2 text-xs text-muted-foreground">
-            Network: {networkLabel}
+            Settlement asset: {settlementLabel} · Network: {networkLabel}
           </p>
         </div>
 
@@ -227,6 +256,33 @@ export function CheckoutClient({ paymentId }: { paymentId: string }) {
           </div>
         ) : (
           <div className="mt-6 space-y-3">
+            {allowedAssets.length > 1 ? (
+              <div className="space-y-2">
+                <p className="text-sm font-medium">Pay with</p>
+                <div className="flex flex-wrap gap-2">
+                  {allowedAssets.map((asset) => {
+                    const key = assetKey(asset);
+                    const isSelected = key === selectedPaidAssetKey;
+
+                    return (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => setSelectedPaidAssetKey(key)}
+                        className={cn(
+                          "rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors",
+                          isSelected
+                            ? "border-primary bg-primary/10 text-foreground"
+                            : "border-border bg-background text-muted-foreground hover:bg-muted"
+                        )}
+                      >
+                        {asset.asset_code}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : null}
             {error ? <AlertBlock type="error">{error}</AlertBlock> : null}
             {pendingTxHash ? (
               <Button
@@ -261,7 +317,8 @@ export function CheckoutClient({ paymentId }: { paymentId: string }) {
                 onClick={() => void handlePay()}
                 isLoading={isPaying}
               >
-                Pay {data.payment.amount} {data.payment.asset}
+                Pay {data.payment.amount}{" "}
+                {selectedPaidAsset?.asset_code ?? settlementLabel}
               </Button>
             )}
           </div>

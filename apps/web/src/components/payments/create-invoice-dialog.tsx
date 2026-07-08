@@ -15,10 +15,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAsyncData } from "@/hooks/use-async-data";
-import { ACCEPTED_ASSET_OPTIONS } from "@/lib/organizations/wallet-constants";
 import type { CustomerOption } from "@/lib/payments/types";
 import { customerLabel } from "@/lib/payments/types";
-import { cn } from "@/lib/utils";
 
 type CreateInvoiceDialogProps = {
   organizationId: string;
@@ -41,7 +39,6 @@ export function CreateInvoiceDialog({
 
   const { data: customers } = useAsyncData(fetchCustomers, [organizationId]);
   const [amount, setAmount] = useState("10");
-  const [asset, setAsset] = useState<(typeof ACCEPTED_ASSET_OPTIONS)[number]>("USDC");
   const [description, setDescription] = useState("");
   const [customerId, setCustomerId] = useState("");
   const [dueInDays, setDueInDays] = useState("30");
@@ -50,7 +47,6 @@ export function CreateInvoiceDialog({
 
   function resetForm() {
     setAmount("10");
-    setAsset("USDC");
     setDescription("");
     setCustomerId("");
     setDueInDays("30");
@@ -66,7 +62,6 @@ export function CreateInvoiceDialog({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         amount,
-        asset,
         description: description || null,
         customer_id: customerId,
         due_in_days: Number(dueInDays) || 30,
@@ -132,26 +127,6 @@ export function CreateInvoiceDialog({
               value={amount}
               onChange={(event) => setAmount(event.target.value)}
             />
-          </div>
-          <div className="space-y-2">
-            <Label>Asset</Label>
-            <div className="flex gap-2">
-              {ACCEPTED_ASSET_OPTIONS.map((option) => (
-                <button
-                  key={option}
-                  type="button"
-                  onClick={() => setAsset(option)}
-                  className={cn(
-                    "rounded-lg border px-3 py-1.5 text-sm font-medium",
-                    asset === option
-                      ? "border-primary bg-primary/10"
-                      : "border-border"
-                  )}
-                >
-                  {option}
-                </button>
-              ))}
-            </div>
           </div>
           <div className="space-y-2">
             <Label htmlFor="create-invoice-description">Description</Label>

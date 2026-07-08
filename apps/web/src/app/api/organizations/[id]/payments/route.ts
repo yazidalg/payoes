@@ -1,8 +1,9 @@
 import { auth } from "@/auth";
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { ACCEPTED_ASSET_OPTIONS } from "@/lib/organizations/wallet-constants";
+import { parseAndResolveAssetConfig } from "@/lib/assets/validation";
 import { getOrganizationForMember } from "@/lib/organizations/wallet";
+import { paymentAssetConfigFields } from "@/lib/payment-methods/schemas";
 import {
   createPayment,
   listPayments,
@@ -13,7 +14,7 @@ const createPaymentSchema = z.object({
   amount: z
     .string()
     .regex(/^\d+(\.\d{1,7})?$/, "Amount must be a valid Stellar amount"),
-  asset: z.enum(ACCEPTED_ASSET_OPTIONS),
+  ...paymentAssetConfigFields,
   description: z.string().max(500).optional().nullable(),
   metadata: z.record(z.string(), z.string()).optional().nullable(),
   expires_in_minutes: z.number().int().min(5).max(10080).optional(),
@@ -71,11 +72,17 @@ export async function POST(
   }
 
   try {
+    const assetConfig = await parseAndResolveAssetConfig(organization.id, {
+      settlement_asset: parsed.data.settlement_asset,
+      allowed_assets: parsed.data.allowed_assets,
+    });
+
     const payment = await createPayment({
       organizationId: organization.id,
       environment: organization.environment,
       amount: parsed.data.amount,
-      asset: parsed.data.asset,
+      settlementAsset: assetConfig.settlement_asset,
+      allowedAssets: assetConfig.allowed_assets,
       description: parsed.data.description,
       metadata: parsed.data.metadata,
       expiresInMinutes: parsed.data.expires_in_minutes,

@@ -79,7 +79,7 @@ export function SubscriptionsListPanel({
                       </Link>
                     </td>
                     <td className="px-4 py-3">
-                      {subscription.amount} {subscription.asset}
+                      {subscription.amount}
                     </td>
                     <td className="px-4 py-3 font-mono text-xs">
                       {subscription.customer_id ?? "N/A"}

@@ -8,14 +8,12 @@ import {
   serializeSubscription,
   serializeSubscriptions,
 } from "@/lib/subscriptions/service";
-import { ACCEPTED_ASSET_OPTIONS } from "@/lib/organizations/wallet-constants";
 import { getOrganizationForMember } from "@/lib/organizations/wallet";
 
 const createSubscriptionSchema = z.object({
   amount: z
     .string()
     .regex(/^\d+(\.\d{1,7})?$/, "Amount must be a valid Stellar amount"),
-  asset: z.enum(ACCEPTED_ASSET_OPTIONS),
   customer_id: z.string().min(1),
   description: z.string().max(500).optional().nullable(),
   metadata: z.record(z.string(), z.string()).optional().nullable(),
@@ -80,7 +78,6 @@ export async function POST(
       environment: organization.environment,
       customerId: parsed.data.customer_id,
       amount: parsed.data.amount,
-      asset: parsed.data.asset,
       description: parsed.data.description,
       metadata: parsed.data.metadata,
       interval: parsed.data.interval,

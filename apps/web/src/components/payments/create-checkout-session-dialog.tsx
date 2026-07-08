@@ -14,11 +14,14 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  AllowedAssetsPicker,
+  keysToAssetPayload,
+  useDefaultAssetSelection,
+} from "@/components/payment-methods/allowed-assets-picker";
 import { useAsyncData } from "@/hooks/use-async-data";
-import { ACCEPTED_ASSET_OPTIONS } from "@/lib/organizations/wallet-constants";
 import type { CustomerOption } from "@/lib/payments/types";
 import { customerLabel } from "@/lib/payments/types";
-import { cn } from "@/lib/utils";
 
 type CreateCheckoutSessionDialogProps = {
   organizationId: string;
@@ -40,8 +43,16 @@ export function CreateCheckoutSessionDialog({
   }, [organizationId]);
 
   const { data: customers } = useAsyncData(fetchCustomers, [organizationId]);
+  const {
+    settlementKey,
+    setSettlementKey,
+    allowedKeys,
+    setAllowedKeys,
+    issuers,
+    setIssuers,
+  } = useDefaultAssetSelection(organizationId);
+
   const [amount, setAmount] = useState("10");
-  const [asset, setAsset] = useState<(typeof ACCEPTED_ASSET_OPTIONS)[number]>("USDC");
   const [description, setDescription] = useState("");
   const [customerId, setCustomerId] = useState("");
   const [successUrl, setSuccessUrl] = useState("");
@@ -51,7 +62,6 @@ export function CreateCheckoutSessionDialog({
 
   function resetForm() {
     setAmount("10");
-    setAsset("USDC");
     setDescription("");
     setCustomerId("");
     setSuccessUrl("");
@@ -63,6 +73,8 @@ export function CreateCheckoutSessionDialog({
     setError(null);
     setIsLoading(true);
 
+    const assetPayload = keysToAssetPayload(settlementKey, allowedKeys, issuers);
+
     const response = await fetch(
       `/api/organizations/${organizationId}/checkout-sessions`,
       {
@@ -70,7 +82,7 @@ export function CreateCheckoutSessionDialog({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           amount,
-          asset,
+          ...assetPayload,
           description: description || null,
           customer_id: customerId || null,
           success_url: successUrl || null,
@@ -123,26 +135,29 @@ export function CreateCheckoutSessionDialog({
               onChange={(event) => setAmount(event.target.value)}
             />
           </div>
-          <div className="space-y-2">
-            <Label>Asset</Label>
-            <div className="flex gap-2">
-              {ACCEPTED_ASSET_OPTIONS.map((option) => (
-                <button
-                  key={option}
-                  type="button"
-                  onClick={() => setAsset(option)}
-                  className={cn(
-                    "rounded-lg border px-3 py-1.5 text-sm font-medium",
-                    asset === option
-                      ? "border-primary bg-primary/10"
-                      : "border-border"
-                  )}
-                >
-                  {option}
-                </button>
-              ))}
-            </div>
-          </div>
+          <AllowedAssetsPicker
+            organizationId={organizationId}
+            mode="settlement"
+            settlementKey={settlementKey}
+            selectedKeys={settlementKey ? [settlementKey] : []}
+            onChange={(keys, map) => {
+              setSettlementKey(keys[0] ?? "");
+              setIssuers(map);
+              if (!allowedKeys.includes(keys[0] ?? "")) {
+                setAllowedKeys([...allowedKeys, keys[0] ?? ""]);
+              }
+            }}
+          />
+          <AllowedAssetsPicker
+            organizationId={organizationId}
+            mode="allowed"
+            settlementKey={settlementKey}
+            selectedKeys={allowedKeys}
+            onChange={(keys, map) => {
+              setAllowedKeys(keys);
+              setIssuers(map);
+            }}
+          />
           <div className="space-y-2">
             <Label htmlFor="create-session-description">Description</Label>
             <Input

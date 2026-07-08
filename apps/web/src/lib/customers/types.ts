@@ -10,7 +10,8 @@ export type CustomerRow = {
 export type CustomerPaymentRow = {
   id: string;
   amount: string;
-  asset: string;
+  settlement_asset: { asset_code: string; issuer_address: string | null };
+  paid_asset: { asset_code: string; issuer_address: string | null } | null;
   status: string;
   payer_address: string | null;
   created_at: string;

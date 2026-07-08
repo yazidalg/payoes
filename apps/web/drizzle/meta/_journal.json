@@ -71,6 +71,41 @@
       "when": 1783409000000,
       "tag": "0009_kyc_verification",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1783410000000,
+      "tag": "0010_environment_scoped_resources",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1783411000000,
+      "tag": "0011_invoice_items",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1783412000000,
+      "tag": "0012_payment_methods",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1783413000000,
+      "tag": "0013_rename_payment_methods",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1783414000000,
+      "tag": "0014_payment_asset_config",
+      "breakpoints": true
     }
   ]
 }

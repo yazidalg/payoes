@@ -1,18 +1,27 @@
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { findAllowedAsset } from "@/lib/assets/types";
+import { serializePaymentAssets } from "@/lib/assets/serialize";
 import { resolvePaymentForHostedCheckout } from "@/lib/checkout-sessions/service";
 import { db } from "@/lib/db";
 import { organizations } from "@/lib/db/schema";
 import { confirmPaymentWithTxHash } from "@/lib/payments/verify";
+import { setPaymentPaidAsset } from "@/lib/payments/service";
 import { buildPaymentTransactionXdr } from "@/lib/stellar/payments";
 
 const confirmSchema = z.object({
   txHash: z.string().min(1),
 });
 
+const paidAssetSchema = z.object({
+  asset_code: z.string().min(1),
+  issuer_address: z.string().nullable().optional(),
+});
+
 const buildTxSchema = z.object({
   sourcePublicKey: z.string().min(1),
+  paid_asset: paidAssetSchema,
 });
 
 export async function GET(
@@ -27,6 +36,7 @@ export async function GET(
   }
 
   const { payment } = resolved;
+  const assets = serializePaymentAssets(payment);
 
   const [organization] = await db
     .select({
@@ -42,7 +52,7 @@ export async function GET(
     payment: {
       id: payment.publicId,
       amount: payment.amount,
-      asset: payment.asset,
+      ...assets,
       status: payment.status,
       description: payment.description,
       environment: payment.environment,
@@ -74,14 +84,38 @@ export async function POST(
       return NextResponse.json({ error: "Invalid request" }, { status: 400 });
     }
 
+    const paidAsset = {
+      asset_code: parsed.data.paid_asset.asset_code,
+      issuer_address: parsed.data.paid_asset.issuer_address?.trim() || null,
+    };
+
+    const allowed = payment.allowedAssets ?? [];
+    const match = findAllowedAsset(
+      allowed,
+      paidAsset.asset_code,
+      paidAsset.issuer_address
+    );
+
+    if (!match) {
+      return NextResponse.json(
+        { error: "Selected asset is not allowed for this payment" },
+        { status: 400 }
+      );
+    }
+
     try {
+      const paymentWithPaidAsset = await setPaymentPaidAsset(payment, paidAsset);
+
       const xdr = await buildPaymentTransactionXdr({
         sourcePublicKey: parsed.data.sourcePublicKey,
-        destinationPublicKey: payment.receivingAddress,
-        amount: payment.amount,
-        asset: payment.asset,
-        environment: payment.environment,
-        memo: payment.memo,
+        destinationPublicKey: paymentWithPaidAsset.receivingAddress,
+        amount: paymentWithPaidAsset.amount,
+        asset: {
+          assetCode: paidAsset.asset_code,
+          issuerAddress: paidAsset.issuer_address,
+        },
+        environment: paymentWithPaidAsset.environment,
+        memo: paymentWithPaidAsset.memo,
       });
 
       return NextResponse.json({ xdr });

@@ -4,17 +4,16 @@ import { withApiKeyAuth } from "@/lib/api-keys/auth";
 import {
   createInvoice,
   getInvoiceDetail,
+  getInvoicePaymentAssets,
   listInvoices,
   serializeInvoices,
   serializeInvoice,
 } from "@/lib/invoices/service";
-import { ACCEPTED_ASSET_OPTIONS } from "@/lib/organizations/wallet-constants";
 
 const createInvoiceSchema = z.object({
   amount: z
     .string()
     .regex(/^\d+(\.\d{1,7})?$/, "Amount must be a valid Stellar amount"),
-  asset: z.enum(ACCEPTED_ASSET_OPTIONS),
   customer_id: z.string().min(1),
   description: z.string().max(500).optional().nullable(),
   metadata: z.record(z.string(), z.string()).optional().nullable(),
@@ -49,7 +48,6 @@ export async function POST(request: Request) {
         environment: apiKey.environment,
         customerId: parsed.data.customer_id,
         amount: parsed.data.amount,
-        asset: parsed.data.asset,
         description: parsed.data.description,
         metadata: parsed.data.metadata,
         dueInDays: parsed.data.due_in_days,
@@ -68,12 +66,16 @@ export async function POST(request: Request) {
         );
       }
 
+      const paymentAssets = await getInvoicePaymentAssets(detail.invoice);
+
       return NextResponse.json(
         serializeInvoice(
           { ...detail.invoice, customerPublicId: detail.customerPublicId },
           {
             checkoutUrl: detail.checkoutUrl,
             checkoutSessionPublicId: detail.checkoutSessionPublicId,
+            settlementAsset: paymentAssets.settlement_asset.asset_code,
+            allowedAssets: paymentAssets.allowed_assets.map((a) => a.asset_code),
           }
         ),
         { status: 201 }

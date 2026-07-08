@@ -2,9 +2,14 @@ import { randomBytes } from "node:crypto";
 import { desc, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { paymentLinks, type Organization } from "@/lib/db/schema";
-import type { AcceptedAsset } from "@/lib/organizations/wallet-constants";
+import type { AllowedAsset } from "@/lib/assets/types";
+import { resolveAssetConfig } from "@/lib/assets/config";
+import {
+  dbAllowedAssets,
+  serializePaymentLinkAssets,
+} from "@/lib/assets/serialize";
 import { organizationEnvironmentWhere } from "@/lib/organizations/environment-scope";
-import { createCheckoutSession } from "@/lib/checkout-sessions/service";
+import { createPayment, getCheckoutUrl } from "@/lib/payments/service";
 
 function createLinkPublicId() {
   return `plink_${randomBytes(12).toString("base64url")}`;
@@ -67,10 +72,17 @@ export async function createPaymentLink(input: {
   organizationId: string;
   environment: Organization["environment"];
   amount: string;
-  asset: AcceptedAsset;
+  settlementAsset?: AllowedAsset | null;
+  allowedAssets?: AllowedAsset[] | null;
   description?: string | null;
   metadata?: Record<string, string> | null;
 }) {
+  const assetConfig = await resolveAssetConfig({
+    organizationId: input.organizationId,
+    settlementAsset: input.settlementAsset,
+    allowedAssets: input.allowedAssets,
+  });
+
   const publicId = createLinkPublicId();
 
   const [link] = await db
@@ -80,7 +92,9 @@ export async function createPaymentLink(input: {
       organizationId: input.organizationId,
       environment: input.environment,
       amount: input.amount,
-      asset: input.asset,
+      settlementAsset: assetConfig.settlement_asset.asset_code,
+      settlementAssetIssuer: assetConfig.settlement_asset.issuer_address,
+      allowedAssets: dbAllowedAssets(assetConfig.allowed_assets),
       description: input.description?.trim() || null,
       metadata: input.metadata ?? null,
       active: 1,
@@ -97,11 +111,15 @@ export async function startCheckoutFromPaymentLink(publicId: string) {
     return null;
   }
 
-  const { session, payment } = await createCheckoutSession({
+  const payment = await createPayment({
     organizationId: link.organizationId,
     environment: link.environment,
     amount: link.amount,
-    asset: link.asset,
+    settlementAsset: {
+      asset_code: link.settlementAsset,
+      issuer_address: link.settlementAssetIssuer,
+    },
+    allowedAssets: link.allowedAssets ?? [],
     description: link.description,
     metadata: link.metadata ?? undefined,
     sourceType: "payment_link",
@@ -113,7 +131,7 @@ export async function startCheckoutFromPaymentLink(publicId: string) {
     .set({ updatedAt: new Date() })
     .where(eq(paymentLinks.id, link.id));
 
-  return { link, session, payment };
+  return { link, payment, checkoutUrl: getCheckoutUrl(payment.publicId) };
 }
 
 export function serializePaymentLink(link: typeof paymentLinks.$inferSelect) {
@@ -121,7 +139,7 @@ export function serializePaymentLink(link: typeof paymentLinks.$inferSelect) {
     id: link.publicId,
     object: "payment_link",
     amount: link.amount,
-    asset: link.asset,
+    ...serializePaymentLinkAssets(link),
     description: link.description,
     active: Boolean(link.active),
     metadata: link.metadata,

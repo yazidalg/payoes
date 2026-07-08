@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/card";
 import { useAsyncData } from "@/hooks/use-async-data";
 import { getPaymentsHubHref } from "@/lib/navigation/payments-tabs";
-import type { PaymentRow } from "@/lib/payments/types";
+import { formatAssetRef, type PaymentRow } from "@/lib/payments/types";
 
 export function PaymentDetailPanel({
   organizationId,
@@ -84,7 +84,7 @@ export function PaymentDetailPanel({
         </Button>
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">
-            {payment.amount} {payment.asset}
+            {payment.amount} {formatAssetRef(payment.settlement_asset)}
           </h1>
           <p className="mt-1 font-mono text-xs text-muted-foreground">
             {payment.id}
@@ -106,6 +106,22 @@ export function PaymentDetailPanel({
             <div>
               <dt className="text-muted-foreground">Description</dt>
               <dd className="mt-1">{payment.description ?? "N/A"}</dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground">Settlement asset</dt>
+              <dd className="mt-1">{formatAssetRef(payment.settlement_asset)}</dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground">Allowed assets</dt>
+              <dd className="mt-1">
+                {payment.allowed_assets.map((asset) => asset.asset_code).join(", ") || "N/A"}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground">Paid asset</dt>
+              <dd className="mt-1">
+                {formatAssetRef(payment.paid_asset ?? payment.settlement_asset)}
+              </dd>
             </div>
             <div>
               <dt className="text-muted-foreground">Customer</dt>

@@ -50,6 +50,7 @@ export function EnableProductionDialog({
   const [step, setStep] = useState<WizardStep>("verify");
   const [error, setError] = useState<string | null>(null);
   const [isInitializing, setIsInitializing] = useState(false);
+  const [needsProductionWallet, setNeedsProductionWallet] = useState(false);
 
   const switchToProduction = useCallback(async () => {
     setStep("switching");
@@ -72,8 +73,22 @@ export function EnableProductionDialog({
     router.refresh();
     onEnvironmentChanged?.();
 
+    const walletResponse = await fetch(
+      `/api/organizations/${organizationId}/receiving-wallet`
+    );
+    const walletData = (await walletResponse.json()) as {
+      wallet?: { stellarAddress: string } | null;
+    };
+    const missingProductionWallet = !walletData.wallet;
+    setNeedsProductionWallet(missingProductionWallet);
+
     window.setTimeout(() => {
       onOpenChange(false);
+
+      if (missingProductionWallet) {
+        toast.info("Set up your production receiving wallet to accept live payments.");
+        router.push("/dashboard/settings/receiving-wallet");
+      }
     }, 1200);
   }, [organizationId, onEnvironmentChanged, onOpenChange, router]);
 
@@ -82,6 +97,7 @@ export function EnableProductionDialog({
       setStep("verify");
       setError(null);
       setIsInitializing(false);
+      setNeedsProductionWallet(false);
       return;
     }
 
@@ -159,7 +175,8 @@ export function EnableProductionDialog({
           <DialogTitle>Enable production mode</DialogTitle>
           <DialogDescription>
             Verify your identity with Persona to accept live mainnet payments.
-            Configure your receiving wallet later in Settings.
+            You will configure a separate production receiving wallet after
+            verification if one is not set yet.
           </DialogDescription>
         </DialogHeader>
 
@@ -229,7 +246,9 @@ export function EnableProductionDialog({
             </p>
             <p className="text-sm text-muted-foreground">
               {step === "done"
-                ? "Set up your mainnet receiving wallet in Settings when you are ready."
+                ? needsProductionWallet
+                  ? "Next, configure your mainnet receiving wallet in Settings."
+                  : "Your production receiving wallet is already configured."
                 : "Hang tight while we update your workspace."}
             </p>
           </div>
