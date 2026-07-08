@@ -10,7 +10,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useAsyncData } from "@/hooks/use-async-data";
-import { formatAssetRef, type InvoiceRow } from "@/lib/payments/types";
+import { formatAmountWithUnit } from "@/lib/format/amount";
+import type { InvoiceRow } from "@/lib/payments/types";
 
 type InvoicesListPanelProps = {
   organizationId: string;
@@ -75,7 +76,7 @@ export function InvoicesListPanel({
                       </Link>
                     </td>
                     <td className="px-4 py-3">
-                      {invoice.amount} {formatAssetRef(invoice.settlement_asset)}
+                      {formatAmountWithUnit(invoice.amount, invoice.currency_code)}
                     </td>
                     <td className="px-4 py-3 font-mono text-xs">
                       {invoice.customer_id ?? "N/A"}
