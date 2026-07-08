@@ -19,7 +19,7 @@ async function resolveUserId(session: {
   return user?.id ?? null;
 }
 
-export default async function OnboardingRouteLayout({
+export default async function OrganizationsLayout({
   children,
 }: {
   children: React.ReactNode;
@@ -27,7 +27,7 @@ export default async function OnboardingRouteLayout({
   const session = await auth();
 
   if (!session?.user) {
-    redirect("/login?callbackUrl=/onboarding");
+    redirect("/login?callbackUrl=/organizations/new");
   }
 
   const userId = await resolveUserId(session);

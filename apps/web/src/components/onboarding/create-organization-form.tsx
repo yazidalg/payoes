@@ -39,8 +39,10 @@ type OrganizationForm = z.infer<typeof organizationSchema>;
 
 export function CreateOrganizationForm({
   defaultEmail,
+  redirectTo = "/dashboard/payments",
 }: {
   defaultEmail?: string | null;
+  redirectTo?: string;
 }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
@@ -84,7 +86,7 @@ export function CreateOrganizationForm({
     }
 
     toast.success("Workspace created successfully");
-    router.push("/dashboard/payments");
+    router.push(redirectTo);
     router.refresh();
   };
 
