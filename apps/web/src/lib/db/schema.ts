@@ -48,7 +48,6 @@ export const paymentSourceTypeEnum = pgEnum("payment_source_type", [
   "checkout_session",
   "payment_link",
   "invoice",
-  "subscription",
 ]);
 
 export const checkoutSessionStatusEnum = pgEnum("checkout_session_status", [
@@ -64,19 +63,12 @@ export const invoiceStatusEnum = pgEnum("invoice_status", [
   "void",
 ]);
 
-export const subscriptionStatusEnum = pgEnum("subscription_status", [
-  "active",
-  "canceled",
-  "past_due",
-]);
-
-export const billingIntervalEnum = pgEnum("billing_interval", ["month", "year"]);
-
 export const webhookEventEnum = pgEnum("webhook_event", [
   "payment.created",
   "payment.completed",
   "payment.failed",
   "payment.expired",
+  "webhook.test",
 ]);
 
 export const webhookDeliveryStatusEnum = pgEnum("webhook_delivery_status", [
@@ -103,14 +95,31 @@ export const providerStatusEnum = pgEnum("provider_status", [
   "needs_review",
 ]);
 
+export const authProviderEnum = pgEnum("auth_provider", ["credentials", "google"]);
+
 export const users = pgTable("users", {
   id: uuid("id").defaultRandom().primaryKey(),
   email: text("email").notNull().unique(),
   name: text("name").notNull(),
   passwordHash: text("password_hash"),
   image: text("image"),
+  authProvider: authProviderEnum("auth_provider")
+    .notNull()
+    .default("credentials"),
+  emailVerifiedAt: timestamp("email_verified_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const emailVerificationOtps = pgTable("email_verification_otps", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  codeHash: text("code_hash").notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  consumedAt: timestamp("consumed_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
 export const organizations = pgTable(
@@ -208,7 +217,18 @@ export const organizationInvites = pgTable(
 
 export const usersRelations = relations(users, ({ many }) => ({
   memberships: many(organizationMembers),
+  emailVerificationOtps: many(emailVerificationOtps),
 }));
+
+export const emailVerificationOtpsRelations = relations(
+  emailVerificationOtps,
+  ({ one }) => ({
+    user: one(users, {
+      fields: [emailVerificationOtps.userId],
+      references: [users.id],
+    }),
+  })
+);
 
 export const organizationReceivingWallets = pgTable(
   "organization_receiving_wallets",
@@ -371,12 +391,29 @@ export const paymentLinks = pgTable(
       .references(() => organizations.id, { onDelete: "cascade" }),
     environment: environmentModeEnum("environment").notNull().default("sandbox"),
     amount: text("amount").notNull(),
+    currencyCode: text("currency_code"),
     settlementAsset: text("settlement_asset").notNull(),
     settlementAssetIssuer: text("settlement_asset_issuer"),
     allowedAssets: jsonb("allowed_assets")
       .$type<Array<{ asset_code: string; issuer_address: string | null }>>()
       .notNull(),
     description: text("description"),
+    productName: text("product_name"),
+    productDescription: text("product_description"),
+    customerCollection: jsonb("customer_collection")
+      .$type<{
+        collect_customer_name: boolean;
+        collect_business_name: boolean;
+        collect_customer_address: boolean;
+        require_phone_number: boolean;
+      }>()
+      .notNull()
+      .default({
+        collect_customer_name: false,
+        collect_business_name: false,
+        collect_customer_address: false,
+        require_phone_number: false,
+      }),
     active: integer("active").notNull().default(1),
     metadata: jsonb("metadata").$type<Record<string, string>>(),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
@@ -384,6 +421,18 @@ export const paymentLinks = pgTable(
   },
   (table) => [uniqueIndex("payment_links_public_id_idx").on(table.publicId)]
 );
+
+export const paymentLinkItems = pgTable("payment_link_items", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  paymentLinkId: uuid("payment_link_id")
+    .notNull()
+    .references(() => paymentLinks.id, { onDelete: "cascade" }),
+  description: text("description").notNull(),
+  quantity: text("quantity").notNull().default("1"),
+  unitAmount: text("unit_amount").notNull(),
+  sortOrder: integer("sort_order").notNull().default(0),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
 
 export const payments = pgTable(
   "payments",
@@ -401,7 +450,6 @@ export const payments = pgTable(
       onDelete: "set null",
     }),
     invoiceId: uuid("invoice_id"),
-    subscriptionId: uuid("subscription_id"),
     environment: environmentModeEnum("environment").notNull().default("sandbox"),
     amount: text("amount").notNull(),
     pricingCurrency: text("pricing_currency"),
@@ -457,37 +505,6 @@ export const checkoutSessions = pgTable(
   (table) => [uniqueIndex("checkout_sessions_public_id_idx").on(table.publicId)]
 );
 
-export const subscriptions = pgTable(
-  "subscriptions",
-  {
-    id: uuid("id").defaultRandom().primaryKey(),
-    publicId: text("public_id").notNull().unique(),
-    organizationId: uuid("organization_id")
-      .notNull()
-      .references(() => organizations.id, { onDelete: "cascade" }),
-    environment: environmentModeEnum("environment").notNull().default("sandbox"),
-    customerId: uuid("customer_id")
-      .notNull()
-      .references(() => customers.id, { onDelete: "cascade" }),
-    amount: text("amount").notNull(),
-    description: text("description"),
-    status: subscriptionStatusEnum("status").notNull().default("active"),
-    interval: billingIntervalEnum("interval").notNull().default("month"),
-    intervalCount: integer("interval_count").notNull().default(1),
-    metadata: jsonb("metadata").$type<Record<string, string>>(),
-    currentPeriodStart: timestamp("current_period_start", {
-      withTimezone: true,
-    }).notNull(),
-    currentPeriodEnd: timestamp("current_period_end", {
-      withTimezone: true,
-    }).notNull(),
-    canceledAt: timestamp("canceled_at", { withTimezone: true }),
-    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
-  },
-  (table) => [uniqueIndex("subscriptions_public_id_idx").on(table.publicId)]
-);
-
 export const invoices = pgTable(
   "invoices",
   {
@@ -500,9 +517,6 @@ export const invoices = pgTable(
     customerId: uuid("customer_id")
       .notNull()
       .references(() => customers.id, { onDelete: "cascade" }),
-    subscriptionId: uuid("subscription_id").references(() => subscriptions.id, {
-      onDelete: "set null",
-    }),
     checkoutSessionId: uuid("checkout_session_id"),
     amount: text("amount").notNull(),
     currencyCode: text("currency_code").notNull().default("USD"),
@@ -556,6 +570,8 @@ export const webhookDeliveries = pgTable("webhook_deliveries", {
   responseStatus: integer("response_status"),
   responseBody: text("response_body"),
   attempts: integer("attempts").notNull().default(0),
+  nextRetryAt: timestamp("next_retry_at", { withTimezone: true }),
+  lastError: text("last_error"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   deliveredAt: timestamp("delivered_at", { withTimezone: true }),
 });
@@ -597,6 +613,14 @@ export const paymentLinksRelations = relations(paymentLinks, ({ one, many }) => 
     references: [organizations.id],
   }),
   payments: many(payments),
+  items: many(paymentLinkItems),
+}));
+
+export const paymentLinkItemsRelations = relations(paymentLinkItems, ({ one }) => ({
+  paymentLink: one(paymentLinks, {
+    fields: [paymentLinkItems.paymentLinkId],
+    references: [paymentLinks.id],
+  }),
 }));
 
 export const paymentsRelations = relations(payments, ({ one }) => ({
@@ -615,10 +639,6 @@ export const paymentsRelations = relations(payments, ({ one }) => ({
   invoice: one(invoices, {
     fields: [payments.invoiceId],
     references: [invoices.id],
-  }),
-  subscription: one(subscriptions, {
-    fields: [payments.subscriptionId],
-    references: [subscriptions.id],
   }),
   checkoutSession: one(checkoutSessions, {
     fields: [payments.id],
@@ -645,19 +665,6 @@ export const checkoutSessionsRelations = relations(checkoutSessions, ({ one }) =
   }),
 }));
 
-export const subscriptionsRelations = relations(subscriptions, ({ one, many }) => ({
-  organization: one(organizations, {
-    fields: [subscriptions.organizationId],
-    references: [organizations.id],
-  }),
-  customer: one(customers, {
-    fields: [subscriptions.customerId],
-    references: [customers.id],
-  }),
-  invoices: many(invoices),
-  payments: many(payments),
-}));
-
 export const invoicesRelations = relations(invoices, ({ one }) => ({
   organization: one(organizations, {
     fields: [invoices.organizationId],
@@ -666,10 +673,6 @@ export const invoicesRelations = relations(invoices, ({ one }) => ({
   customer: one(customers, {
     fields: [invoices.customerId],
     references: [customers.id],
-  }),
-  subscription: one(subscriptions, {
-    fields: [invoices.subscriptionId],
-    references: [subscriptions.id],
   }),
   checkoutSession: one(checkoutSessions, {
     fields: [invoices.checkoutSessionId],
@@ -712,9 +715,9 @@ export const apiLogsRelations = relations(apiLogs, ({ one }) => ({
 export type ApiKey = typeof apiKeys.$inferSelect;
 export type Customer = typeof customers.$inferSelect;
 export type PaymentLink = typeof paymentLinks.$inferSelect;
+export type PaymentLinkItem = typeof paymentLinkItems.$inferSelect;
 export type Payment = typeof payments.$inferSelect;
 export type CheckoutSession = typeof checkoutSessions.$inferSelect;
-export type Subscription = typeof subscriptions.$inferSelect;
 export type Invoice = typeof invoices.$inferSelect;
 export type WebhookEndpoint = typeof webhookEndpoints.$inferSelect;
 export type WebhookDelivery = typeof webhookDeliveries.$inferSelect;

@@ -129,10 +129,38 @@
       "breakpoints": true
     },
     {
-      "idx": 18,
+      "idx": 19,
       "version": "7",
-      "when": 1783418000000,
-      "tag": "0018_settlement_conversion",
+      "when": 1783419000000,
+      "tag": "0019_payment_link_product_collection",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1783420000000,
+      "tag": "0020_payment_link_items_currency",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1783421000000,
+      "tag": "0021_drop_subscriptions",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1783422000000,
+      "tag": "0022_webhook_delivery_retries",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1783423000000,
+      "tag": "0023_auth_email_verification",
       "breakpoints": true
     }
   ]
