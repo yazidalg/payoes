@@ -33,5 +33,5 @@ export async function GET(
     return NextResponse.json({ error: "Payment link not found" }, { status: 404 });
   }
 
-  return NextResponse.json(serializePaymentLink(link));
+  return NextResponse.json(await serializePaymentLink(link, { includeItems: true }));
 }

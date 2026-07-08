@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { z } from "zod";
 import { withApiKeyAuth } from "@/lib/api-keys/auth";
 import { parseAndResolveAssetConfig } from "@/lib/assets/validation";
 import {
@@ -7,16 +6,8 @@ import {
   listPaymentLinks,
   serializePaymentLink,
 } from "@/lib/payment-links/service";
-import { paymentAssetConfigFields } from "@/lib/payment-methods/schemas";
-
-const createPaymentLinkSchema = z.object({
-  amount: z
-    .string()
-    .regex(/^\d+(\.\d{1,7})?$/, "Amount must be a valid Stellar amount"),
-  ...paymentAssetConfigFields,
-  description: z.string().max(500).optional().nullable(),
-  metadata: z.record(z.string(), z.string()).optional().nullable(),
-});
+import { createPaymentLinkBodySchema } from "@/lib/payment-links/schemas";
+import { resolveInvoiceCurrencyCode } from "@/lib/invoices/currencies";
 
 export async function GET(request: Request) {
   return withApiKeyAuth(request, async ({ apiKey }) => {
@@ -26,7 +17,9 @@ export async function GET(request: Request) {
     );
 
     return NextResponse.json({
-      payment_links: links.map((link) => serializePaymentLink(link)),
+      payment_links: await Promise.all(
+        links.map((link) => serializePaymentLink(link))
+      ),
     });
   });
 }
@@ -34,7 +27,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   return withApiKeyAuth(request, async ({ apiKey }) => {
     const body = await request.json();
-    const parsed = createPaymentLinkSchema.safeParse(body);
+    const parsed = createPaymentLinkBodySchema.safeParse(body);
 
     if (!parsed.success) {
       return NextResponse.json(
@@ -49,17 +42,28 @@ export async function POST(request: Request) {
         allowed_assets: parsed.data.allowed_assets,
       });
 
+      const currencyCode = resolveInvoiceCurrencyCode(parsed.data.currency_code);
+
       const link = await createPaymentLink({
         organizationId: apiKey.organizationId,
         environment: apiKey.environment,
-        amount: parsed.data.amount,
+        currencyCode,
+        items: parsed.data.items.map((item) => ({
+          description: item.description,
+          quantity: item.quantity,
+          unitAmount: item.unit_amount,
+        })),
         settlementAsset: assetConfig.settlement_asset,
         allowedAssets: assetConfig.allowed_assets,
         description: parsed.data.description,
+        customerCollection: parsed.data.customer_collection,
         metadata: parsed.data.metadata,
       });
 
-      return NextResponse.json(serializePaymentLink(link), { status: 201 });
+      return NextResponse.json(
+        await serializePaymentLink(link, { includeItems: true }),
+        { status: 201 }
+      );
     } catch (error) {
       return NextResponse.json(
         {
