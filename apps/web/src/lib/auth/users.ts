@@ -2,6 +2,9 @@ import bcrypt from "bcryptjs";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
+import { createEmailVerificationLink } from "@/lib/auth/verification-token";
+import { sendEmailVerificationLink } from "@/lib/email/send-verification-email";
+import { isCredentialsAccount, isGoogleOnlyAccount } from "@/lib/auth/credentials";
 
 export async function findUserByEmail(email: string) {
   return db.query.users.findFirst({
@@ -23,6 +26,10 @@ export async function createUser(input: {
   const existing = await findUserByEmail(input.email);
 
   if (existing) {
+    if (isGoogleOnlyAccount(existing)) {
+      throw new Error("GOOGLE_ACCOUNT_EXISTS");
+    }
+
     throw new Error("EMAIL_EXISTS");
   }
 
@@ -34,6 +41,8 @@ export async function createUser(input: {
       email: input.email.toLowerCase(),
       name: input.name.trim(),
       passwordHash,
+      authProvider: "credentials",
+      emailVerifiedAt: null,
     })
     .returning({
       id: users.id,
@@ -41,13 +50,78 @@ export async function createUser(input: {
       name: users.name,
     });
 
+  const { token } = await createEmailVerificationLink(user.id);
+
+  const delivery = await sendEmailVerificationLink({
+    to: user.email,
+    name: user.name,
+    token,
+  });
+
+  if (!delivery.delivered) {
+    console.warn(
+      `[auth] Verification email for ${user.email} was not delivered via SMTP`
+    );
+  }
+
   return user;
+}
+
+export async function markEmailVerified(userId: string) {
+  const [user] = await db
+    .update(users)
+    .set({
+      emailVerifiedAt: new Date(),
+      updatedAt: new Date(),
+    })
+    .where(eq(users.id, userId))
+    .returning({
+      id: users.id,
+      email: users.email,
+      name: users.name,
+    });
+
+  return user ?? null;
+}
+
+export async function resendEmailVerification(userId: string) {
+  const user = await findUserById(userId);
+
+  if (!user) {
+    throw new Error("USER_NOT_FOUND");
+  }
+
+  if (user.emailVerifiedAt) {
+    throw new Error("ALREADY_VERIFIED");
+  }
+
+  if (isGoogleOnlyAccount(user)) {
+    throw new Error("GOOGLE_ACCOUNT");
+  }
+
+  const { token } = await createEmailVerificationLink(userId);
+
+  const delivery = await sendEmailVerificationLink({
+    to: user.email,
+    name: user.name,
+    token,
+  });
+
+  if (!delivery.delivered) {
+    throw new Error("EMAIL_DELIVERY_FAILED");
+  }
+
+  return { email: user.email };
 }
 
 export async function verifyUserPassword(email: string, password: string) {
   const user = await findUserByEmail(email);
 
-  if (!user?.passwordHash) {
+  if (!user?.passwordHash || !user.emailVerifiedAt) {
+    return null;
+  }
+
+  if (isGoogleOnlyAccount(user)) {
     return null;
   }
 
@@ -74,11 +148,16 @@ export async function upsertOAuthUser(input: {
   const existing = await findUserByEmail(email);
 
   if (existing) {
+    if (isCredentialsAccount(existing)) {
+      throw new Error("CREDENTIALS_ACCOUNT_EXISTS");
+    }
+
     const [updated] = await db
       .update(users)
       .set({
         name: input.name?.trim() || existing.name,
         image: input.image ?? existing.image,
+        emailVerifiedAt: existing.emailVerifiedAt ?? new Date(),
         updatedAt: new Date(),
       })
       .where(eq(users.id, existing.id))
@@ -99,6 +178,8 @@ export async function upsertOAuthUser(input: {
       name: input.name?.trim() || email.split("@")[0],
       image: input.image ?? null,
       passwordHash: null,
+      authProvider: "google",
+      emailVerifiedAt: new Date(),
     })
     .returning({
       id: users.id,
@@ -132,6 +213,8 @@ export async function ensureDemoUser() {
       email: demoEmail.toLowerCase(),
       name: "Payoes User",
       passwordHash,
+      authProvider: "credentials",
+      emailVerifiedAt: new Date(),
     })
     .returning();
 
