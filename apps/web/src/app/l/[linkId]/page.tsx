@@ -33,9 +33,11 @@ export default async function PaymentLinkRedirectPage({
             If you manage this merchant account, configure and save your receiving
             wallet in Settings before sharing payment links.
           </p>
-          <Button asChild variant="outline" className="w-full">
-            <Link href="/">Back to home</Link>
-          </Button>
+          <Button
+            variant="outline"
+            className="w-full"
+            render={<Link href="/">Back to home</Link>}
+          />
         </div>
       </div>
     );

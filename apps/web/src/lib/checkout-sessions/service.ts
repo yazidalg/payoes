@@ -9,6 +9,7 @@ import {
   type Organization,
   type Payment,
 } from "@/lib/db/schema";
+import { DEFAULT_AUTH_URL } from "@/constants/app";
 import type { AllowedAsset } from "@/lib/assets/types";
 import { createPayment, getPaymentById, getPaymentByPublicId } from "@/lib/payments/service";
 import { serializePaymentAssets } from "@/lib/assets/serialize";
@@ -18,7 +19,7 @@ function createSessionPublicId() {
 }
 
 export function getCheckoutSessionUrl(publicId: string) {
-  const baseUrl = process.env.AUTH_URL ?? "http://localhost:3000";
+  const baseUrl = process.env.AUTH_URL ?? DEFAULT_AUTH_URL;
   return `${baseUrl}/c/${publicId}`;
 }
 
@@ -147,11 +148,15 @@ export async function createCheckoutSession(input: {
   paymentLinkId?: string | null;
   invoiceId?: string | null;
   subscriptionId?: string | null;
+  pricingCurrency?: string | null;
+  pricingAmount?: string | null;
 }) {
   const payment = await createPayment({
     organizationId: input.organizationId,
     environment: input.environment,
     amount: input.amount,
+    pricingCurrency: input.pricingCurrency,
+    pricingAmount: input.pricingAmount,
     settlementAsset: input.settlementAsset,
     allowedAssets: input.allowedAssets,
     description: input.description,
