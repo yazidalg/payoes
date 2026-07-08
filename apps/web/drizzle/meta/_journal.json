@@ -106,6 +106,34 @@
       "when": 1783414000000,
       "tag": "0014_payment_asset_config",
       "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1783415000000,
+      "tag": "0015_invoice_items_backfill",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1783416000000,
+      "tag": "0016_invoice_currency",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1783417000000,
+      "tag": "0017_payment_quotes",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1783418000000,
+      "tag": "0018_settlement_conversion",
+      "breakpoints": true
     }
   ]
 }
