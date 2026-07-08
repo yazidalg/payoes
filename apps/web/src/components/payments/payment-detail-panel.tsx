@@ -121,7 +121,7 @@ export function PaymentDetailPanel({
       <Card>
         <CardHeader>
           <CardTitle>Payment details</CardTitle>
-          <CardDescription>Status, checkout link, and payer info.</CardDescription>
+          <CardDescription>Status, payer info, and payment metadata.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <dl className="grid gap-4 text-sm md:grid-cols-2">
@@ -226,24 +226,26 @@ export function PaymentDetailPanel({
             </div>
           </dl>
 
-          <div className="flex flex-wrap gap-2 pt-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => void copyCheckoutUrl(payment.checkout_url)}
-            >
-              Copy checkout link
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              render={
-                <a href={payment.checkout_url} target="_blank" rel="noreferrer" />
-              }
-            >
-              Open checkout
-            </Button>
-          </div>
+          {payment.checkout_url && payment.status === "pending" ? (
+            <div className="flex flex-wrap gap-2 pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => void copyCheckoutUrl(payment.checkout_url!)}
+              >
+                Copy checkout link
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                render={
+                  <a href={payment.checkout_url} target="_blank" rel="noreferrer" />
+                }
+              >
+                Open checkout
+              </Button>
+            </div>
+          ) : null}
         </CardContent>
       </Card>
     </div>

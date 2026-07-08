@@ -8,11 +8,8 @@ import {
   FileTextIcon,
   Link2Icon,
   PlusIcon,
-  RefreshCwIcon,
 } from "lucide-react";
 import { CreatePaymentDialog } from "@/components/payments/create-payment-dialog";
-import { CreatePaymentLinkDialog } from "@/components/payments/create-payment-link-dialog";
-import { CreateSubscriptionDialog } from "@/components/payments/create-subscription-dialog";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -43,17 +40,10 @@ const createOptions = [
     icon: Link2Icon,
   },
   {
-    id: "subscriptions",
-    tab: "subscriptions" as const,
-    label: "Subscription",
-    description: "Set up recurring billing for a specific customer.",
-    icon: RefreshCwIcon,
-  },
-  {
     id: "payment-intents",
     tab: "payment-intents" as const,
     label: "Manual payment",
-    description: "Create a direct payment intent with hosted checkout.",
+    description: "Record a payment received outside hosted checkout.",
     icon: CreditCardIcon,
   },
 ] as const;
@@ -63,8 +53,6 @@ export function CreatePaymentMenu({
   onCreated,
 }: CreatePaymentMenuProps) {
   const router = useRouter();
-  const [linkOpen, setLinkOpen] = useState(false);
-  const [subscriptionOpen, setSubscriptionOpen] = useState(false);
   const [paymentOpen, setPaymentOpen] = useState(false);
 
   function handleCreated(tab: PaymentsTab, resourceId: string, detailPath: string) {
@@ -96,9 +84,7 @@ export function CreatePaymentMenu({
                 if (option.id === "invoices") {
                   router.push("/dashboard/payments/invoices/new");
                 } else if (option.id === "payment-links") {
-                  setLinkOpen(true);
-                } else if (option.id === "subscriptions") {
-                  setSubscriptionOpen(true);
+                  router.push("/dashboard/payments/links/new");
                 } else {
                   setPaymentOpen(true);
                 }
@@ -115,32 +101,6 @@ export function CreatePaymentMenu({
           ))}
         </DropdownMenuContent>
       </DropdownMenu>
-
-      <CreatePaymentLinkDialog
-        organizationId={organizationId}
-        open={linkOpen}
-        onOpenChange={setLinkOpen}
-        onCreated={(linkId) => {
-          handleCreated(
-            "payment-links",
-            linkId,
-            `/dashboard/payments/links/${linkId}`
-          );
-        }}
-      />
-
-      <CreateSubscriptionDialog
-        organizationId={organizationId}
-        open={subscriptionOpen}
-        onOpenChange={setSubscriptionOpen}
-        onCreated={(subscriptionId) => {
-          handleCreated(
-            "subscriptions",
-            subscriptionId,
-            `/dashboard/payments/subscriptions/${subscriptionId}`
-          );
-        }}
-      />
 
       <CreatePaymentDialog
         organizationId={organizationId}

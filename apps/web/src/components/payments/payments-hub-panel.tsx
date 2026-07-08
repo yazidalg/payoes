@@ -6,7 +6,6 @@ import { CreatePaymentMenu } from "@/components/payments/create-payment-menu";
 import { InvoicesListPanel } from "@/components/payments/invoices-list-panel";
 import { PaymentLinksListPanel } from "@/components/payments/payment-links-list-panel";
 import { PaymentsListPanel } from "@/components/payments/payments-list-panel";
-import { SubscriptionsListPanel } from "@/components/payments/subscriptions-list-panel";
 import { Button } from "@/components/ui/button";
 import {
   PAYMENTS_TAB_LABELS,
@@ -41,7 +40,7 @@ export function PaymentsHubPanel({ organizationId }: { organizationId: string })
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Payments</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Manage payment intents, invoices, links, and subscriptions.
+            Manage payment intents, invoices, and payment links.
           </p>
         </div>
         <CreatePaymentMenu organizationId={organizationId} onCreated={handleCreated} />
@@ -83,14 +82,6 @@ export function PaymentsHubPanel({ organizationId }: { organizationId: string })
 
       {activeTab === "payment-links" ? (
         <PaymentLinksListPanel
-          organizationId={organizationId}
-          embedded
-          reloadKey={reloadKey}
-        />
-      ) : null}
-
-      {activeTab === "subscriptions" ? (
-        <SubscriptionsListPanel
           organizationId={organizationId}
           embedded
           reloadKey={reloadKey}

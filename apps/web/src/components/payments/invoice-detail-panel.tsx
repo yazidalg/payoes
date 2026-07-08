@@ -397,19 +397,6 @@ export function InvoiceDetailPanel({
                   <dt className="text-muted-foreground">Paid</dt>
                   <dd className="mt-1">{formatDetailDate(invoice.paid_at)}</dd>
                 </div>
-                {invoice.subscription_id ? (
-                  <div className="md:col-span-2">
-                    <dt className="text-muted-foreground">Subscription</dt>
-                    <dd className="mt-1">
-                      <Link
-                        href={`/dashboard/payments/subscriptions/${invoice.subscription_id}`}
-                        className="font-mono text-xs hover:underline"
-                      >
-                        {invoice.subscription_id}
-                      </Link>
-                    </dd>
-                  </div>
-                ) : null}
               </dl>
             </CardContent>
           </Card>

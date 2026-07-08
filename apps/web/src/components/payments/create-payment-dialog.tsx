@@ -1,7 +1,14 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
+import { CustomerPicker } from "@/components/invoices/customer-picker";
+import { InvoiceCurrencyPicker } from "@/components/invoices/invoice-currency-picker";
+import { InvoiceDueDatePicker } from "@/components/invoices/invoice-due-date-picker";
+import {
+  AllowedAssetsPicker,
+  keysToAssetPayload,
+} from "@/components/payment-methods/allowed-assets-picker";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,14 +21,10 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  AllowedAssetsPicker,
-  keysToAssetPayload,
-  useDefaultAssetSelection,
-} from "@/components/payment-methods/allowed-assets-picker";
 import { useAsyncData } from "@/hooks/use-async-data";
+import { paymentMethodKey as getPaymentMethodKey, useEnabledPaymentMethods } from "@/hooks/use-payment-methods";
+import { DEFAULT_INVOICE_CURRENCY_CODE } from "@/lib/invoices/currencies";
 import type { CustomerOption } from "@/lib/payments/types";
-import { customerLabel } from "@/lib/payments/types";
 
 type CreatePaymentDialogProps = {
   organizationId: string;
@@ -29,6 +32,12 @@ type CreatePaymentDialogProps = {
   onOpenChange: (open: boolean) => void;
   onCreated?: (paymentId: string) => void;
 };
+
+function defaultPaidDate() {
+  const date = new Date();
+  date.setHours(12, 0, 0, 0);
+  return date;
+}
 
 export function CreatePaymentDialog({
   organizationId,
@@ -43,42 +52,83 @@ export function CreatePaymentDialog({
   }, [organizationId]);
 
   const { data: customers } = useAsyncData(fetchCustomers, [organizationId]);
-  const {
-    settlementKey,
-    setSettlementKey,
-    allowedKeys,
-    setAllowedKeys,
-    issuers,
-    setIssuers,
-  } = useDefaultAssetSelection(organizationId);
+  const { data: paymentMethods } = useEnabledPaymentMethods(organizationId);
 
-  const [amount, setAmount] = useState("10");
-  const [description, setDescription] = useState("");
+  const [amount, setAmount] = useState("");
+  const [currencyCode, setCurrencyCode] = useState(DEFAULT_INVOICE_CURRENCY_CODE);
   const [customerId, setCustomerId] = useState("");
+  const [paymentMethodKey, setPaymentMethodKey] = useState("");
+  const [issuers, setIssuers] = useState<Map<string, string | null>>(new Map());
+  const [paidDate, setPaidDate] = useState(defaultPaidDate);
+  const [notes, setNotes] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
+  useEffect(() => {
+    if (!paymentMethods || paymentMethods.length === 0 || paymentMethodKey) {
+      return;
+    }
+
+    const defaultMethod =
+      paymentMethods.find((method) => method.is_default) ?? paymentMethods[0];
+
+    if (!defaultMethod) {
+      return;
+    }
+
+    const key = getPaymentMethodKey(defaultMethod);
+    setPaymentMethodKey(key);
+    setIssuers(
+      new Map(
+        paymentMethods.map(
+          (method) => [getPaymentMethodKey(method), method.issuer_address] as const
+        )
+      )
+    );
+  }, [paymentMethods, paymentMethodKey]);
+
   function resetForm() {
-    setAmount("10");
-    setDescription("");
+    setAmount("");
+    setCurrencyCode(DEFAULT_INVOICE_CURRENCY_CODE);
     setCustomerId("");
+    setPaymentMethodKey("");
+    setIssuers(new Map());
+    setPaidDate(defaultPaidDate());
+    setNotes("");
     setError(null);
   }
 
   async function handleCreate() {
     setError(null);
+
+    if (!amount.trim()) {
+      setError("Amount is required");
+      return;
+    }
+
+    if (!paymentMethodKey) {
+      setError("Select a payment method");
+      return;
+    }
+
     setIsLoading(true);
 
-    const assetPayload = keysToAssetPayload(settlementKey, allowedKeys, issuers);
+    const assetPayload = keysToAssetPayload(
+      paymentMethodKey,
+      [paymentMethodKey],
+      issuers
+    );
 
     const response = await fetch(`/api/organizations/${organizationId}/payments`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         amount,
-        ...assetPayload,
-        description: description || null,
+        currency_code: currencyCode,
         customer_id: customerId || null,
+        notes: notes.trim() || null,
+        paid_at: paidDate.toISOString(),
+        ...assetPayload,
       }),
     });
 
@@ -90,7 +140,7 @@ export function CreatePaymentDialog({
       return;
     }
 
-    toast.success("Payment created");
+    toast.success("Payment recorded");
     resetForm();
     onOpenChange(false);
     onCreated?.(data.id ?? "");
@@ -107,72 +157,74 @@ export function CreatePaymentDialog({
         onOpenChange(nextOpen);
       }}
     >
-      <DialogContent>
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Create payment</DialogTitle>
+          <DialogTitle>Create manual payment</DialogTitle>
           <DialogDescription>
-            Create a hosted checkout payment you can share with a customer.
+            Record an off-platform payment that is marked as paid immediately.
           </DialogDescription>
         </DialogHeader>
 
         {error ? <AlertBlock type="error">{error}</AlertBlock> : null}
 
         <div className="grid gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="create-payment-amount">Amount</Label>
-            <Input
-              id="create-payment-amount"
-              value={amount}
-              onChange={(event) => setAmount(event.target.value)}
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="create-payment-amount">Amount</Label>
+              <Input
+                id="create-payment-amount"
+                inputMode="decimal"
+                placeholder="100.00"
+                value={amount}
+                onChange={(event) => setAmount(event.target.value)}
+              />
+            </div>
+            <InvoiceCurrencyPicker
+              id="create-payment-currency"
+              label="Currency"
+              value={currencyCode}
+              onChange={setCurrencyCode}
             />
           </div>
+
           <AllowedAssetsPicker
             organizationId={organizationId}
-            mode="settlement"
-            settlementKey={settlementKey}
-            selectedKeys={settlementKey ? [settlementKey] : []}
+            mode="pay"
+            label="Payment method"
+            settlementKey={paymentMethodKey}
+            selectedKeys={paymentMethodKey ? [paymentMethodKey] : []}
             onChange={(keys, map) => {
-              setSettlementKey(keys[0] ?? "");
-              setIssuers(map);
-              if (!allowedKeys.includes(keys[0] ?? "")) {
-                setAllowedKeys([...allowedKeys, keys[0] ?? ""]);
-              }
-            }}
-          />
-          <AllowedAssetsPicker
-            organizationId={organizationId}
-            mode="allowed"
-            settlementKey={settlementKey}
-            selectedKeys={allowedKeys}
-            onChange={(keys, map) => {
-              setAllowedKeys(keys);
+              setPaymentMethodKey(keys[0] ?? "");
               setIssuers(map);
             }}
           />
+
           <div className="space-y-2">
-            <Label htmlFor="create-payment-description">Description</Label>
-            <Input
-              id="create-payment-description"
-              placeholder="Invoice #1024"
-              value={description}
-              onChange={(event) => setDescription(event.target.value)}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="create-payment-customer">Customer (optional)</Label>
-            <select
-              id="create-payment-customer"
+            <Label>Customer (optional)</Label>
+            <CustomerPicker
+              customers={customers ?? []}
               value={customerId}
-              onChange={(event) => setCustomerId(event.target.value)}
-              className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-            >
-              <option value="">No customer</option>
-              {(customers ?? []).map((customer) => (
-                <option key={customer.id} value={customer.id}>
-                  {customerLabel(customer)}
-                </option>
-              ))}
-            </select>
+              onChange={setCustomerId}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="create-payment-date">Date</Label>
+            <InvoiceDueDatePicker
+              value={paidDate}
+              onChange={setPaidDate}
+              allowPast
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="create-payment-notes">Notes</Label>
+            <Input
+              id="create-payment-notes"
+              placeholder="Internal note or payment reference"
+              value={notes}
+              onChange={(event) => setNotes(event.target.value)}
+            />
           </div>
         </div>
 
@@ -190,7 +242,7 @@ export function CreatePaymentDialog({
             onClick={() => void handleCreate()}
             isLoading={isLoading}
           >
-            Create payment
+            Record payment
           </Button>
         </DialogFooter>
       </DialogContent>
