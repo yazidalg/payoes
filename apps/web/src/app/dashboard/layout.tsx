@@ -5,6 +5,7 @@ import {
   getOrganizationsForUser,
   userHasOrganization,
 } from "@/lib/organizations/service";
+import { getActiveOrganizationForUser } from "@/lib/organizations/active-organization";
 import { redirect } from "next/navigation";
 
 async function resolveUserId(session: {
@@ -46,9 +47,18 @@ export default async function DashboardLayout({
   }
 
   const organizations = await getOrganizationsForUser(userId);
+  const activeOrganization = await getActiveOrganizationForUser(userId);
+
+  if (!activeOrganization) {
+    redirect("/onboarding");
+  }
 
   return (
-    <DashboardShell user={session.user} organizations={organizations}>
+    <DashboardShell
+      user={session.user}
+      organizations={organizations}
+      initialActiveOrganization={activeOrganization}
+    >
       {children}
     </DashboardShell>
   );

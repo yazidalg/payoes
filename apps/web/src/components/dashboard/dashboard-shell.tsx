@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { AppSidebar } from "@/components/app-sidebar";
 import { EnvironmentModeBanner } from "@/components/dashboard/environment-mode";
@@ -22,6 +22,7 @@ import { getDashboardPageTitle } from "@/lib/navigation/dashboard-nav";
 export function DashboardShell({
   user,
   organizations,
+  initialActiveOrganization,
   children,
 }: {
   user: {
@@ -30,11 +31,18 @@ export function DashboardShell({
     image?: string | null;
   };
   organizations: Organization[];
+  initialActiveOrganization: Organization;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
   const pageTitle = getDashboardPageTitle(pathname);
-  const [activeOrganization, setActiveOrganization] = useState(organizations[0]);
+  const [activeOrganization, setActiveOrganization] = useState(
+    initialActiveOrganization
+  );
+
+  useEffect(() => {
+    setActiveOrganization(initialActiveOrganization);
+  }, [initialActiveOrganization]);
 
   return (
     <div className="bg-sidebar flex h-svh w-full flex-col overflow-hidden">

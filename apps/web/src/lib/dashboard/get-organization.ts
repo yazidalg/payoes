@@ -1,6 +1,6 @@
 import { auth } from "@/auth";
 import { findUserByEmail } from "@/lib/auth/users";
-import { getPrimaryOrganizationForUser } from "@/lib/organizations/wallet";
+import { getActiveOrganizationForUser } from "@/lib/organizations/active-organization";
 import { redirect } from "next/navigation";
 
 async function resolveUserId(session: {
@@ -18,7 +18,7 @@ async function resolveUserId(session: {
   return user?.id ?? null;
 }
 
-export async function getDashboardOrganization() {
+export async function getDashboardUserId() {
   const session = await auth();
   const userId = session?.user ? await resolveUserId(session) : null;
 
@@ -26,7 +26,13 @@ export async function getDashboardOrganization() {
     redirect("/login");
   }
 
-  const organization = await getPrimaryOrganizationForUser(userId);
+  return userId;
+}
+
+export async function getDashboardOrganization() {
+  const userId = await getDashboardUserId();
+
+  const organization = await getActiveOrganizationForUser(userId);
 
   if (!organization) {
     redirect("/onboarding");
