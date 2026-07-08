@@ -11,7 +11,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useAsyncData } from "@/hooks/use-async-data";
-import { formatAssetAmount, type PaymentLinkRow } from "@/lib/payments/types";
+import { formatAmountWithUnit } from "@/lib/format/amount";
+import type { PaymentLinkRow } from "@/lib/payments/types";
 import { toast } from "sonner";
 
 type PaymentLinksListPanelProps = {
@@ -54,6 +55,7 @@ export function PaymentLinksListPanel({
             <thead className="bg-muted/40 text-left">
               <tr>
                 <th className="px-4 py-3 font-medium">Link</th>
+                <th className="px-4 py-3 font-medium">Products</th>
                 <th className="px-4 py-3 font-medium">Amount</th>
                 <th className="px-4 py-3 font-medium">Status</th>
                 <th className="px-4 py-3 font-medium">Share</th>
@@ -63,7 +65,7 @@ export function PaymentLinksListPanel({
               {(links ?? []).length === 0 ? (
                 <tr>
                   <td
-                    colSpan={4}
+                    colSpan={5}
                     className="px-4 py-8 text-center text-muted-foreground"
                   >
                     No payment links yet.
@@ -81,7 +83,17 @@ export function PaymentLinksListPanel({
                       </Link>
                     </td>
                     <td className="px-4 py-3">
-                      {formatAssetAmount(link.amount, link.settlement_asset)}
+                      {link.items?.length
+                        ? `${link.items.length} product${link.items.length === 1 ? "" : "s"}`
+                        : (link.product_name ?? "—")}
+                    </td>
+                    <td className="px-4 py-3">
+                      {link.currency_code
+                        ? formatAmountWithUnit(link.amount, link.currency_code)
+                        : formatAmountWithUnit(
+                            link.amount,
+                            link.settlement_asset.asset_code
+                          )}
                     </td>
                     <td className="px-4 py-3">
                       {link.active ? "Active" : "Inactive"}

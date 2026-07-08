@@ -14,6 +14,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useAsyncData } from "@/hooks/use-async-data";
+import { formatAmountWithUnit } from "@/lib/format/amount";
 import { getPaymentsHubHref } from "@/lib/navigation/payments-tabs";
 import { formatAssetAmount, type PaymentLinkRow } from "@/lib/payments/types";
 
@@ -104,11 +105,19 @@ export function PaymentLinkDetailPanel({
               <span>{link.active ? "Active" : "Inactive"}</span>
             </div>
             <div className="flex justify-between gap-4">
-              <span className="text-muted-foreground">Amount</span>
+              <span className="text-muted-foreground">Total</span>
               <span>
-                {formatAssetAmount(link.amount, link.settlement_asset)}
+                {link.currency_code
+                  ? formatAmountWithUnit(link.amount, link.currency_code)
+                  : formatAssetAmount(link.amount, link.settlement_asset)}
               </span>
             </div>
+            {link.currency_code ? (
+              <div className="flex justify-between gap-4">
+                <span className="text-muted-foreground">Currency</span>
+                <span>{link.currency_code}</span>
+              </div>
+            ) : null}
             <div className="flex justify-between gap-4">
               <span className="text-muted-foreground">Environment</span>
               <span className="capitalize">{link.environment}</span>
@@ -117,6 +126,67 @@ export function PaymentLinkDetailPanel({
               <span className="text-muted-foreground">Description</span>
               <span>{link.description ?? "N/A"}</span>
             </div>
+          </CardContent>
+        </Card>
+
+        {link.items && link.items.length > 0 ? (
+          <Card>
+            <CardHeader>
+              <CardTitle>Products</CardTitle>
+              <CardDescription>Line items shown on the hosted page.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm">
+              {link.items.map((item, index) => (
+                <div
+                  key={`${item.description}-${index}`}
+                  className="flex items-start justify-between gap-4 border-b border-border/60 pb-3 last:border-0 last:pb-0"
+                >
+                  <div>
+                    <p className="font-medium">{item.description}</p>
+                    <p className="text-muted-foreground">
+                      {item.quantity} ×{" "}
+                      {link.currency_code
+                        ? formatAmountWithUnit(item.unit_amount, link.currency_code)
+                        : item.unit_amount}
+                    </p>
+                  </div>
+                  <p className="shrink-0 font-medium">
+                    {link.currency_code
+                      ? formatAmountWithUnit(item.line_amount, link.currency_code)
+                      : item.line_amount}
+                  </p>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        ) : null}
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Customer collection</CardTitle>
+            <CardDescription>Fields requested before checkout.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            <p>
+              {link.customer_collection.collect_customer_name
+                ? "Collects customer name"
+                : "Does not collect customer name"}
+            </p>
+            <p>
+              {link.customer_collection.collect_business_name
+                ? "Collects business name"
+                : "Does not collect business name"}
+            </p>
+            <p>
+              {link.customer_collection.collect_customer_address
+                ? "Collects billing address"
+                : "Does not collect address"}
+            </p>
+            <p>
+              {link.customer_collection.require_phone_number
+                ? "Requires phone number"
+                : "Does not require phone number"}
+            </p>
           </CardContent>
         </Card>
 

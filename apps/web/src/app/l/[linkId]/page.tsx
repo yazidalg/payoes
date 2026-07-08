@@ -1,10 +1,15 @@
 import Link from "next/link";
+import { PaymentLinkHostedClient } from "@/components/payment-links/payment-link-hosted-client";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
-import { startCheckoutFromPaymentLink } from "@/lib/payment-links/service";
+import {
+  getPublicPaymentLinkDetail,
+  hasCustomerCollection,
+  startCheckoutFromPaymentLink,
+} from "@/lib/payment-links/service";
 import { redirect } from "next/navigation";
 
-export default async function PaymentLinkRedirectPage({
+export default async function PaymentLinkPage({
   params,
 }: {
   params: Promise<{ linkId: string }>;
@@ -12,13 +17,30 @@ export default async function PaymentLinkRedirectPage({
   const { linkId } = await params;
 
   try {
-    const result = await startCheckoutFromPaymentLink(linkId);
+    const link = await getPublicPaymentLinkDetail(linkId);
 
-    if (!result) {
+    if (!link) {
       redirect("/");
     }
 
-    redirect(result.checkoutUrl);
+    const showHostedPage =
+      Boolean(link.currency_code) || hasCustomerCollection(link.customer_collection);
+
+    if (!showHostedPage) {
+      const result = await startCheckoutFromPaymentLink(linkId);
+
+      if (!result) {
+        redirect("/");
+      }
+
+      redirect(result.checkoutUrl);
+    }
+
+    return (
+      <div className="min-h-svh bg-muted/30">
+        <PaymentLinkHostedClient link={link} />
+      </div>
+    );
   } catch (error) {
     const message =
       error instanceof Error
