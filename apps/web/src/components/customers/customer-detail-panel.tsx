@@ -2,20 +2,16 @@
 
 import { useCallback } from "react";
 import Link from "next/link";
-import { ArrowLeftIcon } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { AlertBlock } from "@/components/shared/alert-block";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { useAsyncData } from "@/hooks/use-async-data";
 import type { CustomerDetail } from "@/lib/customers/types";
 import { formatCustomerLabel } from "@/lib/customers/types";
-import { formatAssetAmount } from "@/lib/payments/types";
+import { CustomerDetailsColumn } from "@/ui/customers/customer-details-column";
+import { CustomerPaymentsTable } from "@/ui/customers/customer-payments-table";
+import { CustomerStats } from "@/ui/customers/customer-stats";
+import { Button } from "@dub/ui";
+import { ChevronRight, Users } from "@dub/ui/icons";
 
 export function CustomerDetailPanel({
   organizationId,
@@ -24,9 +20,11 @@ export function CustomerDetailPanel({
   organizationId: string;
   customerId: string;
 }) {
+  const router = useRouter();
+
   const fetchDetail = useCallback(async () => {
     const response = await fetch(
-      `/api/organizations/${organizationId}/customers/${customerId}`
+      `/api/organizations/${organizationId}/customers/${customerId}`,
     );
     const data = (await response.json()) as CustomerDetail & { error?: string };
 
@@ -42,134 +40,84 @@ export function CustomerDetailPanel({
     customerId,
   ]);
 
-  if (isLoading) {
-    return (
-      <div className="text-sm text-muted-foreground">Loading customer...</div>
-    );
-  }
-
-  if (error || !detail) {
+  if (error || (!isLoading && !detail)) {
     return (
       <div className="space-y-4">
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          render={<Link href="/dashboard/customers" />}
+        <Link
+          href="/dashboard/customers"
+          className="bg-bg-subtle hover:bg-bg-emphasis inline-flex size-8 items-center justify-center rounded-lg transition-colors"
         >
-          <ArrowLeftIcon />
-          Back to customers
-        </Button>
+          <Users className="size-4" />
+        </Link>
         <AlertBlock type="error">{error ?? "Customer not found"}</AlertBlock>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="space-y-3">
+    <div className="space-y-6 pb-10">
+      <div className="flex items-center gap-1.5">
+        <Link
+          href="/dashboard/customers"
+          aria-label="Back to customers"
+          title="Back to customers"
+          className="bg-bg-subtle hover:bg-bg-emphasis flex size-8 shrink-0 items-center justify-center rounded-lg transition-colors duration-150 active:scale-95"
+        >
+          <Users className="size-4" />
+        </Link>
+        <ChevronRight className="text-content-muted size-2.5 shrink-0 [&_*]:stroke-2" />
+        <div className="min-w-0">
+          {detail ? (
+            <>
+              <h2 className="text-content-emphasis truncate text-base font-semibold">
+                {formatCustomerLabel(detail.customer)}
+              </h2>
+              <p className="truncate font-mono text-xs text-neutral-500">
+                {detail.customer.id}
+              </p>
+            </>
+          ) : (
+            <div className="space-y-1">
+              <div className="h-5 w-40 animate-pulse rounded bg-neutral-200" />
+              <div className="h-3 w-28 animate-pulse rounded bg-neutral-200" />
+            </div>
+          )}
+        </div>
+        {detail ? (
           <Button
             type="button"
-            variant="outline"
-            size="sm"
-            render={<Link href="/dashboard/customers" />}
-          >
-            <ArrowLeftIcon />
-            Back to customers
-          </Button>
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight">
-              {formatCustomerLabel(detail.customer)}
-            </h1>
-            <p className="mt-1 font-mono text-xs text-muted-foreground">
-              {detail.customer.id}
-            </p>
-          </div>
-        </div>
+            variant="secondary"
+            text="All customers"
+            className="ml-auto h-8 w-fit"
+            onClick={() => router.push("/dashboard/customers")}
+          />
+        ) : null}
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Profile</CardTitle>
-          <CardDescription>Customer details and contact information.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <dl className="grid gap-4 text-sm md:grid-cols-2">
-            <div>
-              <dt className="text-muted-foreground">Email</dt>
-              <dd className="mt-1">{detail.customer.email ?? "N/A"}</dd>
-            </div>
-            <div>
-              <dt className="text-muted-foreground">Wallet</dt>
-              <dd className="mt-1 font-mono text-xs break-all">
-                {detail.customer.primary_stellar_address ?? "N/A"}
-              </dd>
-            </div>
-            <div className="md:col-span-2">
-              <dt className="text-muted-foreground">Notes</dt>
-              <dd className="mt-1">{detail.customer.notes ?? "N/A"}</dd>
-            </div>
-            <div>
-              <dt className="text-muted-foreground">Created</dt>
-              <dd className="mt-1">
-                {new Date(detail.customer.created_at).toLocaleString()}
-              </dd>
-            </div>
-          </dl>
-        </CardContent>
-      </Card>
+      <CustomerStats payments={detail?.payments} isLoading={isLoading} />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Payment history</CardTitle>
-          <CardDescription>
-            Payments linked to this customer, including auto-linked checkout
-            payments.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="px-0 pb-0">
-          <div className="overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/40 text-left">
-                <tr>
-                  <th className="px-4 py-3 font-medium">Payment</th>
-                  <th className="px-4 py-3 font-medium">Amount</th>
-                  <th className="px-4 py-3 font-medium">Status</th>
-                  <th className="px-4 py-3 font-medium">Payer</th>
-                </tr>
-              </thead>
-              <tbody>
-                {detail.payments.length === 0 ? (
-                  <tr>
-                    <td
-                      colSpan={4}
-                      className="px-4 py-8 text-center text-muted-foreground"
-                    >
-                      No payments linked to this customer yet.
-                    </td>
-                  </tr>
-                ) : (
-                  detail.payments.map((payment) => (
-                    <tr key={payment.id} className="border-t border-border/60">
-                      <td className="px-4 py-3 font-mono text-xs">{payment.id}</td>
-                      <td className="px-4 py-3">
-                        {formatAssetAmount(payment.amount, payment.settlement_asset)}
-                      </td>
-                      <td className="px-4 py-3 capitalize">{payment.status}</td>
-                      <td className="px-4 py-3 font-mono text-xs">
-                        {payment.payer_address
-                          ? `${payment.payer_address.slice(0, 10)}...`
-                          : "N/A"}
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="@3xl/page:grid-cols-[minmax(0,1fr)_minmax(280px,360px)] grid grid-cols-1 gap-6">
+        <div className="@3xl/page:order-1">
+          <section className="flex flex-col gap-3">
+            <h2 className="text-lg font-semibold text-neutral-900">
+              Payment history
+            </h2>
+            <div className="border-border-subtle overflow-hidden rounded-xl border bg-white">
+              <CustomerPaymentsTable
+                payments={detail?.payments}
+                isLoading={isLoading}
+              />
+            </div>
+          </section>
+        </div>
+
+        <div className="@3xl/page:order-2">
+          <CustomerDetailsColumn
+            customer={detail?.customer}
+            isLoading={isLoading}
+          />
+        </div>
+      </div>
     </div>
   );
 }

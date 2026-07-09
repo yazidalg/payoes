@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, asc, count, desc, eq, exists, ilike, inArray, isNotNull, isNull, not, or, sql, type SQL } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { customers, payments, type Customer, type Organization } from "@/lib/db/schema";
 import { organizationEnvironmentWhere } from "@/lib/organizations/environment-scope";
@@ -27,6 +27,144 @@ export async function listCustomers(
     )
     .orderBy(desc(customers.createdAt))
     .limit(limit);
+}
+
+export type CustomerSortField = "created_at" | "email" | "name";
+export type CustomerSortOrder = "asc" | "desc";
+
+export type ListCustomersQuery = {
+  page?: number;
+  pageSize?: number;
+  sortBy?: CustomerSortField;
+  sortOrder?: CustomerSortOrder;
+  search?: string;
+  walletStatus?: "linked" | "unlinked";
+  emailStatus?: "present" | "missing";
+  paymentStatus?: "has_payments" | "no_payments";
+};
+
+export async function listCustomersPaginated(
+  organizationId: string,
+  environment: Organization["environment"],
+  query: ListCustomersQuery = {},
+) {
+  const page = Math.max(1, query.page ?? 1);
+  const pageSize = Math.min(100, Math.max(1, query.pageSize ?? 20));
+  const offset = (page - 1) * pageSize;
+  const sortBy = query.sortBy ?? "created_at";
+  const sortOrder = query.sortOrder ?? "desc";
+  const search = query.search?.trim();
+
+  const envWhere = organizationEnvironmentWhere(
+    customers.organizationId,
+    customers.environment,
+    organizationId,
+    environment,
+  );
+
+  let whereClause: SQL | undefined = envWhere;
+
+  if (search) {
+    const pattern = `%${search}%`;
+    whereClause = and(
+      whereClause,
+      or(
+        ilike(customers.name, pattern),
+        ilike(customers.email, pattern),
+        ilike(customers.publicId, pattern),
+        ilike(customers.primaryStellarAddress, pattern),
+      ),
+    );
+  }
+
+  if (query.walletStatus === "linked") {
+    whereClause = and(
+      whereClause,
+      isNotNull(customers.primaryStellarAddress),
+      sql`trim(${customers.primaryStellarAddress}) <> ''`,
+    );
+  } else if (query.walletStatus === "unlinked") {
+    whereClause = and(
+      whereClause,
+      or(
+        isNull(customers.primaryStellarAddress),
+        sql`trim(${customers.primaryStellarAddress}) = ''`,
+      ),
+    );
+  }
+
+  if (query.emailStatus === "present") {
+    whereClause = and(
+      whereClause,
+      isNotNull(customers.email),
+      sql`trim(${customers.email}) <> ''`,
+    );
+  } else if (query.emailStatus === "missing") {
+    whereClause = and(
+      whereClause,
+      or(isNull(customers.email), sql`trim(${customers.email}) = ''`),
+    );
+  }
+
+  if (query.paymentStatus === "has_payments") {
+    whereClause = and(
+      whereClause,
+      exists(
+        db
+          .select({ id: payments.id })
+          .from(payments)
+          .where(
+            and(
+              eq(payments.customerId, customers.id),
+              eq(payments.environment, environment),
+            ),
+          ),
+      ),
+    );
+  } else if (query.paymentStatus === "no_payments") {
+    whereClause = and(
+      whereClause,
+      not(
+        exists(
+          db
+            .select({ id: payments.id })
+            .from(payments)
+            .where(
+              and(
+                eq(payments.customerId, customers.id),
+                eq(payments.environment, environment),
+              ),
+            ),
+        ),
+      ),
+    );
+  }
+
+  const sortColumn = {
+    created_at: customers.createdAt,
+    email: customers.email,
+    name: customers.name,
+  }[sortBy];
+
+  const orderFn = sortOrder === "asc" ? asc : desc;
+
+  const [countResult] = await db
+    .select({ count: count() })
+    .from(customers)
+    .where(whereClause);
+
+  const rows = await db
+    .select()
+    .from(customers)
+    .where(whereClause)
+    .orderBy(orderFn(sortColumn))
+    .limit(pageSize)
+    .offset(offset);
+
+  return {
+    customers: rows,
+    total: Number(countResult?.count ?? 0),
+  };
 }
 
 export async function getCustomerForOrganization(
