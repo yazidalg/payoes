@@ -82,7 +82,7 @@ export function EnvironmentBanner() {
 
   return (
     <>
-      <div role="status" style={{ top: environmentBannerOffset }} className={cn("fixed left-0 right-0 z-[60] flex h-12 items-center justify-center border-b px-4 sm:px-6", isProduction ? "border-neutral-800 bg-neutral-900 text-neutral-100" : "border-blue-800 bg-blue-700 text-white")}>
+      <div role="status" style={{ top: environmentBannerOffset }} className={cn("fixed left-0 right-0 z-30 flex h-12 items-center justify-center border-b px-4 sm:px-6", isProduction ? "border-neutral-800 bg-neutral-900 text-neutral-100" : "border-blue-800 bg-blue-700 text-white")}>
         <div className="flex w-full max-w-screen-xl items-center justify-between gap-4">
           <p className="min-w-0 text-sm leading-snug">{isProduction ? "Production mode. Payments use mainnet and real funds." : "You're testing in a sandbox. Changes you make here don't affect real customers or payments."}</p>
 

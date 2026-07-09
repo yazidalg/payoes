@@ -90,7 +90,7 @@ export function MainNav({
       {/* Side nav backdrop */}
       <div
         className={cn(
-          "fixed left-0 z-50 w-screen transition-[background-color,backdrop-filter] lg:sticky lg:z-auto lg:w-full lg:bg-transparent",
+          "fixed left-0 z-50 w-screen lg:sticky lg:z-auto lg:w-full lg:bg-transparent",
           isOpen
             ? "bg-black/20 backdrop-blur-sm"
             : "bg-transparent max-lg:pointer-events-none",
@@ -109,7 +109,7 @@ export function MainNav({
         {/* Side nav */}
         <div
           className={cn(
-            "relative h-full w-min max-w-full bg-neutral-200 transition-transform lg:translate-x-0",
+            "relative h-full w-min max-w-full bg-neutral-200 lg:translate-x-0",
             !isOpen && "-translate-x-full",
           )}
         >

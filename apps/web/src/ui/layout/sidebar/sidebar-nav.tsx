@@ -108,7 +108,7 @@ export function SidebarNav<T extends Record<any, any>>({
   return (
     <div
       className={cn(
-        "h-full w-[var(--sidebar-width)] transition-[width] duration-300",
+        "h-full w-[var(--sidebar-width)]",
       )}
       style={
         {
@@ -149,7 +149,7 @@ export function SidebarNav<T extends Record<any, any>>({
           </div>
           <div
             className={cn(
-              "size-full overflow-hidden py-2 pr-2 transition-opacity duration-300",
+              "size-full overflow-hidden py-2 pr-2",
               currentArea === null && "opacity-0",
             )}
           >
@@ -539,9 +539,9 @@ export function Area({
   return (
     <div
       className={cn(
-        "left-0 top-0 flex size-full flex-col md:transition-[opacity,transform] md:duration-300",
+        "left-0 top-0 flex size-full flex-col",
         visible
-          ? "opacity-1 relative"
+          ? "relative"
           : cn(
               "pointer-events-none absolute opacity-0",
               direction === "left" ? "-translate-x-full" : "translate-x-full",

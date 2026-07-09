@@ -22,16 +22,22 @@ export function DashboardMainNav({
   const [activeOrganization, setActiveOrganization] = useState(
     initialActiveOrganization,
   );
+  const [organizationsState, setOrganizations] = useState(organizations);
 
   useEffect(() => {
     setActiveOrganization(initialActiveOrganization);
   }, [initialActiveOrganization]);
 
+  useEffect(() => {
+    setOrganizations(organizations);
+  }, [organizations]);
+
   return (
     <DashboardShellProvider
       value={{
         user,
-        organizations,
+        organizations: organizationsState,
+        setOrganizations,
         activeOrganization,
         setActiveOrganization,
       }}

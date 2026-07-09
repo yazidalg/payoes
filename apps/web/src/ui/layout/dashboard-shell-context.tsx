@@ -10,6 +10,11 @@ export type DashboardShellContextValue = {
     image?: string | null;
   };
   organizations: Organization[];
+  setOrganizations: (
+    organizations:
+      | Organization[]
+      | ((current: Organization[]) => Organization[]),
+  ) => void;
   activeOrganization: Organization;
   setActiveOrganization: (organization: Organization) => void;
 };
