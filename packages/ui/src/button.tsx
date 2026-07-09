@@ -62,7 +62,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         <Tooltip content={disabledTooltip}>
           <div
             className={cn(
-              "flex h-10 w-full cursor-not-allowed items-center justify-center gap-x-2 rounded-md border border-neutral-200 bg-neutral-100 px-4 text-sm text-neutral-400 transition-all focus:outline-none",
+              "flex h-10 w-full cursor-not-allowed items-center justify-center gap-x-2 rounded-md border border-neutral-200 bg-neutral-100 px-4 text-sm text-neutral-400 transition-all duration-150 ease-out focus:outline-none",
               {
                 "border-transparent bg-transparent":
                   variant?.endsWith("outline"),
@@ -105,7 +105,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         // if onClick is passed, it's a "button" type, otherwise it's being used in a form, hence "submit"
         type={props.onClick ? "button" : "submit"}
         className={cn(
-          "group flex h-10 w-full items-center justify-center gap-2 whitespace-nowrap rounded-lg border px-3 text-sm",
+          "group flex h-10 w-full items-center justify-center gap-2 whitespace-nowrap rounded-lg border px-3 text-sm transition-all duration-150 ease-out",
           props.disabled || loading
             ? "border-border-subtle bg-bg-subtle text-content-subtle cursor-not-allowed outline-none"
             : buttonVariants({ variant }),
