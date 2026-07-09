@@ -1,11 +1,12 @@
 import { auth } from "@/auth";
-import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { findUserByEmail } from "@/lib/auth/users";
 import {
   getOrganizationsForUser,
   userHasOrganization,
 } from "@/lib/organizations/service";
 import { getActiveOrganizationForUser } from "@/lib/organizations/active-organization";
+import { DashboardChrome } from "@/ui/layout/dashboard-chrome";
+import { DashboardMainNav } from "@/ui/layout/dashboard-main-nav";
 import { redirect } from "next/navigation";
 
 async function resolveUserId(session: {
@@ -54,12 +55,12 @@ export default async function DashboardLayout({
   }
 
   return (
-    <DashboardShell
+    <DashboardMainNav
       user={session.user}
       organizations={organizations}
       initialActiveOrganization={activeOrganization}
     >
-      {children}
-    </DashboardShell>
+      <DashboardChrome>{children}</DashboardChrome>
+    </DashboardMainNav>
   );
 }
