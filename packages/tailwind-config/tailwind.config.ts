@@ -1,9 +1,12 @@
 import containerQueries from "@tailwindcss/container-queries";
 import forms from "@tailwindcss/forms";
 import typography from "@tailwindcss/typography";
-import scrollbarHide from "tailwind-scrollbar-hide";
 import type { Config } from "tailwindcss";
 import radix from "tailwindcss-radix";
+
+// CJS plugin export
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const scrollbarHide = require("tailwind-scrollbar-hide") as Config["plugins"] extends (infer P)[] | undefined ? P : never;
 
 const config: Config = {
   content: ["./src/**/*.{js,ts,jsx,tsx,mdx}"],

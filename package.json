@@ -6,6 +6,9 @@
     "apps/*",
     "packages/*"
   ],
+  "devDependencies": {
+    "tailwindcss": "^3.4.4"
+  },
   "scripts": {
     "build:packages": "npm run build --workspace=@dub/utils && npm run build --workspace=@dub/ui",
     "dev": "npm run dev --workspace=web",
