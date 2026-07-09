@@ -1,0 +1,199 @@
+"use client";
+
+import {
+  AnimatedSizeContainer,
+  Button,
+  Modal,
+  Popover,
+  TabSelect,
+  ToggleGroup,
+  useMediaQuery,
+} from "@dub/ui";
+import { cn } from "@dub/utils";
+import { ChevronsUpDown } from "lucide-react";
+import {
+  Dispatch,
+  ReactNode,
+  SetStateAction,
+  useState,
+} from "react";
+
+export function AnalyticsCard<T extends string>({
+  tabs,
+  selectedTabId,
+  onSelectTab,
+  subTabs,
+  selectedSubTabId,
+  onSelectSubTab,
+  expandLimit,
+  dataLength,
+  eventLabel = "payments",
+  children,
+  className,
+}: {
+  tabs: { id: T; label: string; icon: React.ElementType }[];
+  selectedTabId: T;
+  onSelectTab?: Dispatch<SetStateAction<T>> | ((tabId: T) => void);
+  subTabs?: { id: string; label: string }[];
+  selectedSubTabId?: string;
+  onSelectSubTab?:
+    | Dispatch<SetStateAction<string>>
+    | ((subTabId: string) => void);
+  expandLimit: number;
+  dataLength?: number;
+  eventLabel?: string;
+  children: (props: {
+    limit?: number;
+    setShowModal: (show: boolean) => void;
+  }) => ReactNode;
+  className?: string;
+}) {
+  const [showModal, setShowModal] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
+
+  const selectedTab = tabs.find(({ id }) => id === selectedTabId) || tabs[0];
+  const SelectedTabIcon = selectedTab.icon;
+  const { isMobile } = useMediaQuery();
+  const hasSecondaryTabs = !!(subTabs && selectedSubTabId && onSelectSubTab);
+  const effectiveExpandLimit = hasSecondaryTabs
+    ? Math.max(1, expandLimit - 1)
+    : expandLimit;
+  const showViewAll = (dataLength ?? 0) > effectiveExpandLimit;
+
+  return (
+    <>
+      <Modal
+        showModal={showModal}
+        setShowModal={setShowModal}
+        className="max-w-lg px-0"
+      >
+        <div className="flex items-center justify-between border-b border-neutral-200 px-6 py-4">
+          <h1 className="text-lg font-semibold">{selectedTab?.label}</h1>
+          <p className="text-xs uppercase text-neutral-500">{eventLabel}</p>
+        </div>
+        {subTabs && selectedSubTabId && onSelectSubTab && (
+          <SubTabs
+            subTabs={subTabs}
+            selectedTab={selectedSubTabId}
+            onSelectTab={onSelectSubTab}
+          />
+        )}
+        {children({ setShowModal })}
+      </Modal>
+      <div
+        className={cn(
+          "group relative z-0 h-[400px] overflow-hidden rounded-lg border border-neutral-200 bg-white sm:rounded-xl",
+          className,
+        )}
+      >
+        <div className="flex items-center justify-between border-b border-neutral-200 px-4">
+          {isMobile ? (
+            <Popover
+              openPopover={isOpen}
+              setOpenPopover={setIsOpen}
+              content={
+                <div className="grid w-full gap-px p-2 sm:w-48">
+                  {tabs.map(({ id, label, icon: Icon }) => (
+                    <Button
+                      key={id}
+                      text={label}
+                      variant="outline"
+                      onClick={() => {
+                        onSelectTab?.(id);
+                        setIsOpen(false);
+                      }}
+                      icon={<Icon className="size-4" />}
+                      className={cn(
+                        "h-9 w-full justify-start px-2 font-medium",
+                        selectedTabId === id && "bg-neutral-100",
+                      )}
+                    />
+                  ))}
+                </div>
+              }
+              align="end"
+            >
+              <Button
+                type="button"
+                className="my-2 h-8 w-fit whitespace-nowrap px-2"
+                variant="outline"
+                icon={<SelectedTabIcon className="size-4" />}
+                text={selectedTab.label}
+                right={
+                  <ChevronsUpDown
+                    className="size-4 shrink-0 text-neutral-400"
+                    aria-hidden="true"
+                  />
+                }
+              />
+            </Popover>
+          ) : (
+            <TabSelect
+              options={tabs}
+              selected={selectedTabId}
+              onSelect={onSelectTab}
+            />
+          )}
+
+          <p className="pr-2 text-xs uppercase text-neutral-500">{eventLabel}</p>
+        </div>
+        <AnimatedSizeContainer
+          height
+          transition={{ ease: "easeInOut", duration: 0.2 }}
+        >
+          {subTabs && selectedSubTabId && onSelectSubTab && (
+            <SubTabs
+              subTabs={subTabs}
+              selectedTab={selectedSubTabId}
+              onSelectTab={onSelectSubTab}
+            />
+          )}
+        </AnimatedSizeContainer>
+        <div className="py-4">
+          {children({
+            limit: effectiveExpandLimit,
+            setShowModal,
+          })}
+        </div>
+        {showViewAll && (
+          <div className="absolute bottom-0 left-0 z-10 flex w-full items-end">
+            <div className="pointer-events-none absolute bottom-0 left-0 h-48 w-full bg-gradient-to-t from-white" />
+            <div className="relative flex w-full items-center justify-center gap-2 py-4">
+              <button
+                onClick={() => setShowModal(true)}
+                className="h-8 w-fit rounded-lg border border-neutral-200 bg-white px-3 text-sm text-neutral-950 transition-colors hover:bg-neutral-100 active:border-neutral-300"
+              >
+                View All
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
+
+function SubTabs({
+  subTabs,
+  selectedTab,
+  onSelectTab,
+}: {
+  subTabs: { id: string; label: string }[];
+  selectedTab: string;
+  onSelectTab: (key: string) => void;
+}) {
+  return (
+    <ToggleGroup
+      key={JSON.stringify(subTabs)}
+      options={subTabs.map(({ id, label }) => ({
+        value: id,
+        label: label,
+      }))}
+      selected={selectedTab}
+      selectAction={(period) => onSelectTab(period)}
+      className="flex w-full flex-wrap rounded-none border-x-0 border-t-0 border-neutral-200 bg-neutral-50 px-6 py-2.5 sm:flex-nowrap"
+      optionClassName="text-xs px-2 font-normal hover:text-neutral-700"
+      indicatorClassName="border-0 bg-neutral-200 rounded-md"
+    />
+  );
+}
