@@ -8,6 +8,7 @@ import { Popover, useScrollProgress } from "@dub/ui";
 import { Check2, Gear, Plus, UserPlus } from "@dub/ui/icons";
 import { cn } from "@dub/utils";
 import { ChevronDown } from "lucide-react";
+import { useAddOrganizationModal } from "@/ui/modals/add-organization-modal";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useRef, useState } from "react";
@@ -20,6 +21,8 @@ export function OrgDropdown({
 }) {
   const { organizations, activeOrganization } = useDashboardShell();
   const [openPopover, setOpenPopover] = useState(false);
+  const { setShowAddOrganizationModal, AddOrganizationModal } =
+    useAddOrganizationModal();
 
   if (!activeOrganization) {
     return <OrgDropdownPlaceholder placement={placement} />;
@@ -28,13 +31,19 @@ export function OrgDropdown({
   const isSidebarBottom = placement === "sidebar-bottom";
 
   return (
-    <div className={cn(isSidebarBottom && "w-full")}>
+    <>
+      <AddOrganizationModal />
+      <div className={cn(isSidebarBottom && "w-full")}>
       <Popover
         content={
           <OrgList
             organizations={organizations}
             activeOrganization={activeOrganization}
             setOpenPopover={setOpenPopover}
+            onCreateOrganization={() => {
+              setOpenPopover(false);
+              setShowAddOrganizationModal(true);
+            }}
           />
         }
         side={isSidebarBottom ? "top" : "right"}
@@ -87,7 +96,8 @@ export function OrgDropdown({
           </button>
         )}
       </Popover>
-    </div>
+      </div>
+    </>
   );
 }
 
@@ -110,10 +120,12 @@ function OrgList({
   organizations,
   activeOrganization,
   setOpenPopover,
+  onCreateOrganization,
 }: {
   organizations: Organization[];
   activeOrganization: Organization;
   setOpenPopover: (open: boolean) => void;
+  onCreateOrganization: () => void;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -245,14 +257,14 @@ function OrgList({
                 </button>
               );
             })}
-            <Link
-              href="/organizations/new"
+            <button
+              type="button"
               className="group flex w-full cursor-pointer items-center gap-x-2.5 rounded-md p-2 text-neutral-700 transition-all duration-75 hover:bg-neutral-200/50 active:bg-neutral-200/80"
-              onClick={() => setOpenPopover(false)}
+              onClick={onCreateOrganization}
             >
               <Plus className="ml-0.5 size-4 text-neutral-500" />
               <span className="block truncate">Create organization</span>
-            </Link>
+            </button>
           </div>
         </div>
       </div>
