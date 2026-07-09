@@ -42,19 +42,19 @@ jobs:
           jq -n \
             --arg content "New commit pushed to main
 
-Repository: $REPO
-Author: $AUTHOR
-Message: $MESSAGE
+          Repository: $REPO
+          Author: $AUTHOR
+          Message: $MESSAGE
 
-Commit:
-<$URL>
+          Commit:
+          <$URL>
 
-Environment
-$ENV_STATUS" \
-            '{content: $content}' > payload.json
+          Environment
+          $ENV_STATUS" \
+                      '{content: $content}' > payload.json
 
-          curl \
-            -H "Content-Type: application/json" \
-            -X POST \
-            -d @payload.json \
-            "$WEBHOOK"
+                    curl \
+                      -H "Content-Type: application/json" \
+                      -X POST \
+                      -d @payload.json \
+                      "$WEBHOOK"
