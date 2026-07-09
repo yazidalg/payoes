@@ -15,20 +15,14 @@ jobs:
         with:
           fetch-depth: 2
 
-      - name: Check environment file changes
+      - name: Check .env.example changes
         id: envcheck
         run: |
-          CHANGED=$(git diff --name-only HEAD~1 HEAD)
-
-          ENV_CHANGED="false"
-
-          while read file; do
-            if [[ "$file" =~ ^\.env ]] || [[ "$file" =~ \.env$ ]] || [[ "$file" == ".env.example" ]] || [[ "$file" == ".env.production" ]] || [[ "$file" == ".env.development" ]] || [[ "$file" == ".env.local" ]]; then
-              ENV_CHANGED="true"
-            fi
-          done <<< "$CHANGED"
-
-          echo "changed=$ENV_CHANGED" >> $GITHUB_OUTPUT
+          if git diff --name-only HEAD~1 HEAD | grep -q "^\.env\.example$"; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+          fi
 
       - name: Send Discord Notification
         env:
@@ -57,59 +51,7 @@ Commit:
 
 Environment
 $ENV_STATUS" \
-      '{content: $content}' > payload.json
-
-    curl \
-      -H "Content-Type: application/json" \
-      -X POST \
-      -d @payload.json \
-      "$WEBHOOK"
-          if [ "$ENV_CHANGED" = "true" ]; then
-            ENV_TEXT="⚠️ Environment file changed!"
-          else
-            ENV_TEXT="✅ No environment changes."
-          fi
-
-          cat <<EOF > payload.json
-          {
-            "embeds": [
-              {
-                "title": "🚀 New Push to main",
-                "color": 5814783,
-                "fields": [
-                  {
-                    "name": "Repository",
-                    "value": "$REPO",
-                    "inline": true
-                  },
-                  {
-                    "name": "Author",
-                    "value": "$AUTHOR",
-                    "inline": true
-                  },
-                  {
-                    "name": "Commit",
-                    "value": "\`${SHA:0:7}\`",
-                    "inline": true
-                  },
-                  {
-                    "name": "Message",
-                    "value": "$MESSAGE"
-                  },
-                  {
-                    "name": "Environment",
-                    "value": "$ENV_TEXT"
-                  }
-                ],
-                "url": "$URL",
-                "footer": {
-                  "text": "GitHub Actions"
-                },
-                "timestamp": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
-              }
-            ]
-          }
-          EOF
+            '{content: $content}' > payload.json
 
           curl \
             -H "Content-Type: application/json" \
