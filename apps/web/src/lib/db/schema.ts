@@ -347,6 +347,7 @@ export const apiKeys = pgTable(
     environment: environmentModeEnum("environment").notNull().default("sandbox"),
     lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
     revokedAt: timestamp("revoked_at", { withTimezone: true }),
+    scopes: jsonb("scopes").$type<string[]>().notNull().default(["apis.all"]),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
