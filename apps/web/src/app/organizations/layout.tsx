@@ -1,7 +1,6 @@
 import type React from "react";
 import { auth } from "@/auth";
 import { findUserByEmail, findUserById } from "@/lib/auth/users";
-import { OnboardingLayout as OnboardingShell } from "@/components/layouts/onboarding-layout";
 import { redirect } from "next/navigation";
 
 async function resolveUserId(session: {
@@ -46,5 +45,5 @@ export default async function OrganizationsLayout({
     redirect(`/verify-email?email=${encodeURIComponent(user.email)}&pending=1`);
   }
 
-  return <OnboardingShell>{children}</OnboardingShell>;
+  return children;
 }

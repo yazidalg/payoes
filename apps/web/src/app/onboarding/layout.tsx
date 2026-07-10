@@ -1,7 +1,8 @@
 import type React from "react";
 import { auth } from "@/auth";
 import { findUserByEmail, findUserById } from "@/lib/auth/users";
-import { OnboardingLayout as OnboardingShell } from "@/components/layouts/onboarding-layout";
+import { getPendingInviteTokenForEmail } from "@/lib/organizations/members";
+import { userHasOrganization } from "@/lib/organizations/service";
 import { redirect } from "next/navigation";
 
 async function resolveUserId(session: {
@@ -38,13 +39,25 @@ export default async function OnboardingRouteLayout({
 
   const user = await findUserById(userId);
 
-  if (
-    user &&
-    user.authProvider === "credentials" &&
-    !user.emailVerifiedAt
-  ) {
+  if (!user) {
+    redirect("/login?error=SessionExpired");
+  }
+
+  if (user.authProvider === "credentials" && !user.emailVerifiedAt) {
     redirect(`/verify-email?email=${encodeURIComponent(user.email)}&pending=1`);
   }
 
-  return <OnboardingShell>{children}</OnboardingShell>;
+  const pendingInviteToken = await getPendingInviteTokenForEmail(user.email);
+
+  if (pendingInviteToken) {
+    redirect(`/invite/${pendingInviteToken}`);
+  }
+
+  const hasOrganization = await userHasOrganization(userId);
+
+  if (hasOrganization) {
+    redirect("/dashboard/payments");
+  }
+
+  return children;
 }

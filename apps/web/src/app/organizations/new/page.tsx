@@ -36,8 +36,8 @@ export default async function NewOrganizationPage() {
   return (
     <CreateOrganizationScreen
       defaultEmail={session?.user?.email}
-      backHref="/dashboard/payments"
-      backLabel="Back to dashboard"
+      showCloseButton
+      closeHref="/dashboard/payments"
     />
   );
 }
