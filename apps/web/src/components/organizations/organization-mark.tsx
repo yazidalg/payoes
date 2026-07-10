@@ -1,26 +1,20 @@
 import type { Organization } from "@/lib/db/schema";
+import { Avatar } from "@dub/ui";
 
 export function OrganizationMark({
   organization,
   className,
 }: {
-  organization: Pick<Organization, "name" | "logoUrl" | "logoInitials">;
+  organization: Pick<Organization, "name" | "logoUrl" | "logoInitials"> & {
+    id?: string;
+  };
   className?: string;
 }) {
-  if (organization.logoUrl) {
-    return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img
-        src={organization.logoUrl}
-        alt={`${organization.name} logo`}
-        className={className}
-      />
-    );
-  }
-
   return (
-    <span className={className}>
-      {organization.logoInitials || organization.name.slice(0, 2).toUpperCase()}
-    </span>
+    <Avatar
+      imageUrl={organization.logoUrl}
+      identifier={organization.id ?? organization.name}
+      className={className}
+    />
   );
 }

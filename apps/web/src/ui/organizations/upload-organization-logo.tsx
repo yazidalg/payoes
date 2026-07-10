@@ -1,7 +1,7 @@
 "use client";
 
 import type { Organization } from "@/lib/db/schema";
-import { Button, FileUpload } from "@dub/ui";
+import { Avatar, Button, FileUpload } from "@dub/ui";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -66,10 +66,16 @@ export function UploadOrganizationLogo({
         <div className="mt-1">
           <FileUpload
             accept="images"
-            className="h-24 w-24 rounded-2xl border border-neutral-300"
+            className="h-24 w-24 rounded-full border border-neutral-300"
             iconClassName="w-5 h-5"
             variant="plain"
             imageSrc={image}
+            placeholder={
+              <Avatar
+                identifier={organization.id}
+                className="h-full w-full"
+              />
+            }
             readFile
             onChange={({ src }) => setImage(src)}
             content={null}
