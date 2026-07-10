@@ -5,7 +5,12 @@ import {
   type PaymentsTab,
 } from "@/constants/navigation/payments-tabs";
 
-export { PAYMENTS_TABS, PAYMENTS_TAB_LABELS, type PaymentsTab };
+export {
+  DEFAULT_PAYMENTS_TAB,
+  PAYMENTS_TABS,
+  PAYMENTS_TAB_LABELS,
+  type PaymentsTab,
+};
 
 export function isPaymentsTab(value: string | null | undefined): value is PaymentsTab {
   return PAYMENTS_TABS.includes(value as PaymentsTab);
