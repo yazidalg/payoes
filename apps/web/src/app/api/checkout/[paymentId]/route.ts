@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { findAllowedAsset } from "@/lib/assets/types";
 import { serializePaymentAssets } from "@/lib/assets/serialize";
+import { getCheckoutLineItems } from "@/lib/checkout/line-items";
 import { resolvePaymentForHostedCheckout } from "@/lib/checkout-sessions/service";
 import { db } from "@/lib/db";
 import { organizations } from "@/lib/db/schema";
@@ -13,6 +14,7 @@ import {
   refreshPaymentQuote,
 } from "@/lib/payments/quote-service";
 import { setPaymentPaidAsset } from "@/lib/payments/service";
+import { simulateSandboxPayment } from "@/lib/payments/simulate-sandbox-payment";
 import { applySendMaxBuffer, assetsMatch } from "@/lib/pricing/quotes";
 import {
   buildPathPaymentStrictReceiveXdr,
@@ -48,15 +50,19 @@ export async function GET(
   const payment = payable.payment;
   const assets = serializePaymentAssets(payment);
 
-  const [organization] = await db
-    .select({
-      name: organizations.name,
-      logoUrl: organizations.logoUrl,
-      logoInitials: organizations.logoInitials,
-    })
-    .from(organizations)
-    .where(eq(organizations.id, payment.organizationId))
-    .limit(1);
+  const [organization, items] = await Promise.all([
+    db
+      .select({
+        name: organizations.name,
+        logoUrl: organizations.logoUrl,
+        logoInitials: organizations.logoInitials,
+      })
+      .from(organizations)
+      .where(eq(organizations.id, payment.organizationId))
+      .limit(1)
+      .then((rows) => rows[0] ?? null),
+    getCheckoutLineItems(payment),
+  ]);
 
   return NextResponse.json({
     payment: {
@@ -78,7 +84,8 @@ export async function GET(
       source_type: payment.sourceType,
       receiving_address: payment.receivingAddress,
     },
-    merchant: organization ?? null,
+    items,
+    merchant: organization,
   });
 }
 
@@ -93,6 +100,32 @@ export async function POST(
     return NextResponse.json({ error: "Payment not found" }, { status: 404 });
   }
 
+  const body = await request.json();
+
+  if (body.action === "simulate_payment") {
+    const paidAsset = body.paid_asset
+      ? {
+          asset_code: String(body.paid_asset.asset_code),
+          issuer_address: body.paid_asset.issuer_address?.trim() || null,
+        }
+      : undefined;
+
+    const result = await simulateSandboxPayment(
+      resolved.payment.publicId,
+      paidAsset,
+    );
+
+    if (!result.ok) {
+      return NextResponse.json({ error: result.error }, { status: 400 });
+    }
+
+    return NextResponse.json({
+      status: result.payment.status,
+      tx_hash: result.payment.txHash,
+      simulated: true,
+    });
+  }
+
   const payable = await ensurePayablePayment(resolved.payment);
 
   if (payable.error) {
@@ -100,7 +133,6 @@ export async function POST(
   }
 
   const { payment } = { payment: payable.payment };
-  const body = await request.json();
 
   if (body.action === "build_transaction") {
     const parsed = buildTxSchema.safeParse(body);
