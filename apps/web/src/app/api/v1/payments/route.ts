@@ -21,19 +21,25 @@ const createPaymentSchema = z.object({
 });
 
 export async function GET(request: Request) {
-  return withApiKeyAuth(request, async ({ apiKey }) => {
-    const paymentList = await listPayments(
-      apiKey.organizationId,
-      apiKey.environment
-    );
-    return NextResponse.json({
-      payments: await serializePayments(paymentList),
-    });
-  });
+  return withApiKeyAuth(
+    request,
+    async ({ apiKey }) => {
+      const paymentList = await listPayments(
+        apiKey.organizationId,
+        apiKey.environment
+      );
+      return NextResponse.json({
+        payments: await serializePayments(paymentList),
+      });
+    },
+    { resource: "payments", action: "read" }
+  );
 }
 
 export async function POST(request: Request) {
-  return withApiKeyAuth(request, async ({ apiKey }) => {
+  return withApiKeyAuth(
+    request,
+    async ({ apiKey }) => {
     const body = await request.json();
     const parsed = createPaymentSchema.safeParse(body);
 
@@ -74,5 +80,7 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
-  });
+  },
+    { resource: "payments", action: "write" }
+  );
 }
