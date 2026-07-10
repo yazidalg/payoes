@@ -1,10 +1,9 @@
 import type { Organization } from "@/lib/db/schema";
-import { sendEmail } from "@/lib/email/client";
+import type { InvoicePresentation } from "@/lib/invoices/presentation";
 import {
-  buildInvoiceEmailHtml,
-  buildInvoiceEmailText,
-  type InvoicePresentation,
+  createInvoiceEmailElement,
 } from "@/lib/invoices/presentation";
+import { sendEmail } from "@payoes/email";
 
 export async function sendInvoiceEmail(input: {
   to: string;
@@ -18,7 +17,6 @@ export async function sendInvoiceEmail(input: {
   return sendEmail({
     to: input.to,
     subject,
-    text: buildInvoiceEmailText(input.presentation),
-    html: buildInvoiceEmailHtml(input.presentation),
+    react: createInvoiceEmailElement(input.presentation, input.to),
   });
 }
