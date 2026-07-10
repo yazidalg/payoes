@@ -66,7 +66,7 @@ export const EmailSignIn = ({ next }: { next?: string }) => {
         const validation = await fetch("/api/auth/validate-login", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password }),
+          body: JSON.stringify({ email, password, callbackUrl: finalNext }),
         });
 
         const validationData = (await validation.json()) as {
@@ -79,7 +79,7 @@ export const EmailSignIn = ({ next }: { next?: string }) => {
         if (!validation.ok) {
           if (validationData.code === AUTH_ERROR_CODES.EMAIL_NOT_VERIFIED) {
             router.push(
-              `/verify-email?email=${encodeURIComponent(email)}&pending=1`,
+              `/verify-email?email=${encodeURIComponent(email)}&pending=1&callbackUrl=${encodeURIComponent(finalNext)}`,
             );
             setIsSubmitting(false);
             setClickedMethod(undefined);

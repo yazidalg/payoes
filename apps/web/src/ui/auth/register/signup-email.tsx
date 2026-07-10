@@ -90,6 +90,7 @@ export const SignUpEmail = () => {
           name: data.name.trim(),
           email: data.email,
           password: data.password,
+          callbackUrl,
         }),
       });
 

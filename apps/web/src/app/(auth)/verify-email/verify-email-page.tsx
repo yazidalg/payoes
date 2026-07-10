@@ -26,6 +26,8 @@ export default function VerifyEmailPage() {
   const initialEmail = searchParams.get("email") ?? "";
   const isPending = searchParams.get("pending") === "1";
   const linkError = searchParams.get("error");
+  const callbackUrl = searchParams.get("callbackUrl");
+  const isInviteFlow = callbackUrl?.startsWith("/invite/") ?? false;
 
   const [email, setEmail] = useState(initialEmail);
   const [isResending, setIsResending] = useState(false);
@@ -41,7 +43,10 @@ export default function VerifyEmailPage() {
     const response = await fetch("/api/auth/resend-verification", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: email.trim() }),
+      body: JSON.stringify({
+        email: email.trim(),
+        ...(callbackUrl ? { callbackUrl } : {}),
+      }),
     });
 
     const data = (await response.json()) as {
@@ -85,7 +90,9 @@ export default function VerifyEmailPage() {
           <h3 className={authPageTitleClass}>Check your email</h3>
           <p className={authPageBodyClass}>
             {isPending
-              ? "We sent a verification link to your email. Open it to verify your account and continue onboarding."
+              ? isInviteFlow
+                ? "We sent a verification link to your email. Open it to verify your account and continue to your invitation."
+                : "We sent a verification link to your email. Open it to verify your account and continue onboarding."
               : "Open the verification link we sent to your email to continue."}
           </p>
         </div>
