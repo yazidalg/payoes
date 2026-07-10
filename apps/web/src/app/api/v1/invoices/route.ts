@@ -38,17 +38,23 @@ const createInvoiceSchema = z
   });
 
 export async function GET(request: Request) {
-  return withApiKeyAuth(request, async ({ apiKey }) => {
-    const rows = await listInvoices(apiKey.organizationId, apiKey.environment);
+  return withApiKeyAuth(
+    request,
+    async ({ apiKey }) => {
+      const rows = await listInvoices(apiKey.organizationId, apiKey.environment);
 
-    return NextResponse.json({
-      invoices: await serializeInvoices(rows),
-    });
-  });
+      return NextResponse.json({
+        invoices: await serializeInvoices(rows),
+      });
+    },
+    { resource: "invoices", action: "read" }
+  );
 }
 
 export async function POST(request: Request) {
-  return withApiKeyAuth(request, async ({ apiKey }) => {
+  return withApiKeyAuth(
+    request,
+    async ({ apiKey }) => {
     const body = await request.json();
     const parsed = createInvoiceSchema.safeParse(body);
 
@@ -110,5 +116,7 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
-  });
+  },
+    { resource: "invoices", action: "write" }
+  );
 }
