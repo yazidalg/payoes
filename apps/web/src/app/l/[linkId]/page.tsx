@@ -52,7 +52,7 @@ export default async function PaymentLinkPage({
         <div className="w-full max-w-md space-y-4 rounded-2xl border border-border/80 bg-card p-6 shadow-sm">
           <AlertBlock type="error">{message}</AlertBlock>
           <p className="text-sm text-muted-foreground">
-            If you manage this merchant account, configure and save your receiving
+            If you manage this merchant account, configure and save your settlement
             wallet in Settings before sharing payment links.
           </p>
           <Button
