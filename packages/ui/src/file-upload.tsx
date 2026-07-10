@@ -103,6 +103,10 @@ export type FileUploadProps = FileUploadReadFileProps & {
    */
   customPreview?: ReactNode;
   /**
+   * Preview shown when imageSrc is empty (for example a default avatar)
+   */
+  placeholder?: ReactNode;
+  /**
    * Image to display (generally for image uploads)
    */
   imageSrc?: string | null;
@@ -155,6 +159,7 @@ export function FileUpload({
   previewClassName,
   icon: Icon = CloudUpload,
   customPreview,
+  placeholder,
   accept = "any",
   imageSrc,
   loading = false,
@@ -168,6 +173,7 @@ export function FileUpload({
 }: FileUploadProps) {
   const [dragActive, setDragActive] = useState(false);
   const [fileName, setFileName] = useState<string | null>(null);
+  const hasPreview = Boolean(imageSrc || placeholder);
 
   const onFileChange = async (
     e: React.ChangeEvent<HTMLInputElement> | DragEvent,
@@ -266,7 +272,7 @@ export function FileUpload({
           dragActive &&
             !disabled &&
             "cursor-copy border-black bg-neutral-50 opacity-100",
-          imageSrc
+          hasPreview
             ? cn(
                 "opacity-0",
                 showHoverOverlay && !disabled && "group-hover:opacity-100",
@@ -302,17 +308,18 @@ export function FileUpload({
         )}
         <span className="sr-only">{accessibilityLabel}</span>
       </div>
-      {imageSrc &&
-        (customPreview ?? (
-          <img
-            src={imageSrc}
-            alt="Preview"
-            className={cn(
-              "h-full w-full rounded-[inherit] object-cover",
-              previewClassName,
-            )}
-          />
-        ))}
+      {imageSrc
+        ? (customPreview ?? (
+            <img
+              src={imageSrc}
+              alt="Preview"
+              className={cn(
+                "h-full w-full rounded-[inherit] object-cover",
+                previewClassName,
+              )}
+            />
+          ))
+        : placeholder}
       {clickToUpload && (
         <div className="sr-only mt-1 flex shadow-sm">
           <input
