@@ -187,7 +187,9 @@ export function getDashboardPageTitle(pathname: string) {
     pathname.startsWith("/dashboard/developers/webhooks/") &&
     pathname !== "/dashboard/developers/webhooks"
   ) {
-    return "Webhook Detail";
+    return pathname.endsWith("/edit")
+      ? "Webhook Configuration"
+      : "Webhook Detail";
   }
 
   return pageTitles[pathname] ?? "Dashboard";

@@ -26,7 +26,7 @@ export function getHubPathAfterOrganizationSwitch(pathname: string): string | nu
     /^\/dashboard\/payments\/links\/[^/]+$/.test(pathname) &&
     !pathname.endsWith("/new")
   ) {
-    return "/dashboard/payments?tab=links";
+    return "/dashboard/payments?tab=payment-links";
   }
 
   if (/^\/dashboard\/payments\/checkout-sessions\/[^/]+$/.test(pathname)) {
@@ -35,6 +35,10 @@ export function getHubPathAfterOrganizationSwitch(pathname: string): string | nu
 
   if (/^\/dashboard\/developers\/webhooks\/[^/]+$/.test(pathname)) {
     return "/dashboard/developers/webhooks";
+  }
+
+  if (/^\/dashboard\/developers\/webhooks\/[^/]+\/edit$/.test(pathname)) {
+    return `/dashboard/developers/webhooks/${pathname.split("/")[4]}`;
   }
 
   if (/^\/dashboard\/developers\/api-keys\/[^/]+$/.test(pathname)) {

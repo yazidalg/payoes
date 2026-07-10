@@ -57,9 +57,7 @@ export function CustomersTableSkeleton({ rowCount = 8 }: { rowCount?: number }) 
                 <td className={tdClassName}>
                   <SmoothSkeleton className="h-4 w-24 font-mono" />
                 </td>
-                <td className={cn(tdClassName, "w-10 px-1")}>
-                  <SmoothSkeleton className="mx-auto size-8 rounded-md" />
-                </td>
+                <td className={cn(tdClassName, "w-10 px-1")} />
               </tr>
             ))}
           </tbody>

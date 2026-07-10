@@ -1,50 +1,59 @@
-import * as React from "react";
-import { AlertTriangle, CheckCircle, Info, XCircle } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Alert, AlertDescription } from "@dub/ui";
+import { CircleCheck, CircleInfo, CircleXmark } from "@dub/ui/icons";
+import { cn } from "@dub/utils";
+import { AlertTriangle } from "lucide-react";
+import type { ElementType, ReactNode } from "react";
 
 type AlertType = "error" | "warning" | "success" | "info";
 
 const alertConfig: Record<
   AlertType,
-  { icon: React.ElementType; className: string }
+  {
+    icon: ElementType<{ className?: string }>;
+    variant?: "default" | "destructive";
+    className?: string;
+  }
 > = {
   error: {
-    icon: XCircle,
-    className: "bg-red-50 border-red-200 text-red-800",
+    icon: CircleXmark,
+    variant: "destructive",
   },
   warning: {
     icon: AlertTriangle,
-    className: "bg-yellow-50 border-yellow-200 text-yellow-800",
+    className:
+      "border-amber-200 bg-amber-50 text-amber-900 [&>svg]:text-amber-600",
   },
   success: {
-    icon: CheckCircle,
-    className: "bg-green-50 border-green-200 text-green-800",
+    icon: CircleCheck,
+    className:
+      "border-green-200 bg-green-50 text-green-900 [&>svg]:text-green-600",
   },
   info: {
-    icon: Info,
-    className: "bg-blue-50 border-blue-200 text-blue-800",
+    icon: CircleInfo,
+    className: "border-blue-200 bg-blue-50 text-blue-900 [&>svg]:text-blue-600",
   },
 };
 
 interface AlertBlockProps {
   type: AlertType;
   className?: string;
-  children: React.ReactNode;
+  children: ReactNode;
 }
 
 export function AlertBlock({ type, className, children }: AlertBlockProps) {
-  const { icon: Icon, className: typeClassName } = alertConfig[type];
+  const {
+    icon: Icon,
+    variant = "default",
+    className: typeClassName,
+  } = alertConfig[type];
 
   return (
-    <div
-      className={cn(
-        "flex items-start gap-2 rounded-lg border p-3 text-sm",
-        typeClassName,
-        className
-      )}
+    <Alert
+      variant={variant}
+      className={cn("py-4 [&>svg]:size-4", typeClassName, className)}
     >
-      <Icon className="mt-0.5 size-4 shrink-0" />
-      <div>{children}</div>
-    </div>
+      <Icon className="size-4" />
+      <AlertDescription>{children}</AlertDescription>
+    </Alert>
   );
 }

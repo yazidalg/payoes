@@ -9,7 +9,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
     <SessionProvider>
       <TooltipProvider>
         {children}
-        <Toaster richColors position="top-center" />
+        <Toaster className="pointer-events-auto" position="bottom-center" />
       </TooltipProvider>
     </SessionProvider>
   );
