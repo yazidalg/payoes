@@ -6,11 +6,7 @@ import { getVerificationSummary, startVerification } from "@/lib/kyc/service";
 import { getMembershipForUser } from "@/lib/organizations/members";
 
 const verificationSchema = z.object({
-  account_type: z.enum(["personal", "business"]),
-  display_name: z.string().min(1).max(200),
-  country: z.string().min(2).max(80),
-  business_description: z.string().max(500).optional(),
-  registration_number: z.string().max(120).optional(),
+  account_type: z.enum(["personal", "business"]).optional(),
 });
 
 export async function GET(
@@ -50,7 +46,7 @@ export async function POST(
     }
 
     const { id } = await params;
-    const body = await request.json();
+    const body = await request.json().catch(() => ({}));
     const parsed = verificationSchema.safeParse(body);
 
     if (!parsed.success) {
@@ -59,7 +55,7 @@ export async function POST(
           error: "Invalid verification request",
           details: parsed.error.flatten().fieldErrors,
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -67,10 +63,6 @@ export async function POST(
       organizationId: id,
       userId: session.user.id,
       accountType: parsed.data.account_type,
-      displayName: parsed.data.display_name,
-      country: parsed.data.country,
-      businessDescription: parsed.data.business_description,
-      registrationNumber: parsed.data.registration_number,
     });
 
     return NextResponse.json({ application }, { status: 201 });
