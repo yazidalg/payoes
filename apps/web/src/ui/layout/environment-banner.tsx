@@ -1,20 +1,20 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Button } from "@dub/ui";
 import { cn } from "@dub/utils";
-import { toast } from "sonner";
-import { EnableProductionDialog } from "@/components/dashboard/enable-production-dialog";
-import type { Organization } from "@/lib/db/schema";
-import { AppModal } from "@/ui/modals/app-modal";
+import { useSwitchToProduction } from "@/hooks/use-switch-to-production";
 import { useDashboardShell } from "./dashboard-shell-context";
 import { useUpgradeBannerVisibility } from "./upgrade-banner";
+import { WhiteFadeOverlay } from "@/ui/transitions/white-fade-overlay";
 
 export const DASHBOARD_TOP_BANNER_HEIGHT = 48;
 
 export function useEnvironmentBannerVisibility() {
-  return { isVisible: true };
+  const { activeOrganization } = useDashboardShell();
+
+  return {
+    isVisible: activeOrganization.environment === "sandbox",
+  };
 }
 
 export function useDashboardTopBannerHeight() {
@@ -33,91 +33,44 @@ export function useDashboardTopBannerHeight() {
 const actionButtonClassName = "h-7 w-fit shrink-0 px-2.5 text-sm font-medium";
 
 export function EnvironmentBanner() {
-  const router = useRouter();
-  const { activeOrganization, setActiveOrganization } = useDashboardShell();
+  const { isVisible: isEnvironmentBannerVisible } = useEnvironmentBannerVisibility();
   const { environmentBannerOffset } = useDashboardTopBannerHeight();
+  const { switchToProduction, isOverlayVisible, overlayMessage } =
+    useSwitchToProduction();
 
-  const [enableDialogOpen, setEnableDialogOpen] = useState(false);
-  const [sandboxDialogOpen, setSandboxDialogOpen] = useState(false);
-  const [isSwitchingToSandbox, setIsSwitchingToSandbox] = useState(false);
-
-  const isProduction = activeOrganization.environment === "production";
-
-  async function handleSwitchToSandbox() {
-    setIsSwitchingToSandbox(true);
-
-    const response = await fetch(`/api/organizations/${activeOrganization.id}/environment`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ environment: "sandbox" }),
-    });
-
-    const data = (await response.json()) as {
-      error?: string;
-      organization?: Organization;
-    };
-
-    setIsSwitchingToSandbox(false);
-
-    if (!response.ok) {
-      toast.error(data.error ?? "Unable to switch to sandbox");
-      return;
-    }
-
-    toast.success("Switched to sandbox mode");
-    setSandboxDialogOpen(false);
-
-    if (data.organization) {
-      setActiveOrganization(data.organization);
-    }
-
-    router.refresh();
+  if (!isEnvironmentBannerVisible) {
+    return null;
   }
 
-  function handleProductionEnabled() {
-    setActiveOrganization({
-      ...activeOrganization,
-      environment: "production",
-    });
+  function openVerification() {
+    void switchToProduction();
   }
 
   return (
     <>
-      <div role="status" style={{ top: environmentBannerOffset }} className={cn("fixed left-0 right-0 z-30 flex h-12 items-center justify-center border-b px-4 sm:px-6", isProduction ? "border-neutral-800 bg-neutral-900 text-neutral-100" : "border-blue-800 bg-blue-700 text-white")}>
+      <div
+        role="status"
+        style={{ top: environmentBannerOffset }}
+        className={cn(
+          "fixed left-0 right-0 z-30 flex h-12 items-center justify-center border-b border-blue-800 bg-blue-700 px-4 text-white sm:px-6",
+        )}
+      >
         <div className="flex w-full max-w-screen-xl items-center justify-between gap-4">
-          <p className="min-w-0 text-sm leading-snug">{isProduction ? "Production mode. Payments use mainnet and real funds." : "You're testing in a sandbox. Changes you make here don't affect real customers or payments."}</p>
-
-          {isProduction ? <Button type="button" variant="secondary" text="Switch to sandbox" className={actionButtonClassName} onClick={() => setSandboxDialogOpen(true)} /> : <Button type="button" variant="secondary" text="Switch to production" className={actionButtonClassName} onClick={() => setEnableDialogOpen(true)} />}
+          <p className="min-w-0 text-sm leading-snug">
+            You&apos;re testing in a sandbox. Changes you make here don&apos;t
+            affect real customers or payments.
+          </p>
+          <Button
+            type="button"
+            variant="secondary"
+            text="Switch to production"
+            className={actionButtonClassName}
+            onClick={openVerification}
+          />
         </div>
       </div>
 
-      <AppModal
-        open={sandboxDialogOpen}
-        onOpenChange={setSandboxDialogOpen}
-        title="Switch to sandbox?"
-        description="Sandbox mode uses test data and does not affect live mainnet payments. You can switch back to production anytime after verification."
-        footer={
-          <>
-            <Button
-              type="button"
-              variant="secondary"
-              text="Cancel"
-              className="h-9 w-fit"
-              onClick={() => setSandboxDialogOpen(false)}
-            />
-            <Button
-              type="button"
-              variant="primary"
-              text="Switch to sandbox"
-              loading={isSwitchingToSandbox}
-              className="h-9 w-fit"
-              onClick={() => void handleSwitchToSandbox()}
-            />
-          </>
-        }
-      />
-
-      {enableDialogOpen ? <EnableProductionDialog organizationId={activeOrganization.id} open={enableDialogOpen} onOpenChange={setEnableDialogOpen} onEnvironmentChanged={handleProductionEnabled} /> : null}
+      <WhiteFadeOverlay visible={isOverlayVisible} message={overlayMessage} zIndex={100} />
     </>
   );
 }
