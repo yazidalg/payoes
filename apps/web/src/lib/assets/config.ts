@@ -20,7 +20,7 @@ export async function getOrganizationDefaultAssetConfig(
   const defaultMethod = await getDefaultSettlementMethod(organizationId);
 
   if (enabled.length === 0) {
-    throw new Error("No enabled assets. Configure assets in Settings → Assets.");
+    throw new Error("No enabled payment methods. Configure them in Settings → Payment Methods.");
   }
 
   const settlementMethod =
@@ -45,7 +45,7 @@ export async function resolveAssetConfig(input: {
   );
 
   if (enabled.length === 0) {
-    throw new Error("No enabled assets. Configure assets in Settings → Assets.");
+    throw new Error("No enabled payment methods. Configure them in Settings → Payment Methods.");
   }
 
   const defaults = await getOrganizationDefaultAssetConfig(input.organizationId);
