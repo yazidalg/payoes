@@ -8,6 +8,8 @@ import {
   User,
 } from "@dub/ui/icons";
 import type { DashboardAnalytics } from "@/lib/analytics/types";
+import { AssetIcon } from "@/ui/assets/asset-icon";
+import { CustomerAvatar } from "@/ui/customers/customer-avatar";
 import { AnalyticsCard } from "./analytics-card";
 import { BarList, getMaxValue } from "./bar-list";
 
@@ -80,7 +82,7 @@ function AssetsSection({
   items: DashboardAnalytics["breakdowns"]["assets"];
 }) {
   const data = items.map((item) => ({
-    icon: <Cube className="size-4 text-neutral-700" />,
+    icon: <AssetIcon assetCode={item.key} className="size-6" />,
     title: item.label,
     value: item.value,
   }));
@@ -156,7 +158,15 @@ function CustomersSection({
   items: DashboardAnalytics["breakdowns"]["customers"];
 }) {
   const data = items.map((item) => ({
-    icon: <User className="size-4 text-neutral-700" />,
+    icon: (
+      <CustomerAvatar
+        customer={{
+          id: item.key,
+          name: item.label,
+        }}
+        className="size-6 border border-neutral-200"
+      />
+    ),
     title: item.label,
     value: item.value,
   }));
