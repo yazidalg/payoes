@@ -4,12 +4,14 @@ import {
   AUTH_ERROR_CODES,
   AUTH_ERROR_MESSAGES,
 } from "@/constants/auth";
+import { getSafePostAuthRedirect } from "@/lib/auth/safe-redirect";
 import { createUser } from "@/lib/auth/users";
 
 const registerSchema = z.object({
   name: z.string().min(1, "Name is required"),
   email: z.string().email("Invalid email"),
   password: z.string().min(8, "Password must be at least 8 characters"),
+  callbackUrl: z.string().optional(),
 });
 
 export async function POST(request: Request) {
@@ -24,7 +26,14 @@ export async function POST(request: Request) {
       );
     }
 
-    const user = await createUser(parsed.data);
+    const callbackUrl = getSafePostAuthRedirect(parsed.data.callbackUrl);
+
+    const user = await createUser({
+      name: parsed.data.name,
+      email: parsed.data.email,
+      password: parsed.data.password,
+      callbackUrl,
+    });
 
     return NextResponse.json(
       {

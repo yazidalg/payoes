@@ -4,10 +4,12 @@ import {
   AUTH_ERROR_CODES,
   AUTH_ERROR_MESSAGES,
 } from "@/constants/auth";
+import { getSafePostAuthRedirect } from "@/lib/auth/safe-redirect";
 import { findUserByEmail, resendEmailVerification } from "@/lib/auth/users";
 
 const resendSchema = z.object({
   email: z.string().email("Invalid email"),
+  callbackUrl: z.string().optional(),
 });
 
 export async function POST(request: Request) {
@@ -22,6 +24,7 @@ export async function POST(request: Request) {
       );
     }
 
+    const callbackUrl = getSafePostAuthRedirect(parsed.data.callbackUrl);
     const user = await findUserByEmail(parsed.data.email);
 
     if (!user) {
@@ -32,7 +35,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ sent: true, alreadyVerified: true });
     }
 
-    await resendEmailVerification(user.id);
+    await resendEmailVerification(user.id, callbackUrl);
 
     return NextResponse.json({ sent: true });
   } catch (error) {

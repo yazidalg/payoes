@@ -5,11 +5,12 @@ import {
   AUTH_ERROR_MESSAGES,
 } from "@/constants/auth";
 import { validateCredentialLogin } from "@/lib/auth/credentials";
-import { getPostLoginPath } from "@/lib/auth/post-login";
+import { resolvePostAuthRedirect } from "@/lib/auth/post-login";
 
 const loginSchema = z.object({
   email: z.string().email("Invalid email"),
   password: z.string().min(8, "Password must be at least 8 characters"),
+  callbackUrl: z.string().optional(),
 });
 
 export async function POST(request: Request) {
@@ -38,7 +39,11 @@ export async function POST(request: Request) {
     );
   }
 
-  const redirectTo = await getPostLoginPath(result.user.id);
+  const redirectTo = await resolvePostAuthRedirect(
+    result.user.id,
+    result.user.email,
+    parsed.data.callbackUrl,
+  );
 
   return NextResponse.json({ ok: true, redirectTo });
 }

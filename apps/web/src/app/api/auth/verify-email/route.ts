@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
 import { signIn } from "@/auth";
+import { getSafePostAuthRedirect } from "@/lib/auth/safe-redirect";
+import {
+  resolvePostAuthRedirect,
+} from "@/lib/auth/post-login";
 import {
   consumeEmailVerificationToken,
   createPostVerifyLoginToken,
@@ -13,7 +17,11 @@ function redirectWithError(request: Request, error: string) {
 }
 
 export async function GET(request: Request) {
-  const token = new URL(request.url).searchParams.get("token");
+  const requestUrl = new URL(request.url);
+  const token = requestUrl.searchParams.get("token");
+  const callbackUrl = getSafePostAuthRedirect(
+    requestUrl.searchParams.get("callbackUrl"),
+  );
 
   if (!token) {
     return redirectWithError(request, "invalid");
@@ -31,10 +39,15 @@ export async function GET(request: Request) {
     }
 
     const loginToken = await createPostVerifyLoginToken(user.id);
+    const redirectTo = await resolvePostAuthRedirect(
+      user.id,
+      user.email,
+      callbackUrl,
+    );
 
     return signIn("credentials", {
       loginToken,
-      redirectTo: "/onboarding",
+      redirectTo,
     });
   } catch (error) {
     if (error instanceof Error) {
