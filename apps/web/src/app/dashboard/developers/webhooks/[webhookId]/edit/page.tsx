@@ -1,7 +1,7 @@
-import { WebhookEventLogsPanel } from "@/ui/developers/webhook-event-logs-panel";
+import { WebhookConfigurationPanel } from "@/ui/developers/webhook-configuration-panel";
 import { getDashboardOrganization } from "@/lib/dashboard/get-organization";
 
-export default async function WebhookDetailPage({
+export default async function WebhookConfigurationPage({
   params,
 }: {
   params: Promise<{ webhookId: string }>;
@@ -10,7 +10,7 @@ export default async function WebhookDetailPage({
   const { webhookId } = await params;
 
   return (
-    <WebhookEventLogsPanel
+    <WebhookConfigurationPanel
       organizationId={organization.id}
       webhookId={webhookId}
     />
