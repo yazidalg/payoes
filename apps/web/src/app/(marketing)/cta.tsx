@@ -34,7 +34,7 @@ export function CTA() {
           <div className="size-full bg-[conic-gradient(from_-66deg,#855AFC_-32deg,#f00_63deg,#EAB308_158deg,#5CFF80_240deg,#855AFC_328deg,#f00_423deg)] [mask-image:radial-gradient(closest-side,black_100%,transparent_100%)]" />
         </div>
 
-        <div className="relative mx-auto my-8 flex w-fit gap-8">
+        <div className="relative mx-auto my-8 flex flex-wrap justify-center gap-x-8 gap-y-6">
           {RATINGS.map(({ name, stars }) => (
             <div key={name} className="group flex flex-col items-center">
               <span className="text-sm font-semibold text-neutral-700 transition-transform duration-150 group-hover:scale-105">
@@ -71,7 +71,7 @@ export function CTA() {
           </p>
         </div>
 
-        <div className="relative mx-auto mt-10 flex max-w-fit gap-4">
+        <div className="relative mx-auto mt-10 flex max-w-fit flex-col items-center gap-4 xs:flex-row">
           <ButtonLink variant="primary" href="/register">
             Start for free
           </ButtonLink>

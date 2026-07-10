@@ -17,8 +17,14 @@ import {
   Users,
   Wallet,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
+
+// Native size of the dashboard mockup below (min-w-[820px] x h-[420px]). On
+// screens narrower than this the whole mockup is scaled down uniformly so it
+// stays fully visible instead of overflowing.
+const DASHBOARD_WIDTH = 820;
+const DASHBOARD_HEIGHT = 420;
 
 const TABS = [
   {
@@ -40,16 +46,46 @@ const TABS = [
 
 export function HeroShowcase() {
   const [active, setActive] = useState(0);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(1);
+
+  useEffect(() => {
+    const card = cardRef.current;
+    if (!card) return;
+
+    const observer = new ResizeObserver(([entry]) => {
+      const width = entry.contentRect.width;
+      setScale(width >= DASHBOARD_WIDTH ? 1 : width / DASHBOARD_WIDTH);
+    });
+    observer.observe(card);
+    return () => observer.disconnect();
+  }, []);
 
   return (
-    <div className="relative mt-28 w-full">
+    <div className="relative mt-16 w-full sm:mt-28">
       {/* Full-bleed neutral surface with a straight top edge. The shelf's top is
           flush with this edge and the whole shelf hangs downward into the
           surface, so the concave fillets flare with nothing above them. */}
       <div className="relative left-1/2 w-screen -translate-x-1/2 bg-neutral-100 [mask-image:linear-gradient(black_80%,transparent)]">
-        <div className="mx-auto max-w-5xl px-4 pb-4 pt-24 sm:px-6">
-          <div className="overflow-hidden rounded-[1.75rem] border border-neutral-200/80 bg-white shadow-[0_24px_48px_-16px_rgba(0,0,0,0.10)]">
-            <Dashboard />
+        <div className="mx-auto max-w-5xl px-4 pb-4 pt-16 sm:px-6 sm:pt-24">
+          <div
+            ref={cardRef}
+            className="overflow-hidden rounded-[1.75rem] border border-neutral-200/80 bg-white shadow-[0_24px_48px_-16px_rgba(0,0,0,0.10)]"
+          >
+            {/* Scale-to-fit wrapper: on desktop scale is 1 and the dashboard fills
+                the card as before; on narrow screens it shrinks uniformly and the
+                wrapper height collapses with it so there is no empty gap. */}
+            <div style={{ height: DASHBOARD_HEIGHT * scale }}>
+              <div
+                style={{
+                  width: scale < 1 ? DASHBOARD_WIDTH : "100%",
+                  transform: `scale(${scale})`,
+                  transformOrigin: "top left",
+                }}
+              >
+                <Dashboard />
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -57,7 +93,7 @@ export function HeroShowcase() {
       {/* Tab shelf hanging downward into the surface: its top is flush with the
           surface edge, its bottom is rounded, and concave fillets at the top
           corners sweep the surface down into the shelf's vertical sides. */}
-      <div className="absolute left-1/2 top-0 z-20 w-fit -translate-x-1/2 rounded-b-[1.75rem] bg-white px-10 pb-3">
+      <div className="absolute left-1/2 top-0 z-20 w-fit -translate-x-1/2 rounded-b-[1.75rem] bg-white px-4 pb-3 sm:px-10">
         <div className="flex items-center pt-4">
           {TABS.map(({ label, icon: Icon, iconClass }, i) => (
             <button
@@ -65,10 +101,10 @@ export function HeroShowcase() {
               type="button"
               onClick={() => setActive(i)}
               className={cn(
-                "flex items-center whitespace-nowrap rounded-xl border px-4 py-2 text-[14px] font-semibold",
+                "mx-1 flex items-center whitespace-nowrap rounded-xl border px-3 py-2 text-[14px] font-semibold sm:mx-4 sm:px-4",
                 active === i
-                  ? "border-neutral-200 bg-white text-neutral-900 shadow-[0_10px_28px_-16px_rgba(0,0,0,0.20)] mx-4"
-                  : "border-transparent bg-gray-100 mx-2 text-neutral-500 mx-4",
+                  ? "border-neutral-200 bg-white text-neutral-900 shadow-[0_10px_28px_-16px_rgba(0,0,0,0.20)]"
+                  : "border-transparent bg-gray-100 text-neutral-500",
               )}
             >
               <span
@@ -79,7 +115,7 @@ export function HeroShowcase() {
               >
                 <Icon className="size-4 shadow-[0_10px_28px_-16px_rgba(0,0,0,1)]" strokeWidth={2} />
               </span>
-              {label}
+              <span className="hidden sm:inline">{label}</span>
             </button>
           ))}
         </div>
