@@ -26,6 +26,7 @@ export function PaymentsHubPanel({ organizationId }: { organizationId: string })
       controls: (
         <CreatePaymentMenu
           organizationId={organizationId}
+          includeCheckoutSession
           onCreated={() => setReloadKey((current) => current + 1)}
         />
       ),

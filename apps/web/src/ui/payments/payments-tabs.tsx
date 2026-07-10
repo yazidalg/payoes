@@ -59,6 +59,7 @@ export function PaymentsTabs({
         "sortBy",
         "sortOrder",
         "customerStatus",
+        "status",
         "walletStatus",
         "emailStatus",
         "paymentStatus",
