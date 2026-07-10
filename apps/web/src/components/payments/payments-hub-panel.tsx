@@ -1,92 +1,81 @@
 "use client";
 
-import { useCallback, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { CheckoutSessionsListPanel } from "@/components/payments/checkout-sessions-list-panel";
 import { CreatePaymentMenu } from "@/components/payments/create-payment-menu";
 import { InvoicesListPanel } from "@/components/payments/invoices-list-panel";
 import { PaymentLinksListPanel } from "@/components/payments/payment-links-list-panel";
 import { PaymentsListPanel } from "@/components/payments/payments-list-panel";
-import { Button } from "@/components/ui/button";
-import {
-  PAYMENTS_TAB_LABELS,
-  PAYMENTS_TABS,
-  getPaymentsHubHref,
-  parsePaymentsTab,
-  type PaymentsTab,
-} from "@/lib/navigation/payments-tabs";
-import { cn } from "@/lib/utils";
+import { parsePaymentsTab } from "@/lib/navigation/payments-tabs";
+import { useSetDashboardPageHeader } from "@/ui/layout/dashboard-page-header-context";
+import { PaymentsTabs } from "@/ui/payments/payments-tabs";
 
 export function PaymentsHubPanel({ organizationId }: { organizationId: string }) {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const activeTab = parsePaymentsTab(searchParams.get("tab"));
   const [reloadKey, setReloadKey] = useState(0);
 
-  const setTab = useCallback(
-    (tab: PaymentsTab) => {
-      router.replace(getPaymentsHubHref(tab));
-    },
-    [router]
+  const headerOverride = useMemo(
+    () => ({
+      titleInfo: {
+        title:
+          "Create and manage payment intents, checkout sessions, invoices, and payment links.",
+        href: "/dashboard/developers/documentation",
+      },
+      controls: (
+        <CreatePaymentMenu
+          organizationId={organizationId}
+          onCreated={() => setReloadKey((current) => current + 1)}
+        />
+      ),
+    }),
+    [organizationId],
   );
 
-  function handleCreated(tab: PaymentsTab) {
-    setReloadKey((current) => current + 1);
-    setTab(tab);
-  }
+  useSetDashboardPageHeader(headerOverride);
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Payments</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Manage payment intents, invoices, and payment links.
-          </p>
-        </div>
-        <CreatePaymentMenu organizationId={organizationId} onCreated={handleCreated} />
+    <div className="flex flex-col gap-4">
+      <PaymentsTabs
+        organizationId={organizationId}
+        activeTab={activeTab}
+        reloadKey={reloadKey}
+      />
+
+      <div key={activeTab}>
+        {activeTab === "payment-intents" ? (
+          <PaymentsListPanel
+            organizationId={organizationId}
+            embedded
+            reloadKey={reloadKey}
+          />
+        ) : null}
+
+        {activeTab === "checkout-sessions" ? (
+          <CheckoutSessionsListPanel
+            organizationId={organizationId}
+            embedded
+            reloadKey={reloadKey}
+          />
+        ) : null}
+
+        {activeTab === "invoices" ? (
+          <InvoicesListPanel
+            organizationId={organizationId}
+            embedded
+            reloadKey={reloadKey}
+          />
+        ) : null}
+
+        {activeTab === "payment-links" ? (
+          <PaymentLinksListPanel
+            organizationId={organizationId}
+            embedded
+            reloadKey={reloadKey}
+          />
+        ) : null}
       </div>
-
-      <div className="flex flex-wrap gap-2 border-b border-border pb-3">
-        {PAYMENTS_TABS.map((tab) => (
-          <Button
-            key={tab}
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() => setTab(tab)}
-            className={cn(
-              "rounded-lg",
-              activeTab === tab && "bg-muted font-medium text-foreground"
-            )}
-          >
-            {PAYMENTS_TAB_LABELS[tab]}
-          </Button>
-        ))}
-      </div>
-
-      {activeTab === "payment-intents" ? (
-        <PaymentsListPanel
-          organizationId={organizationId}
-          embedded
-          reloadKey={reloadKey}
-        />
-      ) : null}
-
-      {activeTab === "invoices" ? (
-        <InvoicesListPanel
-          organizationId={organizationId}
-          embedded
-          reloadKey={reloadKey}
-        />
-      ) : null}
-
-      {activeTab === "payment-links" ? (
-        <PaymentLinksListPanel
-          organizationId={organizationId}
-          embedded
-          reloadKey={reloadKey}
-        />
-      ) : null}
     </div>
   );
 }
