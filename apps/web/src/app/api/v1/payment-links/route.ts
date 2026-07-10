@@ -10,22 +10,28 @@ import { createPaymentLinkBodySchema } from "@/lib/payment-links/schemas";
 import { resolveInvoiceCurrencyCode } from "@/lib/invoices/currencies";
 
 export async function GET(request: Request) {
-  return withApiKeyAuth(request, async ({ apiKey }) => {
-    const links = await listPaymentLinks(
-      apiKey.organizationId,
-      apiKey.environment
-    );
+  return withApiKeyAuth(
+    request,
+    async ({ apiKey }) => {
+      const links = await listPaymentLinks(
+        apiKey.organizationId,
+        apiKey.environment
+      );
 
-    return NextResponse.json({
-      payment_links: await Promise.all(
-        links.map((link) => serializePaymentLink(link))
-      ),
-    });
-  });
+      return NextResponse.json({
+        payment_links: await Promise.all(
+          links.map((link) => serializePaymentLink(link))
+        ),
+      });
+    },
+    { resource: "payment_links", action: "read" }
+  );
 }
 
 export async function POST(request: Request) {
-  return withApiKeyAuth(request, async ({ apiKey }) => {
+  return withApiKeyAuth(
+    request,
+    async ({ apiKey }) => {
     const body = await request.json();
     const parsed = createPaymentLinkBodySchema.safeParse(body);
 
@@ -73,5 +79,7 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
-  });
+  },
+    { resource: "payment_links", action: "write" }
+  );
 }

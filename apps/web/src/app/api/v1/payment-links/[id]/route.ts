@@ -9,20 +9,24 @@ export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  return withApiKeyAuth(request, async ({ apiKey }) => {
-    const { id } = await params;
-    const link = await getPaymentLinkForOrganization(
-      id,
-      apiKey.organizationId,
-      apiKey.environment
-    );
+  return withApiKeyAuth(
+    request,
+    async ({ apiKey }) => {
+      const { id } = await params;
+      const link = await getPaymentLinkForOrganization(
+        id,
+        apiKey.organizationId,
+        apiKey.environment
+      );
 
-    if (!link) {
-      return NextResponse.json({ error: "Payment link not found" }, { status: 404 });
-    }
+      if (!link) {
+        return NextResponse.json({ error: "Payment link not found" }, { status: 404 });
+      }
 
-    return NextResponse.json(
-      await serializePaymentLink(link, { includeItems: true })
-    );
-  });
+      return NextResponse.json(
+        await serializePaymentLink(link, { includeItems: true })
+      );
+    },
+    { resource: "payment_links", action: "read" }
+  );
 }
