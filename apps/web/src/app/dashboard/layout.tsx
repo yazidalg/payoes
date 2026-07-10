@@ -7,7 +7,13 @@ import {
 import { getActiveOrganizationForUser } from "@/lib/organizations/active-organization";
 import { DashboardChrome } from "@/ui/layout/dashboard-chrome";
 import { DashboardMainNav } from "@/ui/layout/dashboard-main-nav";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+
+const FULLSCREEN_DASHBOARD_PATHS = [
+  "/dashboard/payments/invoices/new",
+  "/dashboard/payments/links/new",
+];
 
 async function resolveUserId(session: {
   user?: { id?: string; email?: string | null };
@@ -52,6 +58,15 @@ export default async function DashboardLayout({
 
   if (!activeOrganization) {
     redirect("/onboarding");
+  }
+
+  const pathname = (await headers()).get("x-pathname") ?? "";
+  const isFullscreen = FULLSCREEN_DASHBOARD_PATHS.some(
+    (path) => pathname === path || pathname.startsWith(`${path}/`),
+  );
+
+  if (isFullscreen) {
+    return <>{children}</>;
   }
 
   return (

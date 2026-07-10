@@ -19,10 +19,10 @@ import {
   MoneyBill2,
   Refresh2,
   StackY3,
-  Users,
+  User,
   Users6,
   Webhook,
-} from "@dub/ui/icons";
+} from "./icons";
 import { usePathname } from "next/navigation";
 import { ReactNode, useMemo } from "react";
 import { SidebarNav, SidebarNavAreas, SidebarNavGroups } from "./sidebar-nav";
@@ -53,7 +53,7 @@ const NAV_GROUPS: SidebarNavGroups<SidebarNavData> = ({ pathname }) => [
   },
   {
     name: "Settings",
-    description: "Organization, wallet, assets, and team settings.",
+    description: "Organization, wallet, payment methods, and team settings.",
     icon: Gear2,
     href: "/dashboard/settings/organization",
     active: pathname.startsWith("/dashboard/settings"),
@@ -93,7 +93,7 @@ const NAV_AREAS: SidebarNavAreas<SidebarNavData> = {
           },
           {
             name: "Customers",
-            icon: Users,
+            icon: User,
             href: "/dashboard/customers",
             isActive: (p, h) => isNavItemActive(p, h),
           },
@@ -148,15 +148,15 @@ const NAV_AREAS: SidebarNavAreas<SidebarNavData> = {
             isActive: (p, h) => isNavItemActive(p, h),
           },
           {
-            name: "Receiving Wallet",
+            name: "Settlement Wallet",
             icon: MoneyBill2,
-            href: "/dashboard/settings/receiving-wallet",
+            href: "/dashboard/settings/settlement-wallet",
             isActive: (p, h) => isNavItemActive(p, h),
           },
           {
-            name: "Assets",
+            name: "Payment Methods",
             icon: Cube,
-            href: "/dashboard/settings/assets",
+            href: "/dashboard/settings/payment-methods",
             isActive: (p, h) => isNavItemActive(p, h),
           },
           {

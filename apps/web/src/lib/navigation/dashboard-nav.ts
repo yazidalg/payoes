@@ -92,13 +92,13 @@ export const dashboardNav: DashboardNavItem[] = [
         icon: Building2,
       },
       {
-        title: "Receiving Wallet",
-        url: "/dashboard/settings/receiving-wallet",
+        title: "Settlement Wallet",
+        url: "/dashboard/settings/settlement-wallet",
         icon: Wallet,
       },
       {
-        title: "Assets",
-        url: "/dashboard/settings/assets",
+        title: "Payment Methods",
+        url: "/dashboard/settings/payment-methods",
         icon: Coins,
       },
       {
@@ -140,9 +140,9 @@ const pageTitles: Record<string, string> = {
   "/dashboard/developers/api-logs": "API Logs",
   "/dashboard/developers/documentation": "Documentation",
   "/dashboard/settings/organization": "Organization",
-  "/dashboard/settings/receiving-wallet": "Receiving Wallet",
-  "/dashboard/settings/assets": "Assets",
-  "/dashboard/settings/payment-methods": "Assets",
+  "/dashboard/settings/settlement-wallet": "Settlement Wallet",
+  "/dashboard/settings/payment-methods": "Payment Methods",
+  "/dashboard/settings/assets": "Payment Methods",
   "/dashboard/settings/team": "Team Members",
 };
 
