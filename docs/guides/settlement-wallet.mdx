@@ -1,13 +1,13 @@
 ---
-title: Receiving wallet
+title: Settlement wallet
 description: Configure the Stellar address where customer payments are sent.
 ---
 
-Every organization must configure a **receiving wallet**: the Stellar public key that receives payments.
+Every organization must configure a **settlement wallet**: the Stellar public key that receives payments.
 
 ## Setup
 
-Receiving wallets are configured during onboarding and can be updated in **Settings → Receiving Wallet**.
+Settlement wallets are configured during onboarding and can be updated in **Settings → Settlement Wallet**.
 
 Requirements:
 
@@ -22,7 +22,7 @@ By default, organizations accept:
 - **XLM**: native Stellar lumens
 - **USDC**: Circle USDC on Stellar
 
-The receiving wallet must be able to receive the asset being paid:
+The settlement wallet must be able to receive the asset being paid:
 
 | Asset | Requirement |
 |-------|-------------|
@@ -31,7 +31,7 @@ The receiving wallet must be able to receive the asset being paid:
 
 ## USDC trustlines
 
-USDC on Stellar is issued by Circle. Your receiving wallet needs an active trustline to the correct issuer:
+USDC on Stellar is issued by Circle. Your settlement wallet needs an active trustline to the correct issuer:
 
 | Network | Environment variable |
 |---------|---------------------|
@@ -48,12 +48,12 @@ If the merchant or customer wallet lacks a USDC trustline, checkout returns a cl
 
 ## How it affects payments
 
-When you create a payment, Payoes snapshots the receiving address into the payment record. The checkout transaction always sends funds to that address.
+When you create a payment, Payoes snapshots the settlement address into the payment record. The checkout transaction always sends funds to that address.
 
-Changing the receiving wallet after creating a payment does not affect existing pending payments.
+Changing the settlement wallet after creating a payment does not affect existing pending payments.
 
 ## Security notes
 
 - Payoes never holds private keys for merchant wallets
 - Wallet connection during setup proves you control the address
-- Use a dedicated receiving wallet rather than a personal hot wallet for production
+- Use a dedicated settlement wallet rather than a personal hot wallet for production

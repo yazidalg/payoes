@@ -328,11 +328,11 @@ Information includes:
 
 ## Wallet Management
 
-Merchants configure receiving wallets.
+Merchants configure settlement wallets.
 
 Wallet settings include:
 
-- Default Receiving Wallet
+- Default Settlement Wallet
 - Testnet/Mainnet
 - Asset Preferences
 

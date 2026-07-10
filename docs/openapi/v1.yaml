@@ -61,7 +61,7 @@ paths:
       summary: Create a payment
       description: |
         Creates a pending payment and returns a hosted checkout URL.
-        The receiving wallet and Stellar network are resolved from your organization settings.
+        The settlement wallet and Stellar network are resolved from your organization settings.
       requestBody:
         required: true
         content:
@@ -880,7 +880,7 @@ components:
           schema:
             $ref: "#/components/schemas/Error"
           example:
-            error: Receiving wallet is not configured
+            error: Settlement wallet is not configured
     NotFound:
       description: Resource not found
       content:

@@ -36,7 +36,7 @@ Failed payments can be re-confirmed if a valid transaction hash is submitted bef
 
 **Cause:** Missing USDC trustline on the customer or merchant wallet.
 
-**Fix:** Add a trustline to the correct USDC issuer for your network. See [Receiving wallet](/guides/receiving-wallet).
+**Fix:** Add a trustline to the correct USDC issuer for your network. See [Settlement wallet](/guides/settlement-wallet).
 
 ### `op_underfunded`
 
@@ -61,7 +61,7 @@ Failed payments can be re-confirmed if a valid transaction hash is submitted bef
 | Error | Cause |
 |-------|-------|
 | Payment operation not found | No matching payment op in the transaction |
-| Payment was sent to a different address | Destination does not match receiving wallet |
+| Payment was sent to a different address | Destination does not match settlement wallet |
 | Payment amount does not match | Amount differs from the payment record |
 | Payment asset does not match | Wrong asset type or issuer |
 | Transaction was not successful | Transaction failed on Stellar |
@@ -72,4 +72,4 @@ Amount comparisons normalize Stellar's 7-decimal format (`2` equals `2.0000000`)
 
 - Check the transaction on [Stellar Expert](https://stellar.expert) for the correct network
 - Review **Developers → API Logs** for request details
-- Confirm receiving wallet and trustlines are configured for the payment asset
+- Confirm settlement wallet and trustlines are configured for the payment asset

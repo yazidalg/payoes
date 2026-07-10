@@ -11,7 +11,7 @@ Payoes separates **sandbox** and **production** environments so you can test on 
 |---------|---------|------------|
 | Stellar network | Testnet | Mainnet |
 | API key prefix | `pk_test_` | `pk_live_` |
-| Receiving wallet | Testnet address | Mainnet address |
+| Settlement wallet | Testnet address | Mainnet address |
 | USDC issuer | `STELLAR_TESTNET_USDC_ISSUER` | `STELLAR_MAINNET_USDC_ISSUER` |
 
 Your organization environment is shown in the dashboard header. Sandbox mode displays a visible banner.
@@ -20,7 +20,7 @@ Your organization environment is shown in the dashboard header. Sandbox mode dis
 
 - **API keys** carry an environment. A `pk_test_` key always creates sandbox payments; `pk_live_` creates production payments.
 - **Dashboard actions** use the organization's current environment setting.
-- **Receiving wallets** are configured per environment. You need a separate wallet for sandbox and production.
+- **Settlement wallets** are configured per environment. You need a separate wallet for sandbox and production.
 
 ## Testing on testnet
 
@@ -30,7 +30,7 @@ Your organization environment is shown in the dashboard header. Sandbox mode dis
 4. Verify `tx_hash` on [Stellar Expert (testnet)](https://stellar.expert/explorer/testnet)
 
 <Note>
-  Self-payments (paying from the same wallet configured as the receiving wallet) are allowed for testing.
+  Self-payments (paying from the same wallet configured as the settlement wallet) are allowed for testing.
 </Note>
 
 ## Moving to production
@@ -43,13 +43,13 @@ Production mode accepts **real mainnet payments**. Before going live you must co
 2. Choose **Personal** or **Business** and describe what you do (business description required for business accounts)
 3. Complete the **Persona** flow (government ID + selfie/liveness)
 4. Persona automatically approves or declines — no Payoes admin review
-5. Configure a **production receiving wallet** with a mainnet address
+5. Configure a **production settlement wallet** with a mainnet address
 6. Switch the organization to production mode
 
 | Requirement | Purpose |
 |-------------|---------|
 | Persona verification | Automated identity check (personal or business) |
-| Production receiving wallet | Destination for live customer payments |
+| Production settlement wallet | Destination for live customer payments |
 
 <Warning>
   Production payments move real assets. Complete sandbox testing and identity verification first.

@@ -23,7 +23,7 @@ Each organization has:
 
 - A **sandbox** or **production** environment
 - **Identity verification** required before production mode (via Persona)
-- A **receiving wallet** per environment
+- A **settlement wallet** per environment
 - Its own API keys, payments, and webhooks
 - **Team members** with role-based access
 
@@ -41,9 +41,9 @@ Users who can access your organization dashboard. The creator becomes the **owne
 
 Owners and admins can invite teammates by email from **Settings → Team Members**. Invitees receive an email with a link to accept the invitation. They must sign in or create an account with the invited email address before joining.
 
-### Receiving wallet
+### Settlement wallet
 
-The Stellar public key where customer payments are sent. Configured during onboarding and editable in **Settings → Receiving Wallet**.
+The Stellar public key where customer payments are sent. Configured during onboarding and editable in **Settings → Settlement Wallet**.
 
 Payoes reads this address when building checkout transactions and when verifying payments on Horizon.
 
