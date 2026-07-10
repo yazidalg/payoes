@@ -1,7 +1,7 @@
-import { ApiLogsTable } from "@/components/developers/api-logs-table";
+import { ApiLogsListPanel } from "@/components/developers/api-logs-list-panel";
 import { getDashboardOrganization } from "@/lib/dashboard/get-organization";
 
 export default async function ApiLogsPage() {
   const organization = await getDashboardOrganization();
-  return <ApiLogsTable organizationId={organization.id} />;
+  return <ApiLogsListPanel organizationId={organization.id} />;
 }
