@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { getMembershipForUser } from "@/lib/organizations/members";
-import { getPrimaryOrganizationForUser } from "@/lib/organizations/wallet";
+import { getPrimaryOrganizationForUser } from "@/lib/organizations/settlement-wallet";
 import { db } from "@/lib/db";
 import { organizations } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";

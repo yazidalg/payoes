@@ -3,88 +3,88 @@ import { db } from "@/lib/db";
 import {
   organizationMembers,
   organizations,
-  organizationReceivingWallets,
+  organizationSettlementWallets,
   type Organization,
-  type OrganizationReceivingWallet,
+  type OrganizationSettlementWallet,
 } from "@/lib/db/schema";
 
-export async function getReceivingWallet(
+export async function getSettlementWallet(
   organizationId: string,
-  environment: Organization["environment"]
+  environment: Organization["environment"],
 ) {
   const [wallet] = await db
     .select()
-    .from(organizationReceivingWallets)
+    .from(organizationSettlementWallets)
     .where(
       and(
-        eq(organizationReceivingWallets.organizationId, organizationId),
-        eq(organizationReceivingWallets.environment, environment)
-      )
+        eq(organizationSettlementWallets.organizationId, organizationId),
+        eq(organizationSettlementWallets.environment, environment),
+      ),
     )
     .limit(1);
 
   return wallet ?? null;
 }
 
-export function receivingWalletNotConfiguredMessage(
-  environment: Organization["environment"]
+export function settlementWalletNotConfiguredMessage(
+  environment: Organization["environment"],
 ) {
   if (environment === "production") {
-    return "Production receiving wallet is not configured. Open Settings → Receiving Wallet, connect your mainnet wallet, and click Save changes.";
+    return "Production settlement wallet is not configured. Open Settings → Settlement Wallet and connect your Mainnet wallet.";
   }
 
-  return "Sandbox receiving wallet is not configured. Open Settings → Receiving Wallet, connect your testnet wallet, and click Save changes.";
+  return "Sandbox settlement wallet is not configured. Open Settings → Settlement Wallet and connect your Testnet wallet.";
 }
 
-export async function requireReceivingWallet(
+export async function requireSettlementWallet(
   organizationId: string,
-  environment: Organization["environment"]
+  environment: Organization["environment"],
 ) {
-  const wallet = await getReceivingWallet(organizationId, environment);
+  const wallet = await getSettlementWallet(organizationId, environment);
 
   if (!wallet) {
-    throw new Error(receivingWalletNotConfiguredMessage(environment));
+    throw new Error(settlementWalletNotConfiguredMessage(environment));
   }
 
   return wallet;
 }
 
-export async function organizationHasReceivingWallet(
+export async function organizationHasSettlementWallet(
   organizationId: string,
-  environment: Organization["environment"]
+  environment: Organization["environment"],
 ) {
-  const wallet = await getReceivingWallet(organizationId, environment);
+  const wallet = await getSettlementWallet(organizationId, environment);
   return Boolean(wallet);
 }
 
-export async function upsertReceivingWallet(input: {
+export async function upsertSettlementWallet(input: {
   organizationId: string;
   environment: Organization["environment"];
   stellarAddress: string;
   walletProvider?: string | null;
-}): Promise<OrganizationReceivingWallet> {
-  const existing = await getReceivingWallet(
+}): Promise<OrganizationSettlementWallet> {
+  const existing = await getSettlementWallet(
     input.organizationId,
-    input.environment
+    input.environment,
   );
 
   if (existing) {
     const [wallet] = await db
-      .update(organizationReceivingWallets)
+      .update(organizationSettlementWallets)
       .set({
         stellarAddress: input.stellarAddress,
         walletProvider: input.walletProvider ?? null,
         connectedAt: new Date(),
         updatedAt: new Date(),
       })
-      .where(eq(organizationReceivingWallets.id, existing.id))
+      .where(eq(organizationSettlementWallets.id, existing.id))
       .returning();
 
     return wallet;
   }
 
   const [wallet] = await db
-    .insert(organizationReceivingWallets)
+    .insert(organizationSettlementWallets)
     .values({
       organizationId: input.organizationId,
       environment: input.environment,
@@ -117,22 +117,22 @@ export async function getPrimaryOrganizationForUser(userId: string) {
   return organization ?? null;
 }
 
-export async function userHasReceivingWallet(userId: string) {
+export async function userHasSettlementWallet(userId: string) {
   const organization = await getPrimaryOrganizationForUser(userId);
 
   if (!organization) {
     return false;
   }
 
-  return organizationHasReceivingWallet(
+  return organizationHasSettlementWallet(
     organization.id,
-    organization.environment
+    organization.environment,
   );
 }
 
 export async function getOrganizationForMember(
   organizationId: string,
-  userId: string
+  userId: string,
 ) {
   const [membership] = await db
     .select()
@@ -140,8 +140,8 @@ export async function getOrganizationForMember(
     .where(
       and(
         eq(organizationMembers.organizationId, organizationId),
-        eq(organizationMembers.userId, userId)
-      )
+        eq(organizationMembers.userId, userId),
+      ),
     )
     .limit(1);
 

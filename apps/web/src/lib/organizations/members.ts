@@ -1,5 +1,5 @@
 import { randomBytes } from "crypto";
-import { and, asc, eq, gt, isNull } from "drizzle-orm";
+import { and, asc, count, desc, eq, gt, isNull } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
   organizationInvites,
@@ -155,12 +155,55 @@ async function getPendingInviteByEmail(organizationId: string, email: string) {
   return invite ?? null;
 }
 
+async function getInviteByEmail(organizationId: string, email: string) {
+  const [invite] = await db
+    .select()
+    .from(organizationInvites)
+    .where(
+      and(
+        eq(organizationInvites.organizationId, organizationId),
+        eq(organizationInvites.email, email)
+      )
+    )
+    .limit(1);
+
+  return invite ?? null;
+}
+
+async function refreshOrganizationInvite(input: {
+  inviteId: string;
+  role: "admin" | "member";
+  invitedByUserId: string;
+}) {
+  const [invite] = await db
+    .update(organizationInvites)
+    .set({
+      role: input.role,
+      token: createInviteToken(),
+      invitedBy: input.invitedByUserId,
+      expiresAt: inviteExpiresAt(),
+      acceptedAt: null,
+      revokedAt: null,
+    })
+    .where(eq(organizationInvites.id, input.inviteId))
+    .returning();
+
+  if (!invite) {
+    throw new MembersServiceError("Invite not found", "not_found");
+  }
+
+  await sendInviteEmailForRow(invite.id);
+
+  return invite;
+}
+
 async function sendInviteEmailForRow(inviteId: string) {
   const [row] = await db
     .select({
       invite: organizationInvites,
       organizationName: organizations.name,
       inviterName: users.name,
+      inviterEmail: users.email,
     })
     .from(organizationInvites)
     .innerJoin(organizations, eq(organizationInvites.organizationId, organizations.id))
@@ -181,6 +224,7 @@ async function sendInviteEmailForRow(inviteId: string) {
     organizationName: row.organizationName,
     role: row.invite.role,
     inviterName: row.inviterName,
+    inviterEmail: row.inviterEmail,
     token: row.invite.token,
     expiresAt: row.invite.expiresAt,
   });
@@ -200,6 +244,16 @@ export async function createOrganizationInvite(input: {
   if (existingPending) {
     await sendInviteEmailForRow(existingPending.id);
     return existingPending;
+  }
+
+  const existingInvite = await getInviteByEmail(input.organizationId, email);
+
+  if (existingInvite) {
+    return refreshOrganizationInvite({
+      inviteId: existingInvite.id,
+      role: input.role,
+      invitedByUserId: input.invitedByUserId,
+    });
   }
 
   const [invite] = await db
@@ -278,11 +332,19 @@ export async function revokeOrganizationInvite(input: {
 }
 
 export async function getInvitePreview(token: string) {
+  const data = await getInvitePageData(token);
+  return data?.invite ?? null;
+}
+
+export async function getInvitePageData(token: string) {
   const [row] = await db
     .select({
       invite: organizationInvites,
+      organizationId: organizations.id,
       organizationName: organizations.name,
       organizationSlug: organizations.slug,
+      logoUrl: organizations.logoUrl,
+      logoInitials: organizations.logoInitials,
     })
     .from(organizationInvites)
     .innerJoin(organizations, eq(organizationInvites.organizationId, organizations.id))
@@ -293,7 +355,7 @@ export async function getInvitePreview(token: string) {
     return null;
   }
 
-  const status = row.invite.acceptedAt
+  const status: "pending" | "accepted" | "revoked" | "expired" = row.invite.acceptedAt
     ? "accepted"
     : row.invite.revokedAt
       ? "revoked"
@@ -301,14 +363,63 @@ export async function getInvitePreview(token: string) {
         ? "expired"
         : "pending";
 
+  const teamMembers = await listOrganizationMembers(row.organizationId);
+
   return {
-    email: row.invite.email,
-    role: row.invite.role,
-    organizationName: row.organizationName,
-    organizationSlug: row.organizationSlug,
-    expiresAt: row.invite.expiresAt,
-    status,
+    invite: {
+      email: row.invite.email,
+      role: row.invite.role,
+      organizationName: row.organizationName,
+      organizationSlug: row.organizationSlug,
+      expiresAt: row.invite.expiresAt,
+      status,
+    },
+    organization: {
+      id: row.organizationId,
+      name: row.organizationName,
+      slug: row.organizationSlug,
+      logoUrl: row.logoUrl,
+      logoInitials: row.logoInitials,
+    },
+    teamMembers: teamMembers.map((member) => ({
+      id: member.userId,
+      name: member.name,
+      email: member.email,
+      image: member.image,
+    })),
   };
+}
+
+export async function getUserOrganizationCount(userId: string) {
+  const [result] = await db
+    .select({ count: count() })
+    .from(organizationMembers)
+    .where(eq(organizationMembers.userId, userId));
+
+  return result?.count ?? 0;
+}
+
+export async function getPendingInviteTokenForEmail(
+  email: string,
+): Promise<string | null> {
+  const now = new Date();
+  const normalizedEmail = normalizeEmail(email);
+
+  const [invite] = await db
+    .select({ token: organizationInvites.token })
+    .from(organizationInvites)
+    .where(
+      and(
+        eq(organizationInvites.email, normalizedEmail),
+        isNull(organizationInvites.acceptedAt),
+        isNull(organizationInvites.revokedAt),
+        gt(organizationInvites.expiresAt, now),
+      ),
+    )
+    .orderBy(desc(organizationInvites.createdAt))
+    .limit(1);
+
+  return invite?.token ?? null;
 }
 
 export async function acceptOrganizationInvite(input: {
