@@ -59,7 +59,7 @@ Accept stablecoin payments, manage invoices and checkout flows, and integrate wi
 
 ## About
 
-**Payoes** is a Stellar payments platform for organizations. Configure a receiving wallet, accept USDC and other Stellar assets, and operate payment links, checkout sessions, and invoices from a unified dashboard or REST API.
+**Payoes** is a Stellar payments platform for organizations. Configure a settlement wallet, accept USDC and other Stellar assets, and operate payment links, checkout sessions, and invoices from a unified dashboard or REST API.
 
 > **Repository:** [`payoes/payoes`](https://github.com/payoes/payoes)
 
@@ -71,7 +71,7 @@ Accept stablecoin payments, manage invoices and checkout flows, and integrate wi
 - **Organization dashboard**: payments, transactions, settlements, customers, and analytics in one workspace.
 - **Payment links & checkout sessions**: shareable links and hosted checkout flows for one-time payments.
 - **Invoicing**: create, send, finalize, and track invoices with customer management.
-- **Receiving wallet**: configure the Stellar public key and trustlines that receive organization payments.
+- **Settlement wallet**: configure the Stellar public key and trustlines that receive organization payments.
 - **Sandbox & production**: separate environments for testing and live operations.
 - **REST API (v1)**: programmatic access to customers, payments, invoices, and checkout sessions.
 - **Developer tools**: API keys, webhooks with delivery retries, and request logs.
@@ -172,7 +172,7 @@ payoes/
 | `(marketing)`  | `/`             | Public landing page                                  |
 | `(auth)`       | `/login`, `/register` | Sign in and account creation                   |
 | `dashboard`    | `/dashboard/*`  | Payments, customers, developers, and settings        |
-| `onboarding`   | `/onboarding/*` | Organization and receiving wallet setup              |
+| `onboarding`   | `/onboarding/*` | Organization and settlement wallet setup              |
 | Public checkout| `/c/[paymentId]`, `/l/[linkId]`, `/i/[invoiceId]` | Hosted payment pages |
 
 ### Workspaces

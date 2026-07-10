@@ -46,10 +46,7 @@ Do not use the em dash character (`—`) in project-facing text. Use a colon, co
 
 ```markdown
 <!-- BAD -->
-Every organization must configure a receiving wallet — the Stellar public key that receives payments.
-
-<!-- GOOD -->
-Every organization must configure a receiving wallet: the Stellar public key that receives payments.
+Every organization must configure a settlement wallet: the Stellar public key that receives payments.
 ```
 
 ## Next.js
