@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import { asc, desc, eq, inArray } from "drizzle-orm";
+import { and, asc, count, desc, eq, ilike, inArray, or, type SQL } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
   customers,
@@ -31,8 +31,9 @@ import {
   type InvoiceCurrencyCode,
 } from "@/lib/invoices/currencies";
 import {
-  buildInvoiceEmailHtml,
   buildInvoiceEmailText,
+  mapInvoicePresentationToEmailProps,
+  renderInvoiceEmailHtml,
   type InvoicePresentation,
 } from "@/lib/invoices/presentation";
 import { getHostedInvoiceUrl } from "@/lib/invoices/url";
@@ -109,6 +110,8 @@ export async function listInvoices(
       createdAt: invoices.createdAt,
       updatedAt: invoices.updatedAt,
       customerPublicId: customers.publicId,
+      customerName: customers.name,
+      customerEmail: customers.email,
     })
     .from(invoices)
     .innerJoin(customers, eq(invoices.customerId, customers.id))
@@ -122,6 +125,98 @@ export async function listInvoices(
     )
     .orderBy(desc(invoices.createdAt))
     .limit(limit);
+}
+
+export type InvoiceSortOrder = "asc" | "desc";
+
+export type ListInvoicesQuery = {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  status?: "draft" | "open" | "paid" | "void";
+  sortOrder?: InvoiceSortOrder;
+};
+
+export async function listInvoicesPaginated(
+  organizationId: string,
+  environment: Organization["environment"],
+  query: ListInvoicesQuery = {},
+) {
+  const page = Math.max(1, query.page ?? 1);
+  const pageSize = Math.min(100, Math.max(1, query.pageSize ?? 20));
+  const offset = (page - 1) * pageSize;
+  const search = query.search?.trim();
+  const sortOrder = query.sortOrder ?? "desc";
+
+  const envWhere = organizationEnvironmentWhere(
+    invoices.organizationId,
+    invoices.environment,
+    organizationId,
+    environment,
+  );
+
+  let whereClause: SQL | undefined = envWhere;
+
+  if (search) {
+    const pattern = `%${search}%`;
+    whereClause = and(
+      whereClause,
+      or(
+        ilike(invoices.publicId, pattern),
+        ilike(invoices.invoiceNumber, pattern),
+        ilike(invoices.description, pattern),
+        ilike(customers.publicId, pattern),
+        ilike(customers.name, pattern),
+        ilike(customers.email, pattern),
+      ),
+    );
+  }
+
+  if (query.status) {
+    whereClause = and(whereClause, eq(invoices.status, query.status));
+  }
+
+  const orderBy =
+    sortOrder === "asc" ? asc(invoices.createdAt) : desc(invoices.createdAt);
+
+  const baseQuery = db
+    .select({
+      id: invoices.id,
+      publicId: invoices.publicId,
+      organizationId: invoices.organizationId,
+      customerId: invoices.customerId,
+      checkoutSessionId: invoices.checkoutSessionId,
+      amount: invoices.amount,
+      currencyCode: invoices.currencyCode,
+      description: invoices.description,
+      metadata: invoices.metadata,
+      status: invoices.status,
+      dueAt: invoices.dueAt,
+      paidAt: invoices.paidAt,
+      createdAt: invoices.createdAt,
+      updatedAt: invoices.updatedAt,
+      customerPublicId: customers.publicId,
+      customerName: customers.name,
+      customerEmail: customers.email,
+    })
+    .from(invoices)
+    .innerJoin(customers, eq(invoices.customerId, customers.id))
+    .where(whereClause)
+    .orderBy(orderBy);
+
+  const [rows, totalRows] = await Promise.all([
+    baseQuery.limit(pageSize).offset(offset),
+    db
+      .select({ count: count() })
+      .from(invoices)
+      .innerJoin(customers, eq(invoices.customerId, customers.id))
+      .where(whereClause),
+  ]);
+
+  return {
+    invoices: await serializeInvoices(rows),
+    total: totalRows[0]?.count ?? 0,
+  };
 }
 
 export async function getInvoiceByPublicId(publicId: string) {
@@ -533,7 +628,7 @@ export async function getPublicInvoiceDetail(publicId: string) {
   };
 }
 
-export { buildInvoiceEmailHtml, buildInvoiceEmailText };
+export { buildInvoiceEmailText, mapInvoicePresentationToEmailProps, renderInvoiceEmailHtml };
 
 export async function voidInvoice(
   publicId: string,
@@ -879,6 +974,8 @@ export async function serializeInvoices(
         checkoutSessionPublicId: sessionPublicId,
         checkoutUrl: sessionPublicId ? getCheckoutSessionUrl(sessionPublicId) : null,
         hostedInvoiceUrl: getHostedInvoiceUrl(row.publicId),
+        customerName: row.customerName ?? null,
+        customerEmail: row.customerEmail ?? null,
       }
     );
   });

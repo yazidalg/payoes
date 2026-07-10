@@ -1,4 +1,8 @@
+import { DEFAULT_AUTH_URL } from "@/constants/app";
 import { formatInvoiceAmount } from "@/lib/invoices/amount";
+import { renderEmail } from "@payoes/email/render";
+import InvoiceEmail from "@payoes/email/templates/invoice";
+import { createElement } from "react";
 
 export type InvoicePresentation = {
   invoiceNumber: string;
@@ -34,7 +38,7 @@ export type InvoicePresentation = {
 
 function formatDate(date: Date | null) {
   if (!date) {
-    return "—";
+    return "N/A";
   }
 
   return date.toLocaleDateString("en-US", {
@@ -44,64 +48,55 @@ function formatDate(date: Date | null) {
   });
 }
 
-export function buildInvoiceEmailHtml(input: InvoicePresentation) {
-  const payUrl = input.checkoutUrl ?? input.hostedInvoiceUrl ?? "#";
-  const itemRows = input.items
-    .map(
-      (item) => `
-        <tr>
-          <td style="padding:12px 0;border-bottom:1px solid #e5e7eb;">${item.description}</td>
-          <td style="padding:12px 8px;border-bottom:1px solid #e5e7eb;text-align:right;">${item.quantity}</td>
-          <td style="padding:12px 8px;border-bottom:1px solid #e5e7eb;text-align:right;">${formatInvoiceAmount(item.unitAmount, input.currencyCode)}</td>
-          <td style="padding:12px 0;border-bottom:1px solid #e5e7eb;text-align:right;">${formatInvoiceAmount(item.lineAmount, input.currencyCode)}</td>
-        </tr>
-      `
-    )
-    .join("");
+function getWordmarkUrl() {
+  const appUrl = process.env.AUTH_URL ?? DEFAULT_AUTH_URL;
+  return `${appUrl.replace(/\/$/, "")}/logo.svg`;
+}
 
-  return `
-    <div style="font-family:Inter,Segoe UI,Arial,sans-serif;background:#f8fafc;padding:32px 16px;">
-      <div style="max-width:640px;margin:0 auto;background:#ffffff;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;">
-        <div style="padding:28px 32px 20px;border-bottom:1px solid #e5e7eb;">
-          <p style="margin:0 0 8px;font-size:13px;color:#64748b;text-transform:uppercase;letter-spacing:0.08em;">Invoice from ${input.organization.name}</p>
-          <h1 style="margin:0;font-size:28px;color:#0f172a;">${formatInvoiceAmount(input.amount, input.currencyCode)} due</h1>
-          <p style="margin:8px 0 0;color:#475569;">Invoice ${input.invoiceNumber} · Due ${formatDate(input.dueAt)}</p>
-        </div>
-        <div style="padding:24px 32px;">
-          <p style="margin:0 0 16px;color:#334155;">
-            Hi${input.customer.name ? ` ${input.customer.name}` : ""},
-          </p>
-          <p style="margin:0 0 24px;color:#334155;line-height:1.6;">
-            ${input.organization.name} sent you an invoice for ${formatInvoiceAmount(input.amount, input.currencyCode)}.
-            ${input.description ? `Memo: ${input.description}` : ""}
-          </p>
-          <table style="width:100%;border-collapse:collapse;font-size:14px;color:#0f172a;">
-            <thead>
-              <tr>
-                <th style="text-align:left;padding-bottom:8px;color:#64748b;font-weight:600;">Description</th>
-                <th style="text-align:right;padding-bottom:8px;color:#64748b;font-weight:600;">Qty</th>
-                <th style="text-align:right;padding-bottom:8px;color:#64748b;font-weight:600;">Unit price</th>
-                <th style="text-align:right;padding-bottom:8px;color:#64748b;font-weight:600;">Amount</th>
-              </tr>
-            </thead>
-            <tbody>${itemRows}</tbody>
-          </table>
-          <div style="margin-top:20px;text-align:right;font-size:15px;font-weight:600;color:#0f172a;">
-            Total due: ${formatInvoiceAmount(input.amount, input.currencyCode)}
-          </div>
-          <div style="margin-top:28px;">
-            <a href="${payUrl}" style="display:inline-block;padding:12px 18px;background:#111827;color:#ffffff;text-decoration:none;border-radius:8px;font-weight:600;">
-              Pay invoice
-            </a>
-          </div>
-          <p style="margin:24px 0 0;font-size:13px;color:#64748b;line-height:1.6;">
-            You can also view this invoice online:
-            <a href="${input.hostedInvoiceUrl ?? payUrl}" style="color:#2563eb;">${input.hostedInvoiceUrl ?? payUrl}</a>
-          </p>
-        </div>
-      </div>
-    </div>
-  `.trim();
+export function mapInvoicePresentationToEmailProps(
+  input: InvoicePresentation,
+  email: string,
+) {
+  const payUrl = input.checkoutUrl ?? input.hostedInvoiceUrl ?? "#";
+
+  return {
+    email,
+    invoiceNumber: input.invoiceNumber,
+    amountDue: formatInvoiceAmount(input.amount, input.currencyCode),
+    dueDateLabel: formatDate(input.dueAt),
+    organizationName: input.organization.name,
+    customerName: input.customer.name,
+    description: input.description,
+    items: input.items.map((item) => ({
+      description: item.description,
+      quantity: item.quantity,
+      unitAmount: formatInvoiceAmount(item.unitAmount, input.currencyCode),
+      lineAmount: formatInvoiceAmount(item.lineAmount, input.currencyCode),
+    })),
+    payUrl,
+    hostedInvoiceUrl: input.hostedInvoiceUrl,
+    environmentLabel: input.environmentLabel ?? null,
+    wordmarkUrl: getWordmarkUrl(),
+  };
+}
+
+export function createInvoiceEmailElement(
+  input: InvoicePresentation,
+  email?: string,
+) {
+  return createElement(
+    InvoiceEmail,
+    mapInvoicePresentationToEmailProps(
+      input,
+      email ?? input.customer.email ?? "customer@example.com",
+    ),
+  );
+}
+
+export async function renderInvoiceEmailHtml(input: InvoicePresentation) {
+  const { html } = await renderEmail(createInvoiceEmailElement(input));
+
+  return html;
 }
 
 export function buildInvoiceEmailText(input: InvoicePresentation) {
