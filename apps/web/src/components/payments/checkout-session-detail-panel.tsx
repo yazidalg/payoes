@@ -1,21 +1,31 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowLeftIcon } from "lucide-react";
-import { toast } from "sonner";
 import { AlertBlock } from "@/components/shared/alert-block";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { useAsyncData } from "@/hooks/use-async-data";
 import { getPaymentsHubHref } from "@/lib/navigation/payments-tabs";
-import { formatAssetAmount, type CheckoutSessionRow } from "@/lib/payments/types";
+import type { CheckoutSessionRow } from "@/lib/payments/types";
+import { CheckoutSessionDetailSkeleton } from "@/ui/payments/checkout-session-detail-skeleton";
+import { CheckoutSessionDetailStats } from "@/ui/payments/checkout-session-detail-stats";
+import { CheckoutSessionDetailsColumn } from "@/ui/payments/checkout-session-details-column";
+import { CheckoutSessionDetailsSection } from "@/ui/payments/checkout-session-details-section";
+import {
+  formatCheckoutSessionAmount,
+  getCheckoutSessionStatusVariant,
+} from "@/ui/payments/payment-formatters";
+import { ShareLinkSection } from "@/ui/payments/share-link-section";
+import { useSetDashboardPageHeader } from "@/ui/layout/dashboard-page-header-context";
+import {
+  Button,
+  MenuItem,
+  Popover,
+  StatusBadge,
+  useCopyToClipboard,
+} from "@dub/ui";
+import { ChevronRight, Copy, CreditCard, Dots, Link4 } from "@dub/ui/icons";
+import { Command } from "cmdk";
+import { toast } from "sonner";
 
 export function CheckoutSessionDetailPanel({
   organizationId,
@@ -26,7 +36,7 @@ export function CheckoutSessionDetailPanel({
 }) {
   const fetchSession = useCallback(async () => {
     const response = await fetch(
-      `/api/organizations/${organizationId}/checkout-sessions/${sessionId}`
+      `/api/organizations/${organizationId}/checkout-sessions/${sessionId}`,
     );
     const data = (await response.json()) as CheckoutSessionRow & { error?: string };
 
@@ -42,126 +52,139 @@ export function CheckoutSessionDetailPanel({
     sessionId,
   ]);
 
-  async function copyCheckoutUrl(url: string) {
-    await navigator.clipboard.writeText(url);
-    toast.success("Checkout link copied");
-  }
+  const headerOverride = useMemo(() => {
+    if (!session) {
+      return null;
+    }
+
+    return {
+      title: (
+        <div className="flex min-w-0 items-center gap-1.5">
+          <Link
+            href={getPaymentsHubHref("checkout-sessions")}
+            aria-label="Back to checkout sessions"
+            title="Back to checkout sessions"
+            className="bg-bg-subtle hover:bg-bg-emphasis flex size-8 shrink-0 items-center justify-center rounded-lg transition-[transform,background-color] duration-150 active:scale-95"
+          >
+            <CreditCard className="size-4" />
+          </Link>
+          <ChevronRight className="text-content-muted size-2.5 shrink-0 [&_*]:stroke-2" />
+          <span className="text-content-emphasis min-w-0 truncate text-base font-semibold">
+            {formatCheckoutSessionAmount(session)}
+          </span>
+          <StatusBadge
+            variant={getCheckoutSessionStatusVariant(session.status)}
+            icon={null}
+          >
+            {session.status}
+          </StatusBadge>
+        </div>
+      ),
+      controls: <CheckoutSessionDetailMenu session={session} />,
+    };
+  }, [session]);
+
+  useSetDashboardPageHeader(headerOverride);
 
   if (isLoading) {
-    return (
-      <div className="text-sm text-muted-foreground">Loading checkout session...</div>
-    );
+    return <CheckoutSessionDetailSkeleton />;
   }
 
   if (error || !session) {
     return (
       <div className="space-y-4">
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          render={<Link href={getPaymentsHubHref()} />}
+        <Link
+          href={getPaymentsHubHref("checkout-sessions")}
+          className="bg-bg-subtle hover:bg-bg-emphasis inline-flex size-8 items-center justify-center rounded-lg transition-colors"
         >
-          <ArrowLeftIcon />
-          Back to payments
-        </Button>
+          <CreditCard className="size-4" />
+        </Link>
         <AlertBlock type="error">{error ?? "Checkout session not found"}</AlertBlock>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="space-y-3">
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          render={<Link href={getPaymentsHubHref()} />}
-        >
-          <ArrowLeftIcon />
-          Back to payments
-        </Button>
-        <div>
-          <h1 className="font-mono text-2xl font-semibold tracking-tight">
-            {session.id}
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Checkout session details and hosted checkout link.
-          </p>
+    <div className="space-y-6 pb-10">
+      <CheckoutSessionDetailStats session={session} />
+
+      <div className="@3xl/page:grid-cols-[minmax(440px,1fr)_minmax(0,360px)] grid grid-cols-1 gap-6">
+        <div className="@3xl/page:order-2">
+          <CheckoutSessionDetailsColumn session={session} />
         </div>
-      </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Session</CardTitle>
-            <CardDescription>Status and linked payment intent.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3 text-sm">
-            <div className="flex justify-between gap-4">
-              <span className="text-muted-foreground">Status</span>
-              <span className="capitalize">{session.status}</span>
-            </div>
-            <div className="flex justify-between gap-4">
-              <span className="text-muted-foreground">Payment status</span>
-              <span className="capitalize">{session.payment_status ?? "N/A"}</span>
-            </div>
-            <div className="flex justify-between gap-4">
-              <span className="text-muted-foreground">Amount</span>
-              <span>
-                {session.amount
-                  ? formatAssetAmount(session.amount, session.settlement_asset)
-                  : "N/A"}
-              </span>
-            </div>
-            <div className="flex justify-between gap-4">
-              <span className="text-muted-foreground">Customer</span>
-              <span className="font-mono text-xs">{session.customer_id ?? "N/A"}</span>
-            </div>
-            <div className="flex justify-between gap-4">
-              <span className="text-muted-foreground">Payment intent</span>
-              {session.payment_intent_id ? (
-                <Link
-                  href={`/dashboard/payments/${session.payment_intent_id}`}
-                  className="font-mono text-xs hover:underline"
-                >
-                  {session.payment_intent_id}
-                </Link>
-              ) : (
-                <span>N/A</span>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+        <div className="@3xl/page:order-1 space-y-6">
+          <CheckoutSessionDetailsSection session={session} />
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Checkout</CardTitle>
-            <CardDescription>Share this link with your customer.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="break-all font-mono text-xs">{session.checkout_url}</p>
+          <ShareLinkSection
+            title="Checkout"
+            description="Share this link with your customer."
+            url={session.checkout_url}
+            copyLabel="Copy checkout link"
+            copySuccessMessage="Checkout link copied"
+          >
             <Button
               type="button"
               variant="outline"
-              onClick={() => void copyCheckoutUrl(session.checkout_url)}
-            >
-              Copy checkout link
-            </Button>
-            {session.success_url ? (
-              <p className="text-sm text-muted-foreground">
-                Success URL: {session.success_url}
-              </p>
-            ) : null}
-            {session.cancel_url ? (
-              <p className="text-sm text-muted-foreground">
-                Cancel URL: {session.cancel_url}
-              </p>
-            ) : null}
-          </CardContent>
-        </Card>
+              text="Open checkout"
+              className="h-9"
+              render={
+                <a href={session.checkout_url} target="_blank" rel="noreferrer" />
+              }
+            />
+          </ShareLinkSection>
+        </div>
       </div>
     </div>
+  );
+}
+
+function CheckoutSessionDetailMenu({ session }: { session: CheckoutSessionRow }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [, copyToClipboard] = useCopyToClipboard();
+
+  return (
+    <Popover
+      openPopover={isOpen}
+      setOpenPopover={setIsOpen}
+      content={
+        <Command tabIndex={0} loop className="focus:outline-none">
+          <Command.List className="flex w-screen flex-col gap-1 p-1.5 text-sm focus-visible:outline-none sm:w-auto sm:min-w-[180px]">
+            <MenuItem
+              as={Command.Item}
+              icon={Copy}
+              onSelect={() => {
+                toast.promise(copyToClipboard(session.id), {
+                  success: "Copied session ID",
+                });
+                setIsOpen(false);
+              }}
+            >
+              Copy session ID
+            </MenuItem>
+            <MenuItem
+              as={Command.Item}
+              icon={Link4}
+              onSelect={() => {
+                toast.promise(copyToClipboard(session.checkout_url), {
+                  success: "Checkout link copied",
+                });
+                setIsOpen(false);
+              }}
+            >
+              Copy checkout link
+            </MenuItem>
+          </Command.List>
+        </Command>
+      }
+      align="end"
+    >
+      <Button
+        type="button"
+        className="h-9 whitespace-nowrap px-2"
+        variant="outline"
+        icon={<Dots className="h-4 w-4 shrink-0" />}
+      />
+    </Popover>
   );
 }
