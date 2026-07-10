@@ -15,8 +15,8 @@ async function clearWalletSession() {
   }
 }
 
-export function useReceivingWalletConnection(
-  environment: Organization["environment"]
+export function useSettlementWalletConnection(
+  environment: Organization["environment"],
 ) {
   const [pendingAddress, setPendingAddress] = useState<string | null>(null);
   const [walletProvider, setWalletProvider] = useState<string | null>(null);
@@ -56,7 +56,7 @@ export function useReceivingWalletConnection(
 
     if (networkPassphrase !== expectedPassphrase) {
       setNetworkError(
-        `Switch your wallet to ${getNetworkLabel(environment)} before continuing.`
+        `Switch your wallet to ${getNetworkLabel(environment)} before continuing.`,
       );
       return false;
     }
@@ -91,7 +91,7 @@ export function useReceivingWalletConnection(
       setPendingAddress(connectedAddress);
       setWalletProvider(provider);
 
-      return connectedAddress;
+      return { address: connectedAddress, provider };
     } catch {
       setConnectError("Wallet connection was cancelled or failed. Try again.");
       return null;

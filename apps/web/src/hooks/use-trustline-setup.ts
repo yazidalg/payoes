@@ -33,7 +33,7 @@ export function useTrustlineSetup({
   const [isDismissed, setIsDismissed] = useState(false);
   const lastCheckedAddressRef = useRef<string | null>(null);
 
-  const trustlinesUrl = `/api/organizations/${organizationId}/receiving-wallet/trustlines`;
+  const trustlinesUrl = `/api/organizations/${organizationId}/settlement-wallet/trustlines`;
 
   const checkTrustlines = useCallback(async () => {
     if (!address || !enabled) {

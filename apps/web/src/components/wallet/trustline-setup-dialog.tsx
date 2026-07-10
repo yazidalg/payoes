@@ -44,7 +44,7 @@ export function TrustlineSetupDialog({
         }
       }}
       title="Add trustlines to receive payments"
-      description="Your receiving wallet is missing trustlines for assets enabled in Settings → Assets. Add them now so customers can pay you without errors."
+      description="Your settlement wallet is missing trustlines for assets enabled in Settings → Payment Methods. Add them so customers can pay without errors."
       preventDefaultClose={isAdding}
       footer={
         <>
