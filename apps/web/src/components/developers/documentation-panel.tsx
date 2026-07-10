@@ -1,67 +1,63 @@
-import { BookOpenIcon, ExternalLinkIcon, RocketIcon } from "lucide-react";
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
+"use client";
+
+import { useMemo } from "react";
 import { getDocsQuickstartUrl, getDocsUrl } from "@/lib/docs/url";
+import { useSetDashboardPageHeader } from "@/ui/layout/dashboard-page-header-context";
+import { ArrowUpRight, Book2, Bolt } from "@dub/ui/icons";
 
 export function DocumentationPanel() {
   const docsUrl = getDocsUrl();
   const quickstartUrl = getDocsQuickstartUrl();
 
+  const headerOverride = useMemo(
+    () => ({
+      titleInfo: {
+        title: "API reference, guides, and integration examples for Payoes.",
+      },
+    }),
+    [],
+  );
+
+  useSetDashboardPageHeader(headerOverride);
+
+  const links = [
+    {
+      icon: Book2,
+      title: "Developer docs",
+      description: "Hosted on Mintlify with guides, OpenAPI reference, and copy-paste examples.",
+      href: docsUrl,
+      cta: "Open",
+    },
+    {
+      icon: Bolt,
+      title: "Quickstart",
+      description: "Create your first payment with the REST API and complete checkout on Stellar testnet.",
+      href: quickstartUrl,
+      cta: "View",
+    },
+  ] as const;
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Documentation</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          API reference, guides, and integration examples for Payoes.
-        </p>
-      </div>
+      <div className="divide-border-subtle border-border-subtle flex max-w-xl flex-col divide-y rounded-lg border">
+        {links.map(({ icon: Icon, title, description, href, cta }) => (
+          <div key={title} className="flex items-center justify-between gap-4 px-3 py-3">
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="flex size-8 shrink-0 items-center justify-center rounded-md bg-black/5">
+                <Icon variant="fill" className="size-4" />
+              </div>
+              <div className="min-w-0">
+                <div className="text-content-default text-sm font-medium">{title}</div>
+                <p className="text-content-subtle text-xs font-medium">{description}</p>
+              </div>
+            </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <div className="rounded-xl border border-border/80 p-5">
-          <div className="flex size-10 items-center justify-center rounded-lg bg-muted">
-            <BookOpenIcon className="size-5 text-muted-foreground" />
+            <a href={href} target="_blank" rel="noopener noreferrer" className="border-subtle bg-bg-default hover:bg-bg-muted flex h-8 shrink-0 items-center gap-1 rounded-lg border px-2.5 text-sm font-medium transition-transform active:scale-[0.98]">
+              {cta}
+              <ArrowUpRight className="size-3.5" />
+            </a>
           </div>
-          <h2 className="mt-4 font-medium">Developer docs</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Hosted on Mintlify with guides, OpenAPI reference, and copy-paste
-            examples.
-          </p>
-          <Button className="mt-4" render={<Link href={docsUrl} target="_blank" />}>
-            Open documentation
-            <ExternalLinkIcon className="size-4" />
-          </Button>
-        </div>
-
-        <div className="rounded-xl border border-border/80 p-5">
-          <div className="flex size-10 items-center justify-center rounded-lg bg-muted">
-            <RocketIcon className="size-5 text-muted-foreground" />
-          </div>
-          <h2 className="mt-4 font-medium">Quickstart</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Create your first payment with the REST API and complete checkout on
-            Stellar testnet.
-          </p>
-          <Button
-            className="mt-4"
-            variant="outline"
-            render={<Link href={quickstartUrl} target="_blank" />}
-          >
-            View quickstart
-            <ExternalLinkIcon className="size-4" />
-          </Button>
-        </div>
-      </div>
-
-      <div className="rounded-xl border border-border/80 bg-muted/30 p-4 text-sm text-muted-foreground">
-        Documentation is served at{" "}
-        <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">
-          {docsUrl}
-        </code>
-        . Configure{" "}
-        <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">
-          NEXT_PUBLIC_DOCS_URL
-        </code>{" "}
-        in your environment to point to your Mintlify deployment.
+        ))}
       </div>
     </div>
   );
