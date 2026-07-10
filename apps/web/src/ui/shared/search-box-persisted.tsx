@@ -125,25 +125,40 @@ export function SearchBoxPersisted({
   ...props
 }: { urlParam?: string } & Partial<SearchBoxProps>) {
   const { queryParams, searchParams } = useRouterStuff();
-  const [value, setValue] = useState(searchParams.get(urlParam) ?? "");
-  const [debouncedValue, setDebouncedValue] = useState(value);
+  const searchFromUrl = searchParams.get(urlParam) ?? "";
+  const pendingUrlWrite = useRef<string | null>(null);
 
+  const [value, setValue] = useState(searchFromUrl);
+  const [debouncedValue, setDebouncedValue] = useState(searchFromUrl);
+
+  // Push debounced input to the URL.
   useEffect(() => {
-    if ((searchParams.get(urlParam) ?? "") !== debouncedValue) {
+    if (searchFromUrl !== debouncedValue) {
+      pendingUrlWrite.current = debouncedValue;
       queryParams(
         debouncedValue === ""
           ? { del: [urlParam, "page"] }
           : { set: { [urlParam]: debouncedValue }, del: "page" },
       );
     }
-  }, [debouncedValue, queryParams, searchParams, urlParam]);
+  }, [debouncedValue, queryParams, searchFromUrl, urlParam]);
 
+  // Pull URL changes into the input when the user is not mid-typing.
   useEffect(() => {
-    const search = searchParams.get(urlParam);
-    if ((search ?? "") !== value && value === debouncedValue) {
-      setValue(search ?? "");
+    if (pendingUrlWrite.current !== null) {
+      if (searchFromUrl === pendingUrlWrite.current) {
+        pendingUrlWrite.current = null;
+      }
+      return;
     }
-  }, [debouncedValue, searchParams, urlParam, value]);
+
+    if (searchFromUrl !== value && value === debouncedValue) {
+      setValue(searchFromUrl);
+      setDebouncedValue(searchFromUrl);
+    }
+    // Only sync when the URL search param changes, not on every keystroke.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchFromUrl]);
 
   return (
     <SearchBox
