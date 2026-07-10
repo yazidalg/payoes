@@ -1,17 +1,27 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useEditCustomerSheet } from "@/components/customers/use-edit-customer-sheet";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { useAsyncData } from "@/hooks/use-async-data";
-import type { CustomerDetail } from "@/lib/customers/types";
+import type { CustomerDetail, CustomerRow } from "@/lib/customers/types";
 import { formatCustomerLabel } from "@/lib/customers/types";
+import { CustomerDetailSkeleton } from "@/ui/customers/customer-detail-skeleton";
 import { CustomerDetailsColumn } from "@/ui/customers/customer-details-column";
 import { CustomerPaymentsTable } from "@/ui/customers/customer-payments-table";
 import { CustomerStats } from "@/ui/customers/customer-stats";
-import { Button } from "@dub/ui";
-import { ChevronRight, Users } from "@dub/ui/icons";
+import { useSetDashboardPageHeader } from "@/ui/layout/dashboard-page-header-context";
+import {
+  Button,
+  MenuItem,
+  Popover,
+  useCopyToClipboard,
+} from "@dub/ui";
+import { ChevronRight, Copy, Dots, Users } from "@dub/ui/icons";
+import { Command } from "cmdk";
+import { Pencil } from "lucide-react";
+import { toast } from "sonner";
 
 export function CustomerDetailPanel({
   organizationId,
@@ -20,7 +30,11 @@ export function CustomerDetailPanel({
   organizationId: string;
   customerId: string;
 }) {
-  const router = useRouter();
+  const [refreshKey, setRefreshKey] = useState(0);
+  const { openEditCustomer, EditCustomerSheet } = useEditCustomerSheet({
+    organizationId,
+    onUpdated: () => setRefreshKey((current) => current + 1),
+  });
 
   const fetchDetail = useCallback(async () => {
     const response = await fetch(
@@ -38,9 +52,49 @@ export function CustomerDetailPanel({
   const { data: detail, error, isLoading } = useAsyncData(fetchDetail, [
     organizationId,
     customerId,
+    refreshKey,
   ]);
 
-  if (error || (!isLoading && !detail)) {
+  const headerOverride = useMemo(() => {
+    if (!detail?.customer) {
+      return null;
+    }
+
+    const customer = detail.customer;
+
+    return {
+      title: (
+        <div className="flex min-w-0 items-center gap-1.5">
+          <Link
+            href="/dashboard/customers"
+            aria-label="Back to customers"
+            title="Back to customers"
+            className="bg-bg-subtle hover:bg-bg-emphasis flex size-8 shrink-0 items-center justify-center rounded-lg transition-[transform,background-color] duration-150 active:scale-95"
+          >
+            <Users className="size-4" />
+          </Link>
+          <ChevronRight className="text-content-muted size-2.5 shrink-0 [&_*]:stroke-2" />
+          <span className="text-content-emphasis min-w-0 truncate text-base font-semibold">
+            {formatCustomerLabel(customer)}
+          </span>
+        </div>
+      ),
+      controls: (
+        <CustomerDetailMenu
+          customer={customer}
+          onEdit={() => openEditCustomer(customer)}
+        />
+      ),
+    };
+  }, [detail?.customer, openEditCustomer]);
+
+  useSetDashboardPageHeader(headerOverride);
+
+  if (isLoading) {
+    return <CustomerDetailSkeleton />;
+  }
+
+  if (error || !detail) {
     return (
       <div className="space-y-4">
         <Link
@@ -55,69 +109,99 @@ export function CustomerDetailPanel({
   }
 
   return (
-    <div className="space-y-6 pb-10">
-      <div className="flex items-center gap-1.5">
-        <Link
-          href="/dashboard/customers"
-          aria-label="Back to customers"
-          title="Back to customers"
-          className="bg-bg-subtle hover:bg-bg-emphasis flex size-8 shrink-0 items-center justify-center rounded-lg transition-colors duration-150 active:scale-95"
-        >
-          <Users className="size-4" />
-        </Link>
-        <ChevronRight className="text-content-muted size-2.5 shrink-0 [&_*]:stroke-2" />
-        <div className="min-w-0">
-          {detail ? (
-            <>
-              <h2 className="text-content-emphasis truncate text-base font-semibold">
-                {formatCustomerLabel(detail.customer)}
-              </h2>
-              <p className="truncate font-mono text-xs text-neutral-500">
-                {detail.customer.id}
-              </p>
-            </>
-          ) : (
-            <div className="space-y-1">
-              <div className="h-5 w-40 animate-pulse rounded bg-neutral-200" />
-              <div className="h-3 w-28 animate-pulse rounded bg-neutral-200" />
+    <>
+      <EditCustomerSheet />
+
+      <div className="space-y-6 pb-10">
+        <CustomerStats payments={detail.payments} />
+
+        <div className="@3xl/page:grid-cols-[minmax(440px,1fr)_minmax(0,360px)] grid grid-cols-1 gap-6">
+          <div className="@3xl/page:order-2">
+            <CustomerDetailsColumn customer={detail.customer} />
+          </div>
+
+          <div className="@3xl/page:order-1">
+            <div className="border-border-subtle overflow-hidden rounded-xl border bg-neutral-100">
+              <div className="border-border-subtle border-b px-4 py-3">
+                <h2 className="text-content-emphasis text-sm font-semibold">
+                  Payments
+                </h2>
+              </div>
+              <div className="border-border-subtle -mx-px -mb-px rounded-xl border bg-white">
+                <CustomerPaymentsTable payments={detail.payments} />
+              </div>
             </div>
-          )}
-        </div>
-        {detail ? (
-          <Button
-            type="button"
-            variant="secondary"
-            text="All customers"
-            className="ml-auto h-8 w-fit"
-            onClick={() => router.push("/dashboard/customers")}
-          />
-        ) : null}
-      </div>
-
-      <CustomerStats payments={detail?.payments} isLoading={isLoading} />
-
-      <div className="@3xl/page:grid-cols-[minmax(0,1fr)_minmax(280px,360px)] grid grid-cols-1 gap-6">
-        <div className="@3xl/page:order-1">
-          <section className="flex flex-col gap-3">
-            <h2 className="text-lg font-semibold text-neutral-900">
-              Payment history
-            </h2>
-            <div className="border-border-subtle overflow-hidden rounded-xl border bg-white">
-              <CustomerPaymentsTable
-                payments={detail?.payments}
-                isLoading={isLoading}
-              />
-            </div>
-          </section>
-        </div>
-
-        <div className="@3xl/page:order-2">
-          <CustomerDetailsColumn
-            customer={detail?.customer}
-            isLoading={isLoading}
-          />
+          </div>
         </div>
       </div>
-    </div>
+    </>
+  );
+}
+
+function CustomerDetailMenu({
+  customer,
+  onEdit,
+}: {
+  customer: CustomerRow;
+  onEdit: () => void;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [, copyToClipboard] = useCopyToClipboard();
+
+  return (
+    <Popover
+      openPopover={isOpen}
+      setOpenPopover={setIsOpen}
+      content={
+        <Command tabIndex={0} loop className="focus:outline-none">
+          <Command.List className="flex w-screen flex-col gap-1 p-1.5 text-sm focus-visible:outline-none sm:w-auto sm:min-w-[160px]">
+            <MenuItem
+              as={Command.Item}
+              icon={Pencil}
+              onSelect={() => {
+                onEdit();
+                setIsOpen(false);
+              }}
+            >
+              Edit customer
+            </MenuItem>
+            <MenuItem
+              as={Command.Item}
+              icon={Copy}
+              onSelect={() => {
+                toast.promise(copyToClipboard(customer.id), {
+                  success: "Copied customer ID",
+                });
+                setIsOpen(false);
+              }}
+            >
+              Copy ID
+            </MenuItem>
+            {customer.email ? (
+              <MenuItem
+                as={Command.Item}
+                icon={Copy}
+                onSelect={() => {
+                  toast.promise(copyToClipboard(customer.email!), {
+                    success: "Copied email",
+                  });
+                  setIsOpen(false);
+                }}
+              >
+                Copy email
+              </MenuItem>
+            ) : null}
+          </Command.List>
+        </Command>
+      }
+      align="end"
+    >
+      <Button
+        type="button"
+        className="h-9 whitespace-nowrap px-2"
+        variant="outline"
+        icon={<Dots className="h-4 w-4 shrink-0" />}
+      />
+    </Popover>
   );
 }

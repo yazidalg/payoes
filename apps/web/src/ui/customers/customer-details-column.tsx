@@ -10,10 +10,11 @@ import { Wallet } from "lucide-react";
 import { cn } from "@dub/utils";
 import type { HTMLProps } from "react";
 import { CustomerAvatar } from "./customer-avatar";
+import { SmoothSkeleton } from "@/ui/shared/smooth-skeleton";
 
 export function CustomerDetailsColumn({
   customer,
-  isLoading,
+  isLoading = false,
 }: {
   customer?: CustomerRow;
   isLoading?: boolean;
@@ -84,36 +85,36 @@ export function CustomerDetailsColumn({
                 className="size-10 border border-neutral-100"
               />
             ) : (
-              <div className="size-10 animate-pulse rounded-full bg-neutral-200" />
+              <SmoothSkeleton className="size-10 rounded-full" />
             )}
           </div>
 
           <div className="mt-3">
             {customer ? (
-              <div className="flex flex-col gap-1">
+              <div className="flex flex-col items-start gap-1 text-left">
                 <span className="text-content-emphasis text-base font-semibold">
                   {formatCustomerLabel(customer)}
                 </span>
                 <CopyText
                   value={customer.id}
-                  className="font-mono text-xs text-neutral-500"
+                  className="block w-fit text-left font-mono text-xs text-neutral-500"
                 >
                   {customer.id}
                 </CopyText>
               </div>
             ) : (
-              <div className="h-7 w-24 animate-pulse rounded bg-neutral-200" />
+              <div className="space-y-2">
+                <SmoothSkeleton className="h-5 w-32" />
+                <SmoothSkeleton className="h-3 w-24" />
+              </div>
             )}
           </div>
         </div>
 
         <div className="flex flex-col gap-2 p-4">
           {isLoading && !customer
-            ? Array.from({ length: 2 }).map((_, index) => (
-                <div
-                  key={index}
-                  className="h-4 w-32 animate-pulse rounded bg-neutral-200"
-                />
+            ? ["w-32", "w-40", "w-28"].map((width) => (
+                <SmoothSkeleton key={width} className={cn("h-4", width)} />
               ))
             : basicFields.map(({ id, icon, text }) => (
                 <div key={id} className="text-content-default flex items-center gap-1.5">
@@ -127,7 +128,7 @@ export function CustomerDetailsColumn({
           <DetailHeading>Notes</DetailHeading>
           <div className="mt-2.5 text-xs text-neutral-600">
             {isLoading && !customer ? (
-              <div className="h-10 w-full animate-pulse rounded bg-neutral-100" />
+              <SmoothSkeleton className="h-16 w-full rounded-lg" />
             ) : (
               <p className="whitespace-pre-wrap break-words">
                 {customer?.notes?.trim() ? customer.notes : "No notes yet."}

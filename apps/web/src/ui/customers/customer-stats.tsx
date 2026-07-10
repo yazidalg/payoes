@@ -1,11 +1,12 @@
 import type { CustomerPaymentRow } from "@/lib/customers/types";
 import { TimestampTooltip } from "@dub/ui";
+import { SmoothSkeleton } from "@/ui/shared/smooth-skeleton";
 import { cn } from "@dub/utils";
 import { useMemo, type CSSProperties } from "react";
 
 export function CustomerStats({
   payments,
-  isLoading,
+  isLoading = false,
 }: {
   payments?: CustomerPaymentRow[];
   isLoading?: boolean;
@@ -86,7 +87,7 @@ export function CustomerStats({
           <div key={label} className="flex flex-col bg-white p-3">
             <span className="text-xs text-neutral-500">{label}</span>
             {isLoading || value === undefined ? (
-              <div className="mt-1 h-5 w-16 animate-pulse rounded-md bg-neutral-200" />
+              <SmoothSkeleton className="mt-1 h-5 w-16" />
             ) : (
               <span className="text-content-emphasis mt-1 text-sm font-medium">
                 {value}

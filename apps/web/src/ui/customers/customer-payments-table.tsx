@@ -6,14 +6,16 @@ import type { CustomerPaymentRow } from "@/lib/customers/types";
 import { formatAssetAmount } from "@/lib/payments/types";
 import {
   CopyText,
-  EmptyState,
   StatusBadge,
   Table,
   TimestampTooltip,
   useTable,
 } from "@dub/ui";
 import { CreditCard } from "@dub/ui/icons";
+import { CustomerPaymentsTableSkeleton } from "@/ui/customers/customer-payments-table-skeleton";
+import { TableEmptyState } from "@/ui/shared/table-empty-state";
 import { formatDateTimeSmart } from "@dub/utils";
+
 function getPaymentStatusVariant(status: string) {
   switch (status) {
     case "completed":
@@ -105,21 +107,23 @@ export function CustomerPaymentsTable({
   const { table, ...tableProps } = useTable({
     data: payments ?? [],
     columns,
-    loading: isLoading,
     resourceName: (plural) => `payment${plural ? "s" : ""}`,
     thClassName: "border-l-0",
     tdClassName: "border-l-0",
   });
 
-  if (!isLoading && (payments?.length ?? 0) === 0) {
+  if (isLoading) {
+    return <CustomerPaymentsTableSkeleton />;
+  }
+
+  if ((payments?.length ?? 0) === 0) {
     return (
-      <div className="rounded-xl border border-neutral-200 bg-white px-4 py-12">
-        <EmptyState
-          icon={CreditCard}
-          title="No payments yet"
-          description="Payments linked to this customer will appear here."
-        />
-      </div>
+      <TableEmptyState
+        title="No payments yet"
+        description="Payments linked to this customer will appear here."
+        icon={<CreditCard className="size-4 text-neutral-700" />}
+        className="border-0 md:min-h-[240px]"
+      />
     );
   }
 

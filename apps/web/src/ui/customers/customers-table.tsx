@@ -1,16 +1,18 @@
 "use client";
 
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useEditCustomerSheet } from "@/components/customers/use-edit-customer-sheet";
 import { useAsyncData } from "@/hooks/use-async-data";
 import type { CustomerRow } from "@/lib/customers/types";
 import { CustomerRowItem } from "@/ui/customers/customer-row-item";
 import { CustomersFilters } from "@/ui/customers/use-customer-filters";
+import { CustomersTableSkeleton } from "@/ui/customers/customers-table-skeleton";
+import { TableEmptyState } from "@/ui/shared/table-empty-state";
 import {
   Button,
   CopyText,
   EditColumnsButton,
-  EmptyState,
   MenuItem,
   Popover,
   Table,
@@ -25,7 +27,7 @@ import { Copy, Dots, Users } from "@dub/ui/icons";
 import { formatDate } from "@dub/utils";
 import type { Row, Table as TableType } from "@tanstack/react-table";
 import { Command } from "cmdk";
-import { useState } from "react";
+import { Pencil } from "lucide-react";
 import { toast } from "sonner";
 
 type CustomersListResponse = {
@@ -49,6 +51,11 @@ export function CustomersTable({
 }) {
   const router = useRouter();
   const { searchParams, queryParams } = useRouterStuff();
+  const [editRefreshKey, setEditRefreshKey] = useState(0);
+  const { openEditCustomer, EditCustomerSheet } = useEditCustomerSheet({
+    organizationId,
+    onUpdated: () => setEditRefreshKey((current) => current + 1),
+  });
 
   const sortBy = searchParams.get("sortBy") || "created_at";
   const sortOrder = searchParams.get("sortOrder") === "asc" ? "asc" : "desc";
@@ -132,6 +139,7 @@ export function CustomersTable({
     emailStatus,
     paymentStatus,
     refreshKey,
+    editRefreshKey,
   ]);
 
   const columns = useMemo(
@@ -205,11 +213,11 @@ export function CustomersTable({
           <EditColumnsButton table={table} />
         ),
         cell: ({ row }: { row: Row<CustomerRow> }) => (
-          <RowMenuButton row={row} />
+          <RowMenuButton row={row} onEdit={openEditCustomer} />
         ),
       },
     ],
-    [],
+    [openEditCustomer],
   );
 
   const getCustomerUrl = (customerId: string) =>
@@ -255,7 +263,6 @@ export function CustomersTable({
     tdClassName: "border-l-0",
     resourceName: (plural) => `customer${plural ? "s" : ""}`,
     rowCount: data?.total ?? 0,
-    loading: isLoading,
     error: error ?? undefined,
   });
 
@@ -263,27 +270,34 @@ export function CustomersTable({
 
   return (
     <div className="flex flex-col gap-3">
+      <EditCustomerSheet />
       <CustomersFilters />
 
-      {hasCustomers || isLoading || isFiltered ? (
+      {isLoading ? (
+        <CustomersTableSkeleton />
+      ) : hasCustomers ? (
         <Table {...tableProps} table={table} />
       ) : (
-        <div className="rounded-xl border border-neutral-200 bg-white px-4 py-16">
-          <EmptyState
-            icon={Users}
-            title="No customers yet"
-            description="Customers are created manually or automatically after checkout."
-          />
-        </div>
+        <TableEmptyState
+          title="No customers yet"
+          isFiltered={isFiltered}
+          description="Customers are created manually or automatically after checkout."
+          icon={<Users className="size-4 text-neutral-700" />}
+        />
       )}
     </div>
   );
 }
 
-function RowMenuButton({ row }: { row: Row<CustomerRow> }) {
+function RowMenuButton({
+  row,
+  onEdit,
+}: {
+  row: Row<CustomerRow>;
+  onEdit: (customer: CustomerRow) => void;
+}) {
   const [isOpen, setIsOpen] = useState(false);
   const [, copyToClipboard] = useCopyToClipboard();
-  const hasActions = Boolean(row.original.email || row.original.id);
 
   return (
     <Popover
@@ -291,7 +305,17 @@ function RowMenuButton({ row }: { row: Row<CustomerRow> }) {
       setOpenPopover={setIsOpen}
       content={
         <Command tabIndex={0} loop className="focus:outline-none">
-          <Command.List className="flex w-screen flex-col gap-1 p-1.5 text-sm focus-visible:outline-none sm:w-auto sm:min-w-[130px]">
+          <Command.List className="flex w-screen flex-col gap-1 p-1.5 text-sm focus-visible:outline-none sm:w-auto sm:min-w-[160px]">
+            <MenuItem
+              as={Command.Item}
+              icon={Pencil}
+              onSelect={() => {
+                onEdit(row.original);
+                setIsOpen(false);
+              }}
+            >
+              Edit customer
+            </MenuItem>
             <MenuItem
               as={Command.Item}
               icon={Copy}
@@ -328,7 +352,6 @@ function RowMenuButton({ row }: { row: Row<CustomerRow> }) {
         className="h-8 whitespace-nowrap px-2 disabled:border-transparent disabled:bg-transparent"
         variant="outline"
         icon={<Dots className="h-4 w-4 shrink-0" />}
-        disabled={!hasActions}
       />
     </Popover>
   );
