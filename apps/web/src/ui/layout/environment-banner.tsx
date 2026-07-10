@@ -2,11 +2,12 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button, Modal } from "@dub/ui";
+import { Button } from "@dub/ui";
 import { cn } from "@dub/utils";
 import { toast } from "sonner";
 import { EnableProductionDialog } from "@/components/dashboard/enable-production-dialog";
 import type { Organization } from "@/lib/db/schema";
+import { AppModal } from "@/ui/modals/app-modal";
 import { useDashboardShell } from "./dashboard-shell-context";
 import { useUpgradeBannerVisibility } from "./upgrade-banner";
 
@@ -90,18 +91,31 @@ export function EnvironmentBanner() {
         </div>
       </div>
 
-      <Modal showModal={sandboxDialogOpen} setShowModal={setSandboxDialogOpen} className="max-w-md">
-        <div className="space-y-4 p-6">
-          <div className="space-y-1">
-            <h2 className="text-lg font-semibold text-neutral-900">Switch to sandbox?</h2>
-            <p className="text-sm text-neutral-500">Sandbox mode uses test data and does not affect live mainnet payments. You can switch back to production anytime after verification.</p>
-          </div>
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="secondary" text="Cancel" className="h-9 w-fit" onClick={() => setSandboxDialogOpen(false)} />
-            <Button type="button" variant="primary" text="Switch to sandbox" loading={isSwitchingToSandbox} className="h-9 w-fit" onClick={() => void handleSwitchToSandbox()} />
-          </div>
-        </div>
-      </Modal>
+      <AppModal
+        open={sandboxDialogOpen}
+        onOpenChange={setSandboxDialogOpen}
+        title="Switch to sandbox?"
+        description="Sandbox mode uses test data and does not affect live mainnet payments. You can switch back to production anytime after verification."
+        footer={
+          <>
+            <Button
+              type="button"
+              variant="secondary"
+              text="Cancel"
+              className="h-9 w-fit"
+              onClick={() => setSandboxDialogOpen(false)}
+            />
+            <Button
+              type="button"
+              variant="primary"
+              text="Switch to sandbox"
+              loading={isSwitchingToSandbox}
+              className="h-9 w-fit"
+              onClick={() => void handleSwitchToSandbox()}
+            />
+          </>
+        }
+      />
 
       {enableDialogOpen ? <EnableProductionDialog organizationId={activeOrganization.id} open={enableDialogOpen} onOpenChange={setEnableDialogOpen} onEnvironmentChanged={handleProductionEnabled} /> : null}
     </>

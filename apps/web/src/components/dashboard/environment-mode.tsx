@@ -6,16 +6,9 @@ import { InfoIcon, RocketIcon, TestTubeDiagonalIcon } from "lucide-react";
 import { toast } from "sonner";
 import { EnableProductionDialog } from "@/components/dashboard/enable-production-dialog";
 import type { Organization } from "@/lib/db/schema";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { AppModal } from "@/ui/modals/app-modal";
 
 export function EnvironmentModeBanner({
   organization,
@@ -106,17 +99,13 @@ export function EnvironmentModeBanner({
       </div>
 
       {isProduction ? (
-        <Dialog open={sandboxDialogOpen} onOpenChange={setSandboxDialogOpen}>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle>Switch to sandbox?</DialogTitle>
-              <DialogDescription>
-                Sandbox mode uses test data and does not affect live mainnet
-                payments. You can switch back to production anytime after
-                verification.
-              </DialogDescription>
-            </DialogHeader>
-            <DialogFooter>
+        <AppModal
+          open={sandboxDialogOpen}
+          onOpenChange={setSandboxDialogOpen}
+          title="Switch to sandbox?"
+          description="Sandbox mode uses test data and does not affect live mainnet payments. You can switch back to production anytime after verification."
+          footer={
+            <>
               <Button
                 type="button"
                 variant="outline"
@@ -131,9 +120,9 @@ export function EnvironmentModeBanner({
               >
                 Switch to sandbox
               </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+            </>
+          }
+        />
       ) : enableDialogOpen ? (
         <EnableProductionDialog
           organizationId={organization.id}
