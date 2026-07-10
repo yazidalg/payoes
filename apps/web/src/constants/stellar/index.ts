@@ -10,7 +10,7 @@ export const STELLAR_MEMO_MAX_LENGTH = 28;
 
 export const STELLAR_OPERATION_ERROR_MESSAGES: Record<string, string> = {
   op_no_trust:
-    "A USDC trustline is missing. The customer wallet or merchant receiving wallet must add a trustline for USDC on this network before paying.",
+    "A USDC trustline is missing. The customer wallet or settlement wallet must add a trustline for USDC on this network before paying.",
   op_underfunded:
     "Insufficient balance. Make sure your wallet has enough USDC (or XLM for native payments) to complete this payment.",
   op_line_full:

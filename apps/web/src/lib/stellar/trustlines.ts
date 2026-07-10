@@ -213,7 +213,7 @@ export async function assertAccountTrustsAsset(input: {
   }
 
   throw new Error(
-    `The merchant receiving wallet does not have a ${assetLabel} trustline on this network. The merchant must add a trustline to their receiving address before accepting ${assetLabel} payments.`
+    `The settlement wallet does not have a ${assetLabel} trustline on this network. Add a trustline to the settlement address before accepting ${assetLabel} payments.`
   );
 }
 
