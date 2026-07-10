@@ -1,5 +1,4 @@
-import { OnboardingLayout } from "@/components/layouts/onboarding-layout";
-import { InviteAcceptPanel } from "@/components/settings/invite-accept-panel";
+import { InvitePageContent } from "@/ui/invites/invite-page-content";
 
 export default async function InvitePage({
   params,
@@ -8,9 +7,5 @@ export default async function InvitePage({
 }) {
   const { token } = await params;
 
-  return (
-    <OnboardingLayout>
-      <InviteAcceptPanel token={token} />
-    </OnboardingLayout>
-  );
+  return <InvitePageContent token={token} />;
 }
