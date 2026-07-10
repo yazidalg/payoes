@@ -31,6 +31,35 @@ function addVerificationValidityDays(from = new Date()) {
   return expires;
 }
 
+function extractProfileFromPersonaFields(
+  fields: Record<string, { type: string; value: unknown }> | null | undefined,
+) {
+  if (!fields) {
+    return { displayName: null, country: null };
+  }
+
+  const read = (key: string) => {
+    const value = fields[key]?.value;
+    return typeof value === "string" && value.trim() ? value.trim() : null;
+  };
+
+  const firstName = read("name-first");
+  const lastName = read("name-last");
+  const fullName =
+    read("name-full") ||
+    read("full-name") ||
+    [firstName, lastName].filter(Boolean).join(" ").trim() ||
+    null;
+  const country =
+    read("address-country-code") ||
+    read("selected-country-code") ||
+    read("country-code") ||
+    read("country") ||
+    null;
+
+  return { displayName: fullName, country };
+}
+
 export async function getVerificationApplicationForOrganization(organizationId: string) {
   return db.query.organizationVerificationApplications.findFirst({
     where: eq(organizationVerificationApplications.organizationId, organizationId),
@@ -40,11 +69,7 @@ export async function getVerificationApplicationForOrganization(organizationId: 
 export async function startVerification(input: {
   organizationId: string;
   userId: string;
-  accountType: "personal" | "business";
-  displayName: string;
-  country: string;
-  businessDescription?: string | null;
-  registrationNumber?: string | null;
+  accountType?: "personal" | "business";
 }) {
   const membership = await getMembershipForUser(input.organizationId, input.userId);
 
@@ -52,8 +77,12 @@ export async function startVerification(input: {
     throw new KycServiceError("Only the organization owner can start verification", "forbidden");
   }
 
-  if (input.accountType === "business" && !input.businessDescription?.trim()) {
-    throw new KycServiceError("Business description is required for business accounts", "invalid");
+  const organization = await db.query.organizations.findFirst({
+    where: eq(organizations.id, input.organizationId),
+  });
+
+  if (!organization) {
+    throw new KycServiceError("Organization not found", "not_found");
   }
 
   const existing = await getVerificationApplicationForOrganization(input.organizationId);
@@ -62,38 +91,30 @@ export async function startVerification(input: {
     throw new KycServiceError("This organization is already verified", "conflict");
   }
 
+  if (existing?.providerInquiryId) {
+    return existing;
+  }
+
   if (existing?.providerStatus === "pending" || existing?.providerStatus === "needs_review") {
     throw new KycServiceError("Verification is already in progress", "conflict");
   }
 
-  const countryCode = normalizeCountryCode(input.country);
-
-  const noteParts = [
-    input.accountType === "business" ? "Business account" : "Personal account",
-    `Country: ${countryCode}`,
-    `Name: ${input.displayName.trim()}`,
-  ];
-
-  if (input.accountType === "business" && input.businessDescription?.trim()) {
-    noteParts.push(`Activity: ${input.businessDescription.trim()}`);
-  }
-
-  if (input.registrationNumber?.trim()) {
-    noteParts.push(`Registration: ${input.registrationNumber.trim()}`);
-  }
+  const accountType = input.accountType ?? "personal";
+  const displayName = organization.name;
+  const countryCode = "XX";
 
   const personaInquiry = await createPersonaInquiry({
     referenceId: input.organizationId,
-    note: noteParts.join(" | "),
+    note: `${accountType === "business" ? "Business" : "Personal"} account | Pending Persona details`,
   });
 
   const now = new Date();
   const applicationValues = {
-    accountType: input.accountType,
-    displayName: input.displayName.trim(),
-    registrationNumber: input.registrationNumber?.trim() || null,
+    accountType,
+    displayName,
+    registrationNumber: null,
     country: countryCode,
-    businessDescription: input.businessDescription?.trim() || null,
+    businessDescription: null,
     provider: "persona",
     providerInquiryId: personaInquiry.inquiryId,
     providerStatus: mapPersonaStatusToProviderStatus(personaInquiry.status),
@@ -139,6 +160,21 @@ export async function syncVerificationFromPersona(organizationId: string) {
   }
 
   const inquiry = await getPersonaInquiry(application.providerInquiryId);
+  const profile = extractProfileFromPersonaFields(inquiry.fields);
+
+  if (profile.displayName || profile.country) {
+    await db
+      .update(organizationVerificationApplications)
+      .set({
+        ...(profile.displayName ? { displayName: profile.displayName } : {}),
+        ...(profile.country
+          ? { country: normalizeCountryCode(profile.country) }
+          : {}),
+        updatedAt: new Date(),
+      })
+      .where(eq(organizationVerificationApplications.id, application.id));
+  }
+
   await applyPersonaInquiryStatus({
     organizationId,
     inquiryId: inquiry.inquiryId,

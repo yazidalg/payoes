@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { invoices, payments, type Organization } from "@/lib/db/schema";
 import { serializePaymentAssets } from "@/lib/assets/serialize";
 import type { SettlementConversionRow } from "@/lib/payments/types";
+import { isStellarTransactionHash } from "@/lib/stellar/transaction-hash";
 
 export type SettlementSortOrder = "asc" | "desc";
 
@@ -13,6 +14,14 @@ export type ListSettlementsQuery = {
   conversionType?: "path" | "direct";
   sortOrder?: SettlementSortOrder;
 };
+
+function isOnChainSettlementPayment(payment: typeof payments.$inferSelect) {
+  if (payment.metadata?.manual === "true") {
+    return false;
+  }
+
+  return isStellarTransactionHash(payment.txHash);
+}
 
 function mapSettlementRow(
   payment: typeof payments.$inferSelect,
@@ -33,7 +42,7 @@ function mapSettlementRow(
     pricing_currency: payment.pricingCurrency,
     quote_rate: payment.quoteRate,
     settlement_quote_rate: payment.settlementQuoteRate,
-    tx_hash: payment.txHash,
+    tx_hash: isStellarTransactionHash(payment.txHash) ? payment.txHash : null,
     confirmed_at: payment.confirmedAt?.toISOString() ?? null,
     converted_on_chain:
       payment.paidAsset !== payment.settlementAsset &&
@@ -61,6 +70,7 @@ async function loadSettlementRows(
 
   const filtered = completed.filter(
     (payment) =>
+      isOnChainSettlementPayment(payment) &&
       payment.paidAsset &&
       (payment.paidAsset !== payment.settlementAsset ||
         Boolean(payment.quotedSettlementAmount)),

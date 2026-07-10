@@ -17,6 +17,7 @@ type PersonaInquiryResponse = {
     attributes: {
       status: PersonaInquiryStatus;
       "reference-id"?: string;
+      fields?: Record<string, { type: string; value: unknown }>;
     };
   };
 };
@@ -137,6 +138,7 @@ export async function getPersonaInquiry(inquiryId: string) {
     inquiryId: response.data.id,
     status: response.data.attributes.status,
     referenceId: response.data.attributes["reference-id"] ?? null,
+    fields: response.data.attributes.fields ?? null,
   };
 }
 
