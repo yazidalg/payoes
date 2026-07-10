@@ -227,6 +227,7 @@ const config: Config = {
         "bg-default": "rgb(var(--bg-default, 255 255 255) / <alpha-value>)",
         "bg-subtle": "rgb(var(--bg-subtle, 245 245 245) / <alpha-value>)",
         "bg-muted": "rgb(var(--bg-muted, 250 250 250) / <alpha-value>)",
+        "bg-preview": "rgb(var(--bg-preview, 244 247 250) / <alpha-value>)",
         "bg-inverted": "rgb(var(--bg-inverted, 23 23 23) / <alpha-value>)",
 
         "bg-info": "rgb(var(--bg-info, 219 234 254) / <alpha-value>)",
