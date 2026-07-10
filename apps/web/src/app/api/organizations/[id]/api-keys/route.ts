@@ -1,11 +1,13 @@
 import { auth } from "@/auth";
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { validateScopes } from "@/lib/api-keys/scopes";
 import { createApiKey, listApiKeys } from "@/lib/api-keys/service";
 import { getOrganizationForMember } from "@/lib/organizations/wallet";
 
 const createApiKeySchema = z.object({
   name: z.string().min(1, "Name is required").max(80),
+  scopes: z.array(z.string()).min(1, "At least one permission is required"),
 });
 
 export async function GET(
@@ -56,10 +58,15 @@ export async function POST(
     );
   }
 
+  if (!validateScopes(parsed.data.scopes)) {
+    return NextResponse.json({ error: "Invalid scopes" }, { status: 400 });
+  }
+
   const { apiKey, rawKey } = await createApiKey({
     organizationId: organization.id,
     name: parsed.data.name,
     environment: organization.environment,
+    scopes: parsed.data.scopes,
   });
 
   return NextResponse.json({ apiKey, secret: rawKey }, { status: 201 });
