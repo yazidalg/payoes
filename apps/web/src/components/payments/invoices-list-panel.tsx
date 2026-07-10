@@ -2,13 +2,6 @@
 
 import { useCallback } from "react";
 import Link from "next/link";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { useAsyncData } from "@/hooks/use-async-data";
 import { formatAmountWithUnit } from "@/lib/format/amount";
 import type { InvoiceRow } from "@/lib/payments/types";
@@ -37,58 +30,53 @@ export function InvoicesListPanel({
     reloadKey,
   ]);
 
-  return (
-    <Card>
-      {!embedded ? (
-        <CardHeader>
-          <CardTitle>Invoice list</CardTitle>
-          <CardDescription>Click an invoice ID to open the detail page.</CardDescription>
-        </CardHeader>
-      ) : null}
-      <CardContent className="px-0 pb-0">
-        {(invoices ?? []).length === 0 ? (
-          <TableEmptyState
-            title="No invoices yet"
-            description="Invoices you create will appear here."
-            icon={<FileContent className="size-4 text-neutral-700" />}
-            className="border-0"
-          />
-        ) : (
-          <div className="overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/40 text-left">
-                <tr>
-                  <th className="px-4 py-3 font-medium">Invoice</th>
-                  <th className="px-4 py-3 font-medium">Amount</th>
-                  <th className="px-4 py-3 font-medium">Customer</th>
-                  <th className="px-4 py-3 font-medium">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(invoices ?? []).map((invoice) => (
-                  <tr key={invoice.id} className="border-t border-border/60">
-                    <td className="px-4 py-3 font-mono text-xs">
-                      <Link
-                        href={`/dashboard/payments/invoices/${invoice.id}`}
-                        className="font-medium hover:underline"
-                      >
-                        {invoice.id}
-                      </Link>
-                    </td>
-                    <td className="px-4 py-3">
-                      {formatAmountWithUnit(invoice.amount, invoice.currency_code)}
-                    </td>
-                    <td className="px-4 py-3 font-mono text-xs">
-                      {invoice.customer_id ?? "N/A"}
-                    </td>
-                    <td className="px-4 py-3 capitalize">{invoice.status}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  );
+  const content =
+    (invoices ?? []).length === 0 ? (
+      <TableEmptyState
+        title="No invoices yet"
+        description="Invoices you create will appear here."
+        icon={<FileContent className="size-4 text-neutral-700" />}
+        className={embedded ? "border-0" : undefined}
+      />
+    ) : (
+      <div className="overflow-hidden rounded-xl border border-neutral-200">
+        <table className="w-full text-sm">
+          <thead className="bg-muted/40 text-left">
+            <tr>
+              <th className="px-4 py-3 font-medium">Invoice</th>
+              <th className="px-4 py-3 font-medium">Amount</th>
+              <th className="px-4 py-3 font-medium">Customer</th>
+              <th className="px-4 py-3 font-medium">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {(invoices ?? []).map((invoice) => (
+              <tr key={invoice.id} className="border-t border-border/60">
+                <td className="px-4 py-3 font-mono text-xs">
+                  <Link
+                    href={`/dashboard/payments/invoices/${invoice.id}`}
+                    className="font-medium hover:underline"
+                  >
+                    {invoice.id}
+                  </Link>
+                </td>
+                <td className="px-4 py-3">
+                  {formatAmountWithUnit(invoice.amount, invoice.currency_code)}
+                </td>
+                <td className="px-4 py-3 font-mono text-xs">
+                  {invoice.customer_id ?? "N/A"}
+                </td>
+                <td className="px-4 py-3 capitalize">{invoice.status}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+
+  if (embedded) {
+    return content;
+  }
+
+  return <div className="space-y-4">{content}</div>;
 }

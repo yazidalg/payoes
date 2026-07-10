@@ -7,21 +7,22 @@ import {
   CreditCardIcon,
   FileTextIcon,
   Link2Icon,
-  PlusIcon,
+  ShoppingCartIcon,
 } from "lucide-react";
+import { CreateCheckoutSessionDialog } from "@/components/payments/create-checkout-session-dialog";
 import { CreatePaymentDialog } from "@/components/payments/create-payment-dialog";
-import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import type { PaymentsTab } from "@/lib/navigation/payments-tabs";
+import { Button } from "@dub/ui";
+import { Plus2 } from "@dub/ui/icons";
 
 type CreatePaymentMenuProps = {
   organizationId: string;
-  onCreated?: (tab: PaymentsTab) => void;
+  onCreated?: () => void;
 };
 
 const createOptions = [
@@ -40,6 +41,13 @@ const createOptions = [
     icon: Link2Icon,
   },
   {
+    id: "checkout-sessions",
+    tab: "checkout-sessions" as const,
+    label: "Checkout session",
+    description: "Create a hosted checkout session with a payment intent.",
+    icon: ShoppingCartIcon,
+  },
+  {
     id: "payment-intents",
     tab: "payment-intents" as const,
     label: "Manual payment",
@@ -54,13 +62,11 @@ export function CreatePaymentMenu({
 }: CreatePaymentMenuProps) {
   const router = useRouter();
   const [paymentOpen, setPaymentOpen] = useState(false);
+  const [checkoutSessionOpen, setCheckoutSessionOpen] = useState(false);
 
-  function handleCreated(tab: PaymentsTab, resourceId: string, detailPath: string) {
-    onCreated?.(tab);
-
-    if (resourceId) {
-      router.push(detailPath);
-    }
+  function handleCreated(detailPath: string) {
+    onCreated?.();
+    router.push(detailPath);
   }
 
   return (
@@ -68,11 +74,16 @@ export function CreatePaymentMenu({
       <DropdownMenu>
         <DropdownMenuTrigger
           render={
-            <Button type="button">
-              <PlusIcon />
-              Create payment
-              <ChevronDownIcon className="size-4 opacity-70" />
-            </Button>
+            <Button
+              type="button"
+              variant="primary"
+              text="Create payment"
+              icon={<Plus2 className="size-4" />}
+              className="h-9 w-fit gap-1"
+              right={
+                <ChevronDownIcon className="size-4 opacity-70" aria-hidden />
+              }
+            />
           }
         />
         <DropdownMenuContent align="end" className="w-80 p-1">
@@ -85,6 +96,8 @@ export function CreatePaymentMenu({
                   router.push("/dashboard/payments/invoices/new");
                 } else if (option.id === "payment-links") {
                   router.push("/dashboard/payments/links/new");
+                } else if (option.id === "checkout-sessions") {
+                  setCheckoutSessionOpen(true);
                 } else {
                   setPaymentOpen(true);
                 }
@@ -107,11 +120,26 @@ export function CreatePaymentMenu({
         open={paymentOpen}
         onOpenChange={setPaymentOpen}
         onCreated={(paymentId) => {
-          handleCreated(
-            "payment-intents",
-            paymentId,
-            `/dashboard/payments/${paymentId}`
-          );
+          if (paymentId) {
+            handleCreated(`/dashboard/payments/${paymentId}`);
+          } else {
+            onCreated?.();
+          }
+        }}
+      />
+
+      <CreateCheckoutSessionDialog
+        organizationId={organizationId}
+        open={checkoutSessionOpen}
+        onOpenChange={setCheckoutSessionOpen}
+        onCreated={(sessionId) => {
+          if (sessionId) {
+            handleCreated(
+              `/dashboard/payments/checkout-sessions/${sessionId}`,
+            );
+          } else {
+            onCreated?.();
+          }
         }}
       />
     </>
