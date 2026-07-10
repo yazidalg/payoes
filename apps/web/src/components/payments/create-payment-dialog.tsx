@@ -11,20 +11,13 @@ import {
 } from "@/components/payment-methods/allowed-assets-picker";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAsyncData } from "@/hooks/use-async-data";
 import { paymentMethodKey as getPaymentMethodKey, useEnabledPaymentMethods } from "@/hooks/use-payment-methods";
 import { DEFAULT_INVOICE_CURRENCY_CODE } from "@/lib/invoices/currencies";
 import type { CustomerOption } from "@/lib/payments/types";
+import { AppModal } from "@/ui/modals/app-modal";
 
 type CreatePaymentDialogProps = {
   organizationId: string;
@@ -148,7 +141,7 @@ export function CreatePaymentDialog({
   }
 
   return (
-    <Dialog
+    <AppModal
       open={open}
       onOpenChange={(nextOpen) => {
         if (!nextOpen) {
@@ -156,79 +149,11 @@ export function CreatePaymentDialog({
         }
         onOpenChange(nextOpen);
       }}
-    >
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle>Create manual payment</DialogTitle>
-          <DialogDescription>
-            Record an off-platform payment that is marked as paid immediately.
-          </DialogDescription>
-        </DialogHeader>
-
-        {error ? <AlertBlock type="error">{error}</AlertBlock> : null}
-
-        <div className="grid gap-4">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="create-payment-amount">Amount</Label>
-              <Input
-                id="create-payment-amount"
-                inputMode="decimal"
-                placeholder="100.00"
-                value={amount}
-                onChange={(event) => setAmount(event.target.value)}
-              />
-            </div>
-            <InvoiceCurrencyPicker
-              id="create-payment-currency"
-              label="Currency"
-              value={currencyCode}
-              onChange={setCurrencyCode}
-            />
-          </div>
-
-          <AllowedAssetsPicker
-            organizationId={organizationId}
-            mode="pay"
-            label="Payment method"
-            settlementKey={paymentMethodKey}
-            selectedKeys={paymentMethodKey ? [paymentMethodKey] : []}
-            onChange={(keys, map) => {
-              setPaymentMethodKey(keys[0] ?? "");
-              setIssuers(map);
-            }}
-          />
-
-          <div className="space-y-2">
-            <Label>Customer (optional)</Label>
-            <CustomerPicker
-              customers={customers ?? []}
-              value={customerId}
-              onChange={setCustomerId}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="create-payment-date">Date</Label>
-            <InvoiceDueDatePicker
-              value={paidDate}
-              onChange={setPaidDate}
-              allowPast
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="create-payment-notes">Notes</Label>
-            <Input
-              id="create-payment-notes"
-              placeholder="Internal note or payment reference"
-              value={notes}
-              onChange={(event) => setNotes(event.target.value)}
-            />
-          </div>
-        </div>
-
-        <DialogFooter>
+      title="Create manual payment"
+      description="Record an off-platform payment that is marked as paid immediately."
+      className="max-h-[90vh] overflow-y-auto sm:max-w-lg"
+      footer={
+        <>
           <Button
             type="button"
             variant="outline"
@@ -244,8 +169,71 @@ export function CreatePaymentDialog({
           >
             Record payment
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </>
+      }
+    >
+      {error ? <AlertBlock type="error">{error}</AlertBlock> : null}
+
+      <div className="grid gap-4">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="create-payment-amount">Amount</Label>
+            <Input
+              id="create-payment-amount"
+              inputMode="decimal"
+              placeholder="100.00"
+              value={amount}
+              onChange={(event) => setAmount(event.target.value)}
+            />
+          </div>
+          <InvoiceCurrencyPicker
+            id="create-payment-currency"
+            label="Currency"
+            value={currencyCode}
+            onChange={setCurrencyCode}
+          />
+        </div>
+
+        <AllowedAssetsPicker
+          organizationId={organizationId}
+          mode="pay"
+          label="Payment method"
+          settlementKey={paymentMethodKey}
+          selectedKeys={paymentMethodKey ? [paymentMethodKey] : []}
+          onChange={(keys, map) => {
+            setPaymentMethodKey(keys[0] ?? "");
+            setIssuers(map);
+          }}
+        />
+
+        <div className="space-y-2">
+          <Label>Customer (optional)</Label>
+          <CustomerPicker
+            customers={customers ?? []}
+            value={customerId}
+            onChange={setCustomerId}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="create-payment-date">Date</Label>
+          <InvoiceDueDatePicker
+            value={paidDate}
+            onChange={setPaidDate}
+            allowPast
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="create-payment-notes">Notes</Label>
+          <Input
+            id="create-payment-notes"
+            placeholder="Internal note or payment reference"
+            value={notes}
+            onChange={(event) => setNotes(event.target.value)}
+          />
+        </div>
+      </div>
+    </AppModal>
   );
 }

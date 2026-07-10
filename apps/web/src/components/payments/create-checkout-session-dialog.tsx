@@ -4,14 +4,6 @@ import { useCallback, useState } from "react";
 import { toast } from "sonner";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -22,6 +14,7 @@ import {
 import { useAsyncData } from "@/hooks/use-async-data";
 import type { CustomerOption } from "@/lib/payments/types";
 import { customerLabel } from "@/lib/payments/types";
+import { AppModal } from "@/ui/modals/app-modal";
 
 type CreateCheckoutSessionDialogProps = {
   organizationId: string;
@@ -107,7 +100,7 @@ export function CreateCheckoutSessionDialog({
   }
 
   return (
-    <Dialog
+    <AppModal
       open={open}
       onOpenChange={(nextOpen) => {
         if (!nextOpen) {
@@ -115,95 +108,11 @@ export function CreateCheckoutSessionDialog({
         }
         onOpenChange(nextOpen);
       }}
-    >
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Create checkout session</DialogTitle>
-          <DialogDescription>
-            Start a hosted checkout flow with an underlying payment intent.
-          </DialogDescription>
-        </DialogHeader>
-
-        {error ? <AlertBlock type="error">{error}</AlertBlock> : null}
-
-        <div className="grid gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="create-session-amount">Amount</Label>
-            <Input
-              id="create-session-amount"
-              value={amount}
-              onChange={(event) => setAmount(event.target.value)}
-            />
-          </div>
-          <AllowedAssetsPicker
-            organizationId={organizationId}
-            mode="settlement"
-            settlementKey={settlementKey}
-            selectedKeys={settlementKey ? [settlementKey] : []}
-            onChange={(keys, map) => {
-              setSettlementKey(keys[0] ?? "");
-              setIssuers(map);
-              if (!allowedKeys.includes(keys[0] ?? "")) {
-                setAllowedKeys([...allowedKeys, keys[0] ?? ""]);
-              }
-            }}
-          />
-          <AllowedAssetsPicker
-            organizationId={organizationId}
-            mode="allowed"
-            settlementKey={settlementKey}
-            selectedKeys={allowedKeys}
-            onChange={(keys, map) => {
-              setAllowedKeys(keys);
-              setIssuers(map);
-            }}
-          />
-          <div className="space-y-2">
-            <Label htmlFor="create-session-description">Description</Label>
-            <Input
-              id="create-session-description"
-              placeholder="Order #1024"
-              value={description}
-              onChange={(event) => setDescription(event.target.value)}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="create-session-customer">Customer (optional)</Label>
-            <select
-              id="create-session-customer"
-              value={customerId}
-              onChange={(event) => setCustomerId(event.target.value)}
-              className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-            >
-              <option value="">No customer</option>
-              {(customers ?? []).map((customer) => (
-                <option key={customer.id} value={customer.id}>
-                  {customerLabel(customer)}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="create-session-success-url">Success URL (optional)</Label>
-            <Input
-              id="create-session-success-url"
-              placeholder="https://example.com/success"
-              value={successUrl}
-              onChange={(event) => setSuccessUrl(event.target.value)}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="create-session-cancel-url">Cancel URL (optional)</Label>
-            <Input
-              id="create-session-cancel-url"
-              placeholder="https://example.com/cancel"
-              value={cancelUrl}
-              onChange={(event) => setCancelUrl(event.target.value)}
-            />
-          </div>
-        </div>
-
-        <DialogFooter>
+      title="Create checkout session"
+      description="Start a hosted checkout flow with an underlying payment intent."
+      className="max-h-[90vh] overflow-y-auto"
+      footer={
+        <>
           <Button
             type="button"
             variant="outline"
@@ -219,8 +128,87 @@ export function CreateCheckoutSessionDialog({
           >
             Create session
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </>
+      }
+    >
+      {error ? <AlertBlock type="error">{error}</AlertBlock> : null}
+
+      <div className="grid gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="create-session-amount">Amount</Label>
+          <Input
+            id="create-session-amount"
+            value={amount}
+            onChange={(event) => setAmount(event.target.value)}
+          />
+        </div>
+        <AllowedAssetsPicker
+          organizationId={organizationId}
+          mode="settlement"
+          settlementKey={settlementKey}
+          selectedKeys={settlementKey ? [settlementKey] : []}
+          onChange={(keys, map) => {
+            setSettlementKey(keys[0] ?? "");
+            setIssuers(map);
+            if (!allowedKeys.includes(keys[0] ?? "")) {
+              setAllowedKeys([...allowedKeys, keys[0] ?? ""]);
+            }
+          }}
+        />
+        <AllowedAssetsPicker
+          organizationId={organizationId}
+          mode="allowed"
+          settlementKey={settlementKey}
+          selectedKeys={allowedKeys}
+          onChange={(keys, map) => {
+            setAllowedKeys(keys);
+            setIssuers(map);
+          }}
+        />
+        <div className="space-y-2">
+          <Label htmlFor="create-session-description">Description</Label>
+          <Input
+            id="create-session-description"
+            placeholder="Order #1024"
+            value={description}
+            onChange={(event) => setDescription(event.target.value)}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="create-session-customer">Customer (optional)</Label>
+          <select
+            id="create-session-customer"
+            value={customerId}
+            onChange={(event) => setCustomerId(event.target.value)}
+            className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+          >
+            <option value="">No customer</option>
+            {(customers ?? []).map((customer) => (
+              <option key={customer.id} value={customer.id}>
+                {customerLabel(customer)}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="create-session-success-url">Success URL (optional)</Label>
+          <Input
+            id="create-session-success-url"
+            placeholder="https://example.com/success"
+            value={successUrl}
+            onChange={(event) => setSuccessUrl(event.target.value)}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="create-session-cancel-url">Cancel URL (optional)</Label>
+          <Input
+            id="create-session-cancel-url"
+            placeholder="https://example.com/cancel"
+            value={cancelUrl}
+            onChange={(event) => setCancelUrl(event.target.value)}
+          />
+        </div>
+      </div>
+    </AppModal>
   );
 }
