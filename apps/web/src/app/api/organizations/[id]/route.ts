@@ -7,8 +7,9 @@ import {
   updateOrganization,
 } from "@/lib/organizations/service";
 import { uploadOrganizationLogo } from "@/lib/storage/minio";
+import { uploadOrganizationLogoFromDataUrl } from "@/lib/storage/upload-organization-logo-from-data-url";
 
-const organizationSchema = z.object({
+const organizationFieldSchema = z.object({
   name: z.string().min(1, "Business name is required").max(120),
   email: z.string().email("Business email must be valid"),
   website: z
@@ -16,16 +17,36 @@ const organizationSchema = z.object({
     .max(200)
     .refine(
       (value) => !value || /^https?:\/\/.+/i.test(value),
-      "Website must be a valid URL"
+      "Website must be a valid URL",
     )
     .optional()
     .or(z.literal("")),
   description: z.string().max(500).optional().or(z.literal("")),
 });
 
+const partialOrganizationSchema = z
+  .object({
+    name: z.string().min(1, "Business name is required").max(120).optional(),
+    email: z.string().email("Business email must be valid").optional(),
+    website: z
+      .string()
+      .max(200)
+      .refine(
+        (value) => !value || /^https?:\/\/.+/i.test(value),
+        "Website must be a valid URL",
+      )
+      .optional()
+      .or(z.literal("")),
+    description: z.string().max(500).optional().or(z.literal("")),
+    logo: z.string().optional().nullable(),
+  })
+  .refine((data) => Object.values(data).some((value) => value !== undefined), {
+    message: "No fields to update",
+  });
+
 export async function GET(
   _request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await auth();
 
@@ -54,7 +75,7 @@ export async function GET(
 
 export async function PATCH(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const session = await auth();
@@ -66,7 +87,10 @@ export async function PATCH(
     const { id } = await params;
     const membership = await getMembershipForUser(id, session.user.id);
 
-    if (!membership || (membership.role !== "owner" && membership.role !== "admin")) {
+    if (
+      !membership ||
+      (membership.role !== "owner" && membership.role !== "admin")
+    ) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -74,7 +98,7 @@ export async function PATCH(
 
     if (contentType.includes("multipart/form-data")) {
       const formData = await request.formData();
-      const parsed = organizationSchema.safeParse({
+      const parsed = organizationFieldSchema.safeParse({
         name: formData.get("name"),
         email: formData.get("email"),
         website: formData.get("website") || undefined,
@@ -84,7 +108,7 @@ export async function PATCH(
       if (!parsed.success) {
         return NextResponse.json(
           { error: parsed.error.issues[0]?.message ?? "Invalid request" },
-          { status: 400 }
+          { status: 400 },
         );
       }
 
@@ -98,19 +122,24 @@ export async function PATCH(
       const logoFile = formData.get("logo");
 
       if (logoFile instanceof File && logoFile.size > 0) {
-        const allowedTypes = ["image/png", "image/jpeg", "image/webp", "image/gif"];
+        const allowedTypes = [
+          "image/png",
+          "image/jpeg",
+          "image/webp",
+          "image/gif",
+        ];
 
         if (!allowedTypes.includes(logoFile.type)) {
           return NextResponse.json(
             { error: "Logo must be a PNG, JPG, WEBP, or GIF image" },
-            { status: 400 }
+            { status: 400 },
           );
         }
 
         if (logoFile.size > 2 * 1024 * 1024) {
           return NextResponse.json(
             { error: "Logo must be smaller than 2 MB" },
-            { status: 400 }
+            { status: 400 },
           );
         }
 
@@ -129,12 +158,12 @@ export async function PATCH(
     }
 
     const body = await request.json();
-    const parsed = organizationSchema.safeParse(body);
+    const parsed = partialOrganizationSchema.safeParse(body);
 
     if (!parsed.success) {
       return NextResponse.json(
         { error: parsed.error.issues[0]?.message ?? "Invalid request" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -144,17 +173,37 @@ export async function PATCH(
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
+    let logoUrl = existing.logoUrl;
+
+    if (parsed.data.logo) {
+      logoUrl = await uploadOrganizationLogoFromDataUrl(parsed.data.logo, id);
+    }
+
     const organization = await updateOrganization(id, {
-      name: parsed.data.name,
-      email: parsed.data.email,
-      website: parsed.data.website || null,
-      description: parsed.data.description || null,
-      logoUrl: existing.logoUrl,
+      name: parsed.data.name ?? existing.name,
+      email: parsed.data.email ?? existing.email,
+      website:
+        parsed.data.website !== undefined
+          ? parsed.data.website || null
+          : existing.website,
+      description:
+        parsed.data.description !== undefined
+          ? parsed.data.description || null
+          : existing.description,
+      logoUrl,
     });
 
     return NextResponse.json({ organization });
   } catch (error) {
     console.error("Update organization failed:", error);
-    return NextResponse.json({ error: "Unable to update organization" }, { status: 500 });
+    return NextResponse.json(
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Unable to update organization",
+      },
+      { status: 500 },
+    );
   }
 }
