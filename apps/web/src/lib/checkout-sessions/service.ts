@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import { and, desc, eq } from "drizzle-orm";
+import { and, asc, count, desc, eq, ilike, or, type SQL } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
   checkoutSessions,
@@ -56,6 +56,99 @@ export async function listCheckoutSessions(
     )
     .orderBy(desc(checkoutSessions.createdAt))
     .limit(limit);
+}
+
+export type CheckoutSessionSortOrder = "asc" | "desc";
+
+export type ListCheckoutSessionsQuery = {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  status?: "open" | "complete" | "expired";
+  sortOrder?: CheckoutSessionSortOrder;
+};
+
+export async function listCheckoutSessionsPaginated(
+  organizationId: string,
+  environment: Organization["environment"],
+  query: ListCheckoutSessionsQuery = {},
+) {
+  const page = Math.max(1, query.page ?? 1);
+  const pageSize = Math.min(100, Math.max(1, query.pageSize ?? 20));
+  const offset = (page - 1) * pageSize;
+  const search = query.search?.trim();
+  const sortOrder = query.sortOrder ?? "desc";
+
+  let whereClause: SQL | undefined = and(
+    eq(checkoutSessions.organizationId, organizationId),
+    eq(payments.environment, environment),
+  );
+
+  if (search) {
+    const pattern = `%${search}%`;
+    whereClause = and(
+      whereClause,
+      or(
+        ilike(checkoutSessions.publicId, pattern),
+        ilike(payments.publicId, pattern),
+        ilike(customers.publicId, pattern),
+      ),
+    );
+  }
+
+  if (query.status) {
+    whereClause = and(whereClause, eq(checkoutSessions.status, query.status));
+  }
+
+  const orderBy =
+    sortOrder === "asc"
+      ? asc(checkoutSessions.createdAt)
+      : desc(checkoutSessions.createdAt);
+
+  const baseQuery = db
+    .select({
+      id: checkoutSessions.id,
+      publicId: checkoutSessions.publicId,
+      organizationId: checkoutSessions.organizationId,
+      paymentId: checkoutSessions.paymentId,
+      customerId: checkoutSessions.customerId,
+      status: checkoutSessions.status,
+      successUrl: checkoutSessions.successUrl,
+      cancelUrl: checkoutSessions.cancelUrl,
+      expiresAt: checkoutSessions.expiresAt,
+      createdAt: checkoutSessions.createdAt,
+      updatedAt: checkoutSessions.updatedAt,
+      paymentPublicId: payments.publicId,
+      amount: payments.amount,
+      settlementAsset: payments.settlementAsset,
+      paymentStatus: payments.status,
+      customerPublicId: customers.publicId,
+    })
+    .from(checkoutSessions)
+    .innerJoin(payments, eq(checkoutSessions.paymentId, payments.id))
+    .leftJoin(customers, eq(checkoutSessions.customerId, customers.id))
+    .where(whereClause)
+    .orderBy(orderBy);
+
+  const [rows, totalRows] = await Promise.all([
+    baseQuery.limit(pageSize).offset(offset),
+    db
+      .select({ count: count() })
+      .from(checkoutSessions)
+      .innerJoin(payments, eq(checkoutSessions.paymentId, payments.id))
+      .leftJoin(customers, eq(checkoutSessions.customerId, customers.id))
+      .where(whereClause),
+  ]);
+
+  return {
+    checkout_sessions: rows.map((row) =>
+      serializeCheckoutSession(row, {
+        customerPublicId: row.customerPublicId,
+        paymentPublicId: row.paymentPublicId,
+      }),
+    ),
+    total: totalRows[0]?.count ?? 0,
+  };
 }
 
 export async function getCheckoutSessionByPublicId(publicId: string) {
