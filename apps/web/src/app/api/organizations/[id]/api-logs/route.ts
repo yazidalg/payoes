@@ -1,11 +1,11 @@
 import { auth } from "@/auth";
 import { NextResponse } from "next/server";
-import { listApiLogs } from "@/lib/api-logs/service";
+import { listApiLogsPaginated } from "@/lib/api-logs/service";
 import { getOrganizationForMember } from "@/lib/organizations/wallet";
 
 export async function GET(
-  _request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  request: Request,
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await auth();
 
@@ -20,6 +20,30 @@ export async function GET(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const logs = await listApiLogs(organization.id, organization.environment);
-  return NextResponse.json({ logs });
+  const { searchParams } = new URL(request.url);
+  const page = Number(searchParams.get("page") ?? "1");
+  const pageSize = Number(searchParams.get("pageSize") ?? "20");
+  const search = searchParams.get("search") ?? undefined;
+  const method = searchParams.get("method") ?? undefined;
+  const statusGroup = searchParams.get("statusGroup") as
+    | "2xx"
+    | "4xx"
+    | "5xx"
+    | undefined;
+  const apiKeyId = searchParams.get("apiKeyId") ?? undefined;
+
+  const { logs, total } = await listApiLogsPaginated(
+    organization.id,
+    organization.environment,
+    {
+      page,
+      pageSize,
+      search,
+      method,
+      statusGroup,
+      apiKeyId,
+    },
+  );
+
+  return NextResponse.json({ logs, total });
 }
