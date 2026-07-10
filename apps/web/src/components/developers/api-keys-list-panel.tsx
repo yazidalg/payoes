@@ -1,111 +1,90 @@
 "use client";
 
-import { useCallback, useState } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { PlusIcon } from "lucide-react";
-import { CreateApiKeyDialog } from "@/components/developers/create-api-key-dialog";
-import { Button } from "@/components/ui/button";
+import { useMemo, useState } from "react";
+import { ApiKeysTable } from "@/ui/developers/api-keys-table";
+import { useSetDashboardPageHeader } from "@/ui/layout/dashboard-page-header-context";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { useAsyncData } from "@/hooks/use-async-data";
+  apiKeyRowToFormData,
+  useAddEditApiKeyModal,
+} from "@/ui/modals/add-edit-api-key-modal";
+import { useApiKeyCreatedModal } from "@/ui/modals/api-key-created-modal";
 import type { ApiKeyRow } from "@/lib/api-keys/types";
-import { TableEmptyState } from "@/ui/shared/table-empty-state";
-import { DatabaseKey } from "@dub/ui/icons";
+import { Button } from "@dub/ui";
+import { Plus2 } from "@dub/ui/icons";
 
 export function ApiKeysListPanel({ organizationId }: { organizationId: string }) {
-  const router = useRouter();
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [createdSecret, setCreatedSecret] = useState("");
+  const [selectedApiKey, setSelectedApiKey] = useState<ApiKeyRow | null>(null);
 
-  const fetchKeys = useCallback(async () => {
-    const response = await fetch(`/api/organizations/${organizationId}/api-keys`);
-    const data = (await response.json()) as { apiKeys?: ApiKeyRow[] };
-    return data.apiKeys ?? [];
-  }, [organizationId]);
+  const { ApiKeyCreatedModal, setShowApiKeyCreatedModal } = useApiKeyCreatedModal({
+    secret: createdSecret,
+  });
 
-  const { data: keys, reload } = useAsyncData(fetchKeys, [organizationId]);
+  const onApiKeyCreated = (secret: string) => {
+    setCreatedSecret(secret);
+    setShowApiKeyCreatedModal(true);
+  };
+
+  const { AddEditApiKeyModal, setShowAddEditApiKeyModal } = useAddEditApiKeyModal({
+    organizationId,
+    ...(selectedApiKey
+      ? { apiKey: apiKeyRowToFormData(selectedApiKey) }
+      : { onApiKeyCreated }),
+    setSelectedApiKey,
+    onSaved: () => setRefreshKey((current) => current + 1),
+  });
+
+  const openCreateModal = () => {
+    setSelectedApiKey(null);
+    setShowAddEditApiKeyModal(true);
+  };
+
+  const openEditModal = (apiKey: ApiKeyRow) => {
+    if (apiKey.revokedAt) {
+      return;
+    }
+
+    setSelectedApiKey(apiKey);
+    setShowAddEditApiKeyModal(true);
+  };
+
+  const headerOverride = useMemo(
+    () => ({
+      titleInfo: {
+        title:
+          "These API keys allow other apps to access your organization. Use them with caution: do not share your API key with others, or expose it in the browser or other client-side code.",
+        href: "/dashboard/developers/documentation",
+      },
+      controls: (
+        <Button
+          type="button"
+          variant="primary"
+          text="Create API key"
+          icon={<Plus2 className="size-4" />}
+          className="h-9 w-fit"
+          onClick={openCreateModal}
+        />
+      ),
+    }),
+    [],
+  );
+
+  useSetDashboardPageHeader(headerOverride);
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">API Keys</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Manage credentials used to call the Payoes API.
-          </p>
-        </div>
-        <Button type="button" onClick={() => setIsCreateOpen(true)}>
-          <PlusIcon />
-          Create API key
-        </Button>
-      </div>
+    <>
+      <ApiKeyCreatedModal />
+      <AddEditApiKeyModal />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>API key list</CardTitle>
-          <CardDescription>Click a row to open the key detail page.</CardDescription>
-        </CardHeader>
-        <CardContent className="px-0 pb-0">
-          {(keys ?? []).length === 0 ? (
-            <TableEmptyState
-              title="No API keys yet"
-              description="Create an API key to start calling the Payoes API."
-              icon={<DatabaseKey className="size-4 text-neutral-700" />}
-              className="border-0"
-            />
-          ) : (
-            <div className="overflow-hidden">
-              <table className="w-full text-sm">
-                <thead className="bg-muted/40 text-left">
-                  <tr>
-                    <th className="px-4 py-3 font-medium">Name</th>
-                    <th className="px-4 py-3 font-medium">Prefix</th>
-                    <th className="px-4 py-3 font-medium">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(keys ?? []).map((key) => (
-                    <tr
-                      key={key.id}
-                      className="border-t border-border/60 hover:bg-muted/30"
-                    >
-                      <td className="px-4 py-3 font-medium">
-                        <Link
-                          href={`/dashboard/developers/api-keys/${key.id}`}
-                          className="hover:underline"
-                        >
-                          {key.name}
-                        </Link>
-                      </td>
-                      <td className="px-4 py-3 font-mono text-xs">{key.keyPrefix}</td>
-                      <td className="px-4 py-3 capitalize">
-                        {key.revokedAt ? "revoked" : "active"}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      <CreateApiKeyDialog
+      <ApiKeysTable
         organizationId={organizationId}
-        open={isCreateOpen}
-        onOpenChange={setIsCreateOpen}
-        onCreated={(apiKeyId) => {
-          reload();
-          if (apiKeyId) {
-            router.push(`/dashboard/developers/api-keys/${apiKeyId}`);
-          }
-        }}
+        refreshKey={refreshKey}
+        onCreateClick={openCreateModal}
+        onRowClick={openEditModal}
+        onEdit={openEditModal}
+        onRevoked={() => setRefreshKey((current) => current + 1)}
       />
-    </div>
+    </>
   );
 }
