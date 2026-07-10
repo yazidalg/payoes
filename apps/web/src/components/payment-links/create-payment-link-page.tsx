@@ -1,16 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
-import { ArrowLeftIcon, PlusIcon, Trash2Icon } from "lucide-react";
 import { toast } from "sonner";
 import { InvoiceCurrencyPicker } from "@/components/invoices/invoice-currency-picker";
 import { PaymentLinkPreviewPanel } from "@/components/payment-links/payment-link-preview-panel";
-import { AlertBlock } from "@/components/shared/alert-block";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   calculateInvoiceTotal,
   calculateTotalQuantity,
@@ -23,55 +17,25 @@ import {
   type PaymentLinkCustomerCollection,
   type PaymentLinkPresentation,
 } from "@/lib/payment-links/types";
-import { cn } from "@/lib/utils";
+import type { InvoiceLineItemValues } from "@/lib/validation/create-invoice-validation";
+import {
+  createPaymentLinkInlineValidators,
+  createPaymentLinkRequiredValidators,
+  type CreatePaymentLinkFormValues,
+} from "@/lib/validation/create-payment-link-validation";
+import {
+  getVisibleInlineError,
+  useSplitFormValidation,
+  useTouchedFields,
+} from "@/lib/validation/form-validation";
+import { FormFieldLabel } from "@/ui/forms/form-field-label";
+import { FormTextarea } from "@/ui/forms/form-textarea";
+import { ValidatedSubmitButton } from "@/ui/forms/validated-submit-button";
+import { InvoiceLineItemsEditor } from "@/ui/invoices/invoice-line-items-editor";
+import { PaymentLinkCreateShell } from "@/ui/payment-links/payment-link-create-shell";
+import { cn } from "@dub/utils";
 
-type DraftProductItem = {
-  id: string;
-  description: string;
-  quantity: string;
-  unitAmount: string;
-};
-
-function createDraftItem(): DraftProductItem {
-  return {
-    id: crypto.randomUUID(),
-    description: "",
-    quantity: "1",
-    unitAmount: "0",
-  };
-}
-
-function CollectionOption({
-  title,
-  description,
-  checked,
-  onChange,
-}: {
-  title: string;
-  description: string;
-  checked: boolean;
-  onChange: (checked: boolean) => void;
-}) {
-  return (
-    <label
-      className={cn(
-        "flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition-colors",
-        checked ? "border-primary bg-primary/5" : "hover:bg-muted/40"
-      )}
-    >
-      <input
-        type="checkbox"
-        className="mt-1 size-4 rounded border-input"
-        checked={checked}
-        onChange={(event) => onChange(event.target.checked)}
-      />
-      <span className="min-w-0 flex-1">
-        <span className="block text-sm font-medium">{title}</span>
-        <span className="mt-0.5 block text-xs text-muted-foreground">{description}</span>
-      </span>
-    </label>
-  );
-}
+type CreatePaymentLinkField = keyof CreatePaymentLinkFormValues;
 
 function buildDraftPresentation(input: {
   organizationName: string;
@@ -80,12 +44,14 @@ function buildDraftPresentation(input: {
   environment: "sandbox" | "production";
   currencyCode: string;
   description: string;
-  items: DraftProductItem[];
+  items: InvoiceLineItemValues[];
   customerCollection: PaymentLinkCustomerCollection;
 }): PaymentLinkPresentation {
   const draftItems = input.items.map((item) => {
     const hasValues =
-      item.description.trim() && Number(item.unitAmount) > 0 && Number(item.quantity) > 0;
+      item.description.trim() &&
+      Number(item.unitAmount) > 0 &&
+      Number(item.quantity) > 0;
 
     return {
       description: item.description.trim() || "Untitled product",
@@ -98,14 +64,14 @@ function buildDraftPresentation(input: {
               quantity: item.quantity || "1",
               unitAmount: item.unitAmount,
             },
-            input.currencyCode
+            input.currencyCode,
           )
         : "0",
     };
   });
 
   const validItems = input.items.filter(
-    (item) => item.description.trim() && Number(item.unitAmount) > 0
+    (item) => item.description.trim() && Number(item.unitAmount) > 0,
   );
 
   const amount =
@@ -116,7 +82,7 @@ function buildDraftPresentation(input: {
             quantity: item.quantity || "1",
             unitAmount: item.unitAmount,
           })),
-          input.currencyCode
+          input.currencyCode,
         )
       : "0";
 
@@ -136,6 +102,35 @@ function buildDraftPresentation(input: {
   };
 }
 
+function CollectionOption({
+  title,
+  description,
+  checked,
+  onChange,
+}: {
+  title: string;
+  description: string;
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+}) {
+  return (
+    <label className="flex cursor-pointer items-start gap-3 text-sm">
+      <input
+        type="checkbox"
+        className="mt-0.5 size-4 rounded border-neutral-300"
+        checked={checked}
+        onChange={(event) => onChange(event.target.checked)}
+      />
+      <span className="min-w-0">
+        <span className="text-content-default block font-medium">{title}</span>
+        <span className="text-content-subtle mt-0.5 block text-xs">
+          {description}
+        </span>
+      </span>
+    </label>
+  );
+}
+
 export function CreatePaymentLinkPage({
   organizationId,
   organizationName,
@@ -151,12 +146,34 @@ export function CreatePaymentLinkPage({
 }) {
   const router = useRouter();
   const [currencyCode, setCurrencyCode] = useState(DEFAULT_INVOICE_CURRENCY_CODE);
-  const [items, setItems] = useState<DraftProductItem[]>([createDraftItem()]);
+  const [items, setItems] = useState<InvoiceLineItemValues[]>([]);
   const [description, setDescription] = useState("");
   const [customerCollection, setCustomerCollection] =
     useState<PaymentLinkCustomerCollection>(DEFAULT_PAYMENT_LINK_CUSTOMER_COLLECTION);
-  const [error, setError] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isEditingItem, setIsEditingItem] = useState(false);
+  const { touched, touch } = useTouchedFields<CreatePaymentLinkField>();
+
+  const formValues = useMemo<CreatePaymentLinkFormValues>(
+    () => ({
+      currencyCode,
+      description,
+      items,
+    }),
+    [currencyCode, description, items],
+  );
+
+  const {
+    firstRequiredError,
+    inlineErrorsByField,
+    hasInlineErrors,
+    isValid,
+  } = useSplitFormValidation(
+    formValues,
+    createPaymentLinkRequiredValidators,
+    createPaymentLinkInlineValidators,
+  );
 
   const presentation = useMemo(
     () =>
@@ -179,64 +196,50 @@ export function CreatePaymentLinkPage({
       organizationLogoInitials,
       organizationLogoUrl,
       organizationName,
-    ]
+    ],
   );
 
-  const totalQuantity = useMemo(() => calculateTotalQuantity(items), [items]);
+  const totalQuantity = calculateTotalQuantity(
+    items.map((item) => ({
+      description: item.description,
+      quantity: item.quantity || "1",
+      unitAmount: item.unitAmount,
+    })),
+  );
 
-  function updateItem(id: string, patch: Partial<DraftProductItem>) {
-    setItems((current) =>
-      current.map((item) => (item.id === id ? { ...item, ...patch } : item))
-    );
-  }
+  const descriptionError = getVisibleInlineError(
+    inlineErrorsByField.description,
+    Boolean(touched.description),
+  );
+  const itemsError = getVisibleInlineError(
+    inlineErrorsByField.items,
+    Boolean(touched.items),
+  );
+
+  const createDisabled = Boolean(firstRequiredError) || hasInlineErrors || items.length === 0;
+  const createTooltip =
+    firstRequiredError ?? (items.length === 0 ? "Add at least one product" : null);
 
   function updateCollection(
     key: keyof PaymentLinkCustomerCollection,
-    value: boolean
+    value: boolean,
   ) {
     setCustomerCollection((current) => ({ ...current, [key]: value }));
   }
 
-  function validateForm() {
-    const validItems = items.filter(
-      (item) => item.description.trim() && Number(item.unitAmount) > 0
-    );
-
-    if (validItems.length === 0) {
-      return "Add at least one product with a price";
-    }
-
-    try {
-      calculateInvoiceTotal(
-        validItems.map((item) => ({
-          description: item.description,
-          quantity: item.quantity || "1",
-          unitAmount: item.unitAmount,
-        })),
-        currencyCode
-      );
-    } catch (validationError) {
-      return validationError instanceof Error
-        ? validationError.message
-        : "Invalid product amounts";
-    }
-
-    return null;
-  }
-
   async function handleCreate() {
-    const validationError = validateForm();
+    touch("items");
+    touch("description");
 
-    if (validationError) {
-      setError(validationError);
+    if (!isValid) {
       return;
     }
 
-    setError(null);
+    setSubmitError(null);
     setIsLoading(true);
 
     const validItems = items.filter(
-      (item) => item.description.trim() && Number(item.unitAmount) > 0
+      (item) => item.description.trim() && Number(item.unitAmount) > 0,
     );
 
     const response = await fetch(
@@ -254,7 +257,7 @@ export function CreatePaymentLinkPage({
           description: description.trim() || null,
           customer_collection: customerCollection,
         }),
-      }
+      },
     );
 
     const data = (await response.json()) as { error?: string; id?: string };
@@ -262,7 +265,7 @@ export function CreatePaymentLinkPage({
     setIsLoading(false);
 
     if (!response.ok) {
-      setError(data.error ?? "Unable to create payment link");
+      setSubmitError(data.error ?? "Unable to create payment link");
       return;
     }
 
@@ -271,185 +274,150 @@ export function CreatePaymentLinkPage({
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex items-center justify-between gap-4 border-b px-4 py-4 sm:px-6">
-        <div className="flex items-center gap-3">
-          <Link
-            href="/dashboard/payments?tab=payment-links"
-            className="inline-flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-          >
-            <ArrowLeftIcon className="size-4" />
-          </Link>
+    <PaymentLinkCreateShell>
+      <div className="flex min-h-0 flex-1 flex-col">
+        <div className="flex items-center justify-between gap-4 border-b border-neutral-200 px-6 py-4">
           <div>
-            <h1 className="text-lg font-semibold">
+            <h1 className="text-content-default text-lg font-semibold">
               Create {environment === "production" ? "" : "test "}payment link
             </h1>
-            <p className="text-sm text-muted-foreground">
-              Choose a currency, add products, preview the hosted page, then share the link.
+            <p className="text-content-subtle text-sm">
+              Add products, preview the hosted page, then share the link.
             </p>
           </div>
+          <ValidatedSubmitButton
+            text="Create payment link"
+            className="h-9"
+            type="button"
+            loading={isLoading}
+            onClick={() => void handleCreate()}
+            requiredError={createTooltip}
+            submitDisabled={createDisabled}
+          />
         </div>
-        <Button type="button" onClick={() => void handleCreate()} isLoading={isLoading}>
-          Create payment link
-        </Button>
-      </div>
 
-      <div className="grid min-h-0 flex-1 gap-0 lg:grid-cols-[minmax(0,420px)_minmax(0,1fr)]">
-        <div className="overflow-auto border-r px-4 py-6 sm:px-6">
-          {error ? (
-            <AlertBlock type="error" className="mb-4">
-              {error}
-            </AlertBlock>
-          ) : null}
+        <div className="grid min-h-0 flex-1 lg:grid-cols-2">
+          <div className="relative min-h-0 overflow-y-auto px-6 py-6">
+            {isEditingItem ? (
+              <div className="absolute inset-0 z-10 bg-white" />
+            ) : null}
 
-          <div className="space-y-6">
-            <section className="space-y-2">
-              <InvoiceCurrencyPicker
-                value={currencyCode}
-                onChange={setCurrencyCode}
-              />
-              <p className="text-xs text-muted-foreground">
-                Customers can pay with any enabled Stellar token at checkout. The
-                link total stays in this currency.
+            {submitError ? (
+              <p className="relative z-0 mb-4 text-xs font-medium text-red-600">
+                {submitError}
               </p>
-            </section>
+            ) : null}
 
-            <section className="space-y-3">
-              <div className="flex items-center justify-between">
-                <Label>Products</Label>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setItems((current) => [...current, createDraftItem()])}
-                >
-                  <PlusIcon className="size-4" />
-                  Add product
-                </Button>
+            <div className="relative mx-auto flex w-full max-w-lg flex-col gap-8">
+              {!isEditingItem ? (
+                <InvoiceCurrencyPicker
+                  value={currencyCode}
+                  onChange={setCurrencyCode}
+                  onTouch={() => touch("currencyCode")}
+                />
+              ) : null}
+
+              <div className={cn("relative", isEditingItem && "z-20")}>
+                <InvoiceLineItemsEditor
+                  items={items}
+                  currencyCode={currencyCode}
+                  onChange={setItems}
+                  error={itemsError}
+                  onTouch={() => touch("items")}
+                  onEditingChange={setIsEditingItem}
+                />
               </div>
 
-              <div className="space-y-3">
-                {items.map((item) => (
-                  <div key={item.id} className="rounded-lg border p-3">
-                    <div className="grid gap-3">
-                      <Input
-                        placeholder="Product name"
-                        value={item.description}
-                        onChange={(event) =>
-                          updateItem(item.id, { description: event.target.value })
+              {!isEditingItem ? (
+                <div className="flex flex-col gap-8">
+                  <div className="space-y-1 border-t border-neutral-100 pt-4 text-sm">
+                    <div className="flex items-center justify-between">
+                      <span className="text-content-subtle">Total</span>
+                      <span className="text-content-default font-medium">
+                        {formatInvoiceAmount(presentation.amount, currencyCode)}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-content-subtle">Quantity</span>
+                      <span className="text-content-default">{totalQuantity}</span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <FormFieldLabel htmlFor="payment-link-memo">Memo</FormFieldLabel>
+                    <FormTextarea
+                      id="payment-link-memo"
+                      rows={3}
+                      placeholder="Optional note on the payment page"
+                      value={description}
+                      error={descriptionError}
+                      onChange={(event) => {
+                        touch("description");
+                        setDescription(event.target.value);
+                      }}
+                    />
+                  </div>
+
+                  <div className="space-y-3">
+                    <div>
+                      <FormFieldLabel htmlFor="payment-link-options">
+                        Additional options
+                      </FormFieldLabel>
+                      <p className="text-content-subtle mt-1 text-xs">
+                        Collect extra customer details before checkout.
+                      </p>
+                    </div>
+
+                    <div className="space-y-3">
+                      <CollectionOption
+                        title="Collect customer name"
+                        description="Ask for the payer's full name on the payment page."
+                        checked={customerCollection.collect_customer_name}
+                        onChange={(checked) =>
+                          updateCollection("collect_customer_name", checked)
                         }
                       />
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="space-y-1">
-                          <Label className="text-xs text-muted-foreground">Qty</Label>
-                          <Input
-                            value={item.quantity}
-                            onChange={(event) =>
-                              updateItem(item.id, { quantity: event.target.value })
-                            }
-                          />
-                        </div>
-                        <div className="space-y-1">
-                          <Label className="text-xs text-muted-foreground">
-                            Unit price ({currencyCode})
-                          </Label>
-                          <Input
-                            value={item.unitAmount}
-                            onChange={(event) =>
-                              updateItem(item.id, { unitAmount: event.target.value })
-                            }
-                          />
-                        </div>
-                      </div>
-                    </div>
-                    {items.length > 1 ? (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="mt-2"
-                        onClick={() =>
-                          setItems((current) =>
-                            current.filter((entry) => entry.id !== item.id)
-                          )
+                      <CollectionOption
+                        title="Collect business name"
+                        description="Ask for the payer's company or organization name."
+                        checked={customerCollection.collect_business_name}
+                        onChange={(checked) =>
+                          updateCollection("collect_business_name", checked)
                         }
-                      >
-                        <Trash2Icon className="size-4" />
-                        Remove
-                      </Button>
-                    ) : null}
+                      />
+                      <CollectionOption
+                        title="Collect customer address"
+                        description="Ask for a billing address before continuing to payment."
+                        checked={customerCollection.collect_customer_address}
+                        onChange={(checked) =>
+                          updateCollection("collect_customer_address", checked)
+                        }
+                      />
+                      <CollectionOption
+                        title="Require phone number"
+                        description="Make a phone number mandatory before checkout."
+                        checked={customerCollection.require_phone_number}
+                        onChange={(checked) =>
+                          updateCollection("require_phone_number", checked)
+                        }
+                      />
+                    </div>
                   </div>
-                ))}
-              </div>
+                </div>
+              ) : null}
+            </div>
+          </div>
 
-              <div className="space-y-1 text-sm">
-                <p className="font-medium text-foreground">
-                  Total: {formatInvoiceAmount(presentation.amount, currencyCode)}
-                </p>
-                <p className="text-muted-foreground">Total quantity: {totalQuantity}</p>
-              </div>
-            </section>
-
-            <section className="space-y-2">
-              <Label htmlFor="payment-link-memo">Memo</Label>
-              <Input
-                id="payment-link-memo"
-                placeholder="Optional note on the payment page"
-                value={description}
-                onChange={(event) => setDescription(event.target.value)}
+          <div className="bg-bg-preview flex min-h-[420px] flex-col border-t border-neutral-200 px-6 py-6 lg:border-t-0 lg:border-l">
+            <div className="mx-auto flex h-full min-h-0 w-full max-w-xl flex-col">
+              <PaymentLinkPreviewPanel
+                presentation={presentation}
+                environment={environment}
               />
-            </section>
-
-            <section className="space-y-3">
-              <div>
-                <Label>Additional options</Label>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Collect extra customer details before checkout.
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <CollectionOption
-                  title="Collect customer name"
-                  description="Ask for the payer's full name on the payment page."
-                  checked={customerCollection.collect_customer_name}
-                  onChange={(checked) =>
-                    updateCollection("collect_customer_name", checked)
-                  }
-                />
-                <CollectionOption
-                  title="Collect business name"
-                  description="Ask for the payer's company or organization name."
-                  checked={customerCollection.collect_business_name}
-                  onChange={(checked) =>
-                    updateCollection("collect_business_name", checked)
-                  }
-                />
-                <CollectionOption
-                  title="Collect customer address"
-                  description="Ask for a billing address before continuing to payment."
-                  checked={customerCollection.collect_customer_address}
-                  onChange={(checked) =>
-                    updateCollection("collect_customer_address", checked)
-                  }
-                />
-                <CollectionOption
-                  title="Require phone number"
-                  description="Make a phone number mandatory before checkout."
-                  checked={customerCollection.require_phone_number}
-                  onChange={(checked) =>
-                    updateCollection("require_phone_number", checked)
-                  }
-                />
-              </div>
-            </section>
+            </div>
           </div>
         </div>
-
-        <div className="min-h-[480px] p-4 sm:p-6">
-          <PaymentLinkPreviewPanel presentation={presentation} environment={environment} />
-        </div>
       </div>
-    </div>
+    </PaymentLinkCreateShell>
   );
 }
