@@ -16,7 +16,9 @@ const createCustomerSchema = z.object({
 });
 
 export async function GET(request: Request) {
-  return withApiKeyAuth(request, async ({ apiKey }) => {
+  return withApiKeyAuth(
+    request,
+    async ({ apiKey }) => {
     const customerList = await listCustomers(
       apiKey.organizationId,
       apiKey.environment
@@ -25,11 +27,15 @@ export async function GET(request: Request) {
     return NextResponse.json({
       customers: customerList.map(serializeCustomer),
     });
-  });
+  },
+    { resource: "customers", action: "read" }
+  );
 }
 
 export async function POST(request: Request) {
-  return withApiKeyAuth(request, async ({ apiKey }) => {
+  return withApiKeyAuth(
+    request,
+    async ({ apiKey }) => {
     const body = await request.json();
     const parsed = createCustomerSchema.safeParse(body);
 
@@ -61,5 +67,7 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
-  });
+  },
+    { resource: "customers", action: "write" }
+  );
 }

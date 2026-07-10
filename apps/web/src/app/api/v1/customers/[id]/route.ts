@@ -11,26 +11,30 @@ export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  return withApiKeyAuth(request, async ({ apiKey }) => {
-    const { id } = await params;
-    const customer = await getCustomerForOrganization(
-      id,
-      apiKey.organizationId,
-      apiKey.environment
-    );
+  return withApiKeyAuth(
+    request,
+    async ({ apiKey }) => {
+      const { id } = await params;
+      const customer = await getCustomerForOrganization(
+        id,
+        apiKey.organizationId,
+        apiKey.environment
+      );
 
-    if (!customer) {
-      return NextResponse.json({ error: "Customer not found" }, { status: 404 });
-    }
+      if (!customer) {
+        return NextResponse.json({ error: "Customer not found" }, { status: 404 });
+      }
 
-    const paymentList = await listPaymentsForCustomer(
-      customer.id,
-      apiKey.environment
-    );
+      const paymentList = await listPaymentsForCustomer(
+        customer.id,
+        apiKey.environment
+      );
 
-    return NextResponse.json({
-      ...serializeCustomer(customer),
-      payments: await serializePayments(paymentList),
-    });
-  });
+      return NextResponse.json({
+        ...serializeCustomer(customer),
+        payments: await serializePayments(paymentList),
+      });
+    },
+    { resource: "customers", action: "read" }
+  );
 }
