@@ -1,22 +1,35 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowLeftIcon } from "lucide-react";
-import { toast } from "sonner";
 import { AlertBlock } from "@/components/shared/alert-block";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { useAsyncData } from "@/hooks/use-async-data";
-import { formatAmountWithUnit } from "@/lib/format/amount";
 import { getPaymentsHubHref } from "@/lib/navigation/payments-tabs";
-import { formatAssetAmount, type PaymentLinkRow } from "@/lib/payments/types";
+import type { PaymentLinkRow } from "@/lib/payments/types";
+import { PaymentLinkDetailSkeleton } from "@/ui/payments/payment-link-detail-skeleton";
+import { PaymentLinkDetailStats } from "@/ui/payments/payment-link-detail-stats";
+import { PaymentLinkDetailsColumn } from "@/ui/payments/payment-link-details-column";
+import {
+  formatPaymentLinkAmount,
+  getPaymentLinkStatusVariant,
+} from "@/ui/payments/payment-formatters";
+import {
+  PaymentLinkCustomerCollectionSection,
+  PaymentLinkMetadataSection,
+  PaymentLinkProductsSection,
+} from "@/ui/payments/payment-link-sections";
+import { ShareLinkSection } from "@/ui/payments/share-link-section";
+import { useSetDashboardPageHeader } from "@/ui/layout/dashboard-page-header-context";
+import {
+  Button,
+  MenuItem,
+  Popover,
+  StatusBadge,
+  useCopyToClipboard,
+} from "@dub/ui";
+import { ChevronRight, Copy, Dots, Hyperlink, Link4 } from "@dub/ui/icons";
+import { Command } from "cmdk";
+import { toast } from "sonner";
 
 export function PaymentLinkDetailPanel({
   organizationId,
@@ -27,7 +40,7 @@ export function PaymentLinkDetailPanel({
 }) {
   const fetchLink = useCallback(async () => {
     const response = await fetch(
-      `/api/organizations/${organizationId}/payment-links/${linkId}`
+      `/api/organizations/${organizationId}/payment-links/${linkId}`,
     );
     const data = (await response.json()) as PaymentLinkRow & { error?: string };
 
@@ -43,172 +56,138 @@ export function PaymentLinkDetailPanel({
     linkId,
   ]);
 
-  async function copyLink(url: string) {
-    await navigator.clipboard.writeText(url);
-    toast.success("Payment link copied");
-  }
+  const headerTitle = link?.product_name ?? (link ? formatPaymentLinkAmount(link) : "");
+
+  const headerOverride = useMemo(() => {
+    if (!link) {
+      return null;
+    }
+
+    return {
+      title: (
+        <div className="flex min-w-0 items-center gap-1.5">
+          <Link
+            href={getPaymentsHubHref("payment-links")}
+            aria-label="Back to payment links"
+            title="Back to payment links"
+            className="bg-bg-subtle hover:bg-bg-emphasis flex size-8 shrink-0 items-center justify-center rounded-lg transition-[transform,background-color] duration-150 active:scale-95"
+          >
+            <Hyperlink className="size-4" />
+          </Link>
+          <ChevronRight className="text-content-muted size-2.5 shrink-0 [&_*]:stroke-2" />
+          <span className="text-content-emphasis min-w-0 truncate text-base font-semibold">
+            {headerTitle}
+          </span>
+          <StatusBadge variant={getPaymentLinkStatusVariant(link.active)} icon={null}>
+            {link.active ? "Active" : "Inactive"}
+          </StatusBadge>
+        </div>
+      ),
+      controls: <PaymentLinkDetailMenu link={link} />,
+    };
+  }, [headerTitle, link]);
+
+  useSetDashboardPageHeader(headerOverride);
 
   if (isLoading) {
-    return (
-      <div className="text-sm text-muted-foreground">Loading payment link...</div>
-    );
+    return <PaymentLinkDetailSkeleton />;
   }
 
   if (error || !link) {
     return (
       <div className="space-y-4">
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          render={<Link href={getPaymentsHubHref("payment-links")} />}
+        <Link
+          href={getPaymentsHubHref("payment-links")}
+          className="bg-bg-subtle hover:bg-bg-emphasis inline-flex size-8 items-center justify-center rounded-lg transition-colors"
         >
-          <ArrowLeftIcon />
-          Back to payments
-        </Button>
+          <Hyperlink className="size-4" />
+        </Link>
         <AlertBlock type="error">{error ?? "Payment link not found"}</AlertBlock>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="space-y-3">
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          render={<Link href={getPaymentsHubHref("payment-links")} />}
-        >
-          <ArrowLeftIcon />
-          Back to payments
-        </Button>
-        <div>
-          <h1 className="font-mono text-2xl font-semibold tracking-tight">
-            {link.id}
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Reusable payment link details.
-          </p>
+    <div className="space-y-6 pb-10">
+      <PaymentLinkDetailStats link={link} />
+
+      <div className="@3xl/page:grid-cols-[minmax(440px,1fr)_minmax(0,360px)] grid grid-cols-1 gap-6">
+        <div className="@3xl/page:order-2">
+          <PaymentLinkDetailsColumn link={link} />
         </div>
-      </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Link</CardTitle>
-            <CardDescription>Amount and status.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3 text-sm">
-            <div className="flex justify-between gap-4">
-              <span className="text-muted-foreground">Status</span>
-              <span>{link.active ? "Active" : "Inactive"}</span>
-            </div>
-            <div className="flex justify-between gap-4">
-              <span className="text-muted-foreground">Total</span>
-              <span>
-                {link.currency_code
-                  ? formatAmountWithUnit(link.amount, link.currency_code)
-                  : formatAssetAmount(link.amount, link.settlement_asset)}
-              </span>
-            </div>
-            {link.currency_code ? (
-              <div className="flex justify-between gap-4">
-                <span className="text-muted-foreground">Currency</span>
-                <span>{link.currency_code}</span>
-              </div>
-            ) : null}
-            <div className="flex justify-between gap-4">
-              <span className="text-muted-foreground">Environment</span>
-              <span className="capitalize">{link.environment}</span>
-            </div>
-            <div className="flex justify-between gap-4">
-              <span className="text-muted-foreground">Description</span>
-              <span>{link.description ?? "N/A"}</span>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="@3xl/page:order-1 space-y-6">
+          <PaymentLinkProductsSection link={link} />
+          <PaymentLinkMetadataSection link={link} />
+          <PaymentLinkCustomerCollectionSection link={link} />
 
-        {link.items && link.items.length > 0 ? (
-          <Card>
-            <CardHeader>
-              <CardTitle>Products</CardTitle>
-              <CardDescription>Line items shown on the hosted page.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3 text-sm">
-              {link.items.map((item, index) => (
-                <div
-                  key={`${item.description}-${index}`}
-                  className="flex items-start justify-between gap-4 border-b border-border/60 pb-3 last:border-0 last:pb-0"
-                >
-                  <div>
-                    <p className="font-medium">{item.description}</p>
-                    <p className="text-muted-foreground">
-                      {item.quantity} ×{" "}
-                      {link.currency_code
-                        ? formatAmountWithUnit(item.unit_amount, link.currency_code)
-                        : item.unit_amount}
-                    </p>
-                  </div>
-                  <p className="shrink-0 font-medium">
-                    {link.currency_code
-                      ? formatAmountWithUnit(item.line_amount, link.currency_code)
-                      : item.line_amount}
-                  </p>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-        ) : null}
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Customer collection</CardTitle>
-            <CardDescription>Fields requested before checkout.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-2 text-sm">
-            <p>
-              {link.customer_collection.collect_customer_name
-                ? "Collects customer name"
-                : "Does not collect customer name"}
-            </p>
-            <p>
-              {link.customer_collection.collect_business_name
-                ? "Collects business name"
-                : "Does not collect business name"}
-            </p>
-            <p>
-              {link.customer_collection.collect_customer_address
-                ? "Collects billing address"
-                : "Does not collect address"}
-            </p>
-            <p>
-              {link.customer_collection.require_phone_number
-                ? "Requires phone number"
-                : "Does not require phone number"}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Share</CardTitle>
-            <CardDescription>
-              Each visit creates a new checkout session.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="break-all font-mono text-xs">{link.url}</p>
+          <ShareLinkSection
+            title="Share"
+            description="Each visit creates a new checkout session."
+            url={link.url}
+            copyLabel="Copy payment link"
+            copySuccessMessage="Payment link copied"
+          >
             <Button
               type="button"
               variant="outline"
-              onClick={() => void copyLink(link.url)}
-            >
-              Copy payment link
-            </Button>
-          </CardContent>
-        </Card>
+              text="Open payment link"
+              className="h-9"
+              render={<a href={link.url} target="_blank" rel="noreferrer" />}
+            />
+          </ShareLinkSection>
+        </div>
       </div>
     </div>
+  );
+}
+
+function PaymentLinkDetailMenu({ link }: { link: PaymentLinkRow }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [, copyToClipboard] = useCopyToClipboard();
+
+  return (
+    <Popover
+      openPopover={isOpen}
+      setOpenPopover={setIsOpen}
+      content={
+        <Command tabIndex={0} loop className="focus:outline-none">
+          <Command.List className="flex w-screen flex-col gap-1 p-1.5 text-sm focus-visible:outline-none sm:w-auto sm:min-w-[180px]">
+            <MenuItem
+              as={Command.Item}
+              icon={Copy}
+              onSelect={() => {
+                toast.promise(copyToClipboard(link.id), {
+                  success: "Copied link ID",
+                });
+                setIsOpen(false);
+              }}
+            >
+              Copy link ID
+            </MenuItem>
+            <MenuItem
+              as={Command.Item}
+              icon={Link4}
+              onSelect={() => {
+                toast.promise(copyToClipboard(link.url), {
+                  success: "Payment link copied",
+                });
+                setIsOpen(false);
+              }}
+            >
+              Copy payment link
+            </MenuItem>
+          </Command.List>
+        </Command>
+      }
+      align="end"
+    >
+      <Button
+        type="button"
+        className="h-9 whitespace-nowrap px-2"
+        variant="outline"
+        icon={<Dots className="h-4 w-4 shrink-0" />}
+      />
+    </Popover>
   );
 }
