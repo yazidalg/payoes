@@ -5,17 +5,10 @@ import { BadgeCheckIcon, CheckCircle2Icon, Loader2Icon } from "lucide-react";
 import { toast } from "sonner";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import { AppModal } from "@/ui/modals/app-modal";
 
 type OfficialAssetOption = {
   asset_code: string;
@@ -166,16 +159,35 @@ export function AddAssetDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto rounded-2xl sm:max-w-xl">
-        <DialogHeader>
-          <DialogTitle>Add Asset</DialogTitle>
-          <DialogDescription>
-            Add an official Stellar asset or configure a custom asset with its issuer.
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="space-y-6">
+    <AppModal
+      open={open}
+      onOpenChange={handleOpenChange}
+      title="Add Asset"
+      description="Add an official Stellar asset or configure a custom asset with its issuer."
+      className="max-h-[90vh] overflow-y-auto sm:max-w-xl"
+      bodyClassName="space-y-6"
+      footer={
+        <>
+          <Button variant="outline" onClick={() => handleOpenChange(false)}>
+            Cancel
+          </Button>
+          {validation ? (
+            <Button onClick={addCustomAsset} isLoading={isSubmitting}>
+              Add Asset
+            </Button>
+          ) : (
+            <Button
+              onClick={addOfficialAsset}
+              isLoading={isSubmitting}
+              disabled={!selectedOfficial}
+            >
+              Add Asset
+            </Button>
+          )}
+        </>
+      }
+    >
+      <div className="space-y-6">
           <section className="space-y-3">
             <div>
               <h3 className="text-sm font-semibold">Official Assets</h3>
@@ -322,26 +334,6 @@ export function AddAssetDialog({
 
           {error ? <AlertBlock type="error">{error}</AlertBlock> : null}
         </div>
-
-        <DialogFooter className="gap-2 sm:gap-0">
-          <Button variant="outline" onClick={() => handleOpenChange(false)}>
-            Cancel
-          </Button>
-          {validation ? (
-            <Button onClick={addCustomAsset} isLoading={isSubmitting}>
-              Add Asset
-            </Button>
-          ) : (
-            <Button
-              onClick={addOfficialAsset}
-              isLoading={isSubmitting}
-              disabled={!selectedOfficial}
-            >
-              Add Asset
-            </Button>
-          )}
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    </AppModal>
   );
 }

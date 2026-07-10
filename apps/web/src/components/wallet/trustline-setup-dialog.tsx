@@ -2,16 +2,9 @@
 
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { STELLAR_TRUSTLINE_RESERVE_XLM } from "@/constants/stellar";
 import type { MissingTrustlineAsset } from "@/hooks/use-trustline-setup";
+import { AppModal } from "@/ui/modals/app-modal";
 
 function shortenIssuer(issuer: string | null) {
   if (!issuer) {
@@ -43,55 +36,18 @@ export function TrustlineSetupDialog({
   onDismiss,
 }: TrustlineSetupDialogProps) {
   return (
-    <Dialog
+    <AppModal
       open={open}
       onOpenChange={(nextOpen) => {
         if (!nextOpen && !isAdding) {
           onDismiss();
         }
       }}
-    >
-      <DialogContent showCloseButton={!isAdding}>
-        <DialogHeader>
-          <DialogTitle>Add trustlines to receive payments</DialogTitle>
-          <DialogDescription>
-            Your receiving wallet is missing trustlines for assets enabled in
-            Settings → Assets. Add them now so customers can pay you without
-            errors.
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="space-y-3">
-          <ul className="max-h-48 space-y-2 overflow-y-auto rounded-lg border bg-muted/20 p-3">
-            {missingAssets.map((asset) => (
-              <li
-                key={`${asset.asset_code}:${asset.issuer_address ?? ""}`}
-                className="flex items-start justify-between gap-3 text-sm"
-              >
-                <div>
-                  <p className="font-medium">{asset.display_name}</p>
-                  {asset.issuer_address ? (
-                    <p className="font-mono text-xs text-muted-foreground">
-                      {shortenIssuer(asset.issuer_address)}
-                    </p>
-                  ) : null}
-                </div>
-                <span className="shrink-0 text-xs text-muted-foreground">
-                  {asset.asset_code}
-                </span>
-              </li>
-            ))}
-          </ul>
-
-          <p className="text-xs text-muted-foreground">
-            Each trustline requires about {STELLAR_TRUSTLINE_RESERVE_XLM} XLM in
-            reserve. Your wallet must already be funded on this network.
-          </p>
-
-          {error ? <AlertBlock type="error">{error}</AlertBlock> : null}
-        </div>
-
-        <DialogFooter>
+      title="Add trustlines to receive payments"
+      description="Your receiving wallet is missing trustlines for assets enabled in Settings → Assets. Add them now so customers can pay you without errors."
+      preventDefaultClose={isAdding}
+      footer={
+        <>
           <Button
             type="button"
             variant="outline"
@@ -108,8 +64,38 @@ export function TrustlineSetupDialog({
           >
             Add trustlines
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </>
+      }
+    >
+      <div className="space-y-3">
+        <ul className="max-h-48 space-y-2 overflow-y-auto rounded-lg border bg-muted/20 p-3">
+          {missingAssets.map((asset) => (
+            <li
+              key={`${asset.asset_code}:${asset.issuer_address ?? ""}`}
+              className="flex items-start justify-between gap-3 text-sm"
+            >
+              <div>
+                <p className="font-medium">{asset.display_name}</p>
+                {asset.issuer_address ? (
+                  <p className="font-mono text-xs text-muted-foreground">
+                    {shortenIssuer(asset.issuer_address)}
+                  </p>
+                ) : null}
+              </div>
+              <span className="shrink-0 text-xs text-muted-foreground">
+                {asset.asset_code}
+              </span>
+            </li>
+          ))}
+        </ul>
+
+        <p className="text-xs text-muted-foreground">
+          Each trustline requires about {STELLAR_TRUSTLINE_RESERVE_XLM} XLM in
+          reserve. Your wallet must already be funded on this network.
+        </p>
+
+        {error ? <AlertBlock type="error">{error}</AlertBlock> : null}
+      </div>
+    </AppModal>
   );
 }
