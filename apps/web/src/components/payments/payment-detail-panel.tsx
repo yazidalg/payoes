@@ -1,43 +1,31 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowLeftIcon } from "lucide-react";
-import { toast } from "sonner";
 import { AlertBlock } from "@/components/shared/alert-block";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { useAsyncData } from "@/hooks/use-async-data";
-import { formatAmountWithUnit } from "@/lib/format/amount";
 import { getPaymentsHubHref } from "@/lib/navigation/payments-tabs";
-import { formatAssetAmount, formatAssetRef, type PaymentRow } from "@/lib/payments/types";
-
-function formatPaidAmount(payment: PaymentRow) {
-  const amount = payment.quoted_paid_amount ?? payment.amount;
-  const asset = payment.paid_asset ?? payment.settlement_asset;
-  return formatAssetAmount(amount, asset);
-}
-
-function formatSettlementTarget(payment: PaymentRow) {
-  if (payment.pricing_amount && payment.pricing_currency) {
-    return formatAmountWithUnit(payment.pricing_amount, payment.pricing_currency);
-  }
-
-  if (payment.quoted_settlement_amount) {
-    return formatAssetAmount(
-      payment.quoted_settlement_amount,
-      payment.settlement_asset
-    );
-  }
-
-  return formatAssetAmount(payment.amount, payment.settlement_asset);
-}
+import type { PaymentRow } from "@/lib/payments/types";
+import { PaymentAmountsSection } from "@/ui/payments/payment-amounts-section";
+import { PaymentDetailSkeleton } from "@/ui/payments/payment-detail-skeleton";
+import { PaymentDetailStats } from "@/ui/payments/payment-detail-stats";
+import { PaymentDetailsColumn } from "@/ui/payments/payment-details-column";
+import {
+  formatPaidAmount,
+  getPaymentStatusVariant,
+} from "@/ui/payments/payment-formatters";
+import { useSetDashboardPageHeader } from "@/ui/layout/dashboard-page-header-context";
+import {
+  Button,
+  CopyText,
+  MenuItem,
+  Popover,
+  StatusBadge,
+  useCopyToClipboard,
+} from "@dub/ui";
+import { ChevronRight, Copy, CreditCard, Dots, Link4 } from "@dub/ui/icons";
+import { Command } from "cmdk";
+import { toast } from "sonner";
 
 export function PaymentDetailPanel({
   organizationId,
@@ -48,7 +36,7 @@ export function PaymentDetailPanel({
 }) {
   const fetchPayment = useCallback(async () => {
     const response = await fetch(
-      `/api/organizations/${organizationId}/payments/${paymentId}`
+      `/api/organizations/${organizationId}/payments/${paymentId}`,
     );
     const data = (await response.json()) as PaymentRow & { error?: string };
 
@@ -64,190 +52,179 @@ export function PaymentDetailPanel({
     paymentId,
   ]);
 
-  async function copyCheckoutUrl(url: string) {
-    await navigator.clipboard.writeText(url);
-    toast.success("Checkout link copied");
-  }
+  const headerOverride = useMemo(() => {
+    if (!payment) {
+      return null;
+    }
+
+    return {
+      title: (
+        <div className="flex min-w-0 items-center gap-1.5">
+          <Link
+            href={getPaymentsHubHref("payment-intents")}
+            aria-label="Back to payments"
+            title="Back to payments"
+            className="bg-bg-subtle hover:bg-bg-emphasis flex size-8 shrink-0 items-center justify-center rounded-lg transition-[transform,background-color] duration-150 active:scale-95"
+          >
+            <CreditCard className="size-4" />
+          </Link>
+          <ChevronRight className="text-content-muted size-2.5 shrink-0 [&_*]:stroke-2" />
+          <span className="text-content-emphasis min-w-0 truncate text-base font-semibold">
+            {formatPaidAmount(payment)}
+          </span>
+          <StatusBadge
+            variant={getPaymentStatusVariant(payment.status)}
+            icon={null}
+          >
+            {payment.status}
+          </StatusBadge>
+        </div>
+      ),
+      controls: <PaymentDetailMenu payment={payment} />,
+    };
+  }, [payment]);
+
+  useSetDashboardPageHeader(headerOverride);
 
   if (isLoading) {
-    return (
-      <div className="text-sm text-muted-foreground">Loading payment...</div>
-    );
+    return <PaymentDetailSkeleton />;
   }
 
   if (error || !payment) {
     return (
       <div className="space-y-4">
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          render={<Link href={getPaymentsHubHref("payment-intents")} />}
-          >
-          <ArrowLeftIcon />
-          Back to payments
-        </Button>
+        <Link
+          href={getPaymentsHubHref("payment-intents")}
+          className="bg-bg-subtle hover:bg-bg-emphasis inline-flex size-8 items-center justify-center rounded-lg transition-colors"
+        >
+          <CreditCard className="size-4" />
+        </Link>
         <AlertBlock type="error">{error ?? "Payment not found"}</AlertBlock>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="space-y-3">
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          render={<Link href={getPaymentsHubHref("payment-intents")} />}
-          >
-          <ArrowLeftIcon />
-          Back to payments
-        </Button>
-        <div>
-          <p className="text-sm text-muted-foreground">Customer paid</p>
-          <h1 className="text-2xl font-semibold tracking-tight">
-            {formatPaidAmount(payment)}
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Settlement target: {formatSettlementTarget(payment)}
-          </p>
-          <p className="mt-1 font-mono text-xs text-muted-foreground">
-            {payment.id}
-          </p>
-        </div>
-      </div>
+    <div className="space-y-6 pb-10">
+      <PaymentDetailStats payment={payment} />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Payment details</CardTitle>
-          <CardDescription>Status, payer info, and payment metadata.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <dl className="grid gap-4 text-sm md:grid-cols-2">
-            <div>
-              <dt className="text-muted-foreground">Status</dt>
-              <dd className="mt-1 capitalize">{payment.status}</dd>
-            </div>
-            <div>
-              <dt className="text-muted-foreground">Description</dt>
-              <dd className="mt-1">{payment.description ?? "N/A"}</dd>
-            </div>
-            <div>
-              <dt className="text-muted-foreground">Invoice total</dt>
-              <dd className="mt-1">
-                {payment.pricing_amount && payment.pricing_currency
-                  ? formatAmountWithUnit(
-                      payment.pricing_amount,
-                      payment.pricing_currency
-                    )
-                  : "N/A"}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-muted-foreground">Paid amount</dt>
-              <dd className="mt-1">{formatPaidAmount(payment)}</dd>
-            </div>
-            <div>
-              <dt className="text-muted-foreground">Settlement amount</dt>
-              <dd className="mt-1">
-                {payment.quoted_settlement_amount
-                  ? formatAssetAmount(
-                      payment.quoted_settlement_amount,
-                      payment.settlement_asset
-                    )
-                  : "N/A"}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-muted-foreground">Settlement asset</dt>
-              <dd className="mt-1">{formatAssetRef(payment.settlement_asset)}</dd>
-            </div>
-            <div>
-              <dt className="text-muted-foreground">Allowed assets</dt>
-              <dd className="mt-1">
-                {payment.allowed_assets.map((asset) => asset.asset_code).join(", ") || "N/A"}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-muted-foreground">Paid asset</dt>
-              <dd className="mt-1">
-                {formatAssetRef(payment.paid_asset ?? payment.settlement_asset)}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-muted-foreground">Customer</dt>
-              <dd className="mt-1 font-mono text-xs">
-                {payment.customer_id ? (
-                  <Link
-                    href={`/dashboard/customers/${payment.customer_id}`}
-                    className="hover:underline"
-                  >
-                    {payment.customer_id}
-                  </Link>
-                ) : (
-                  "N/A"
-                )}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-muted-foreground">Payer wallet</dt>
-              <dd className="mt-1 font-mono text-xs break-all">
-                {payment.payer_address ?? "N/A"}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-muted-foreground">Transaction hash</dt>
-              <dd className="mt-1 font-mono text-xs break-all">
-                {payment.tx_hash ?? "N/A"}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-muted-foreground">Confirmed</dt>
-              <dd className="mt-1">
-                {payment.confirmed_at
-                  ? new Date(payment.confirmed_at).toLocaleString()
-                  : "N/A"}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-muted-foreground">Expires</dt>
-              <dd className="mt-1">
-                {payment.expires_at
-                  ? new Date(payment.expires_at).toLocaleString()
-                  : "N/A"}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-muted-foreground">Created</dt>
-              <dd className="mt-1">
-                {new Date(payment.created_at).toLocaleString()}
-              </dd>
-            </div>
-          </dl>
+      <div className="@3xl/page:grid-cols-[minmax(440px,1fr)_minmax(0,360px)] grid grid-cols-1 gap-6">
+        <div className="@3xl/page:order-2">
+          <PaymentDetailsColumn payment={payment} />
+        </div>
+
+        <div className="@3xl/page:order-1 space-y-6">
+          <PaymentAmountsSection payment={payment} />
 
           {payment.checkout_url && payment.status === "pending" ? (
-            <div className="flex flex-wrap gap-2 pt-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => void copyCheckoutUrl(payment.checkout_url!)}
-              >
-                Copy checkout link
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                render={
-                  <a href={payment.checkout_url} target="_blank" rel="noreferrer" />
-                }
-              >
-                Open checkout
-              </Button>
+            <div className="border-border-subtle overflow-hidden rounded-xl border bg-neutral-100">
+              <div className="border-border-subtle border-b px-4 py-3">
+                <h2 className="text-content-emphasis text-sm font-semibold">Checkout</h2>
+                <p className="mt-0.5 text-xs text-neutral-500">
+                  Share this link with your customer.
+                </p>
+              </div>
+              <div className="border-border-subtle -mx-px -mb-px space-y-4 rounded-xl border bg-white p-4">
+                <CopyTextCheckoutUrl url={payment.checkout_url} />
+                <div className="flex flex-wrap gap-2">
+                  <CopyCheckoutLinkButton url={payment.checkout_url} />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    text="Open checkout"
+                    className="h-9"
+                    render={
+                      <a
+                        href={payment.checkout_url}
+                        target="_blank"
+                        rel="noreferrer"
+                      />
+                    }
+                  />
+                </div>
+              </div>
             </div>
           ) : null}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
+  );
+}
+
+function CopyTextCheckoutUrl({ url }: { url: string }) {
+  return (
+    <CopyText value={url} className="break-all font-mono text-xs">
+      {url}
+    </CopyText>
+  );
+}
+
+function CopyCheckoutLinkButton({ url }: { url: string }) {
+  const [, copyToClipboard] = useCopyToClipboard();
+
+  return (
+    <Button
+      type="button"
+      variant="outline"
+      text="Copy checkout link"
+      className="h-9"
+      onClick={() => {
+        toast.promise(copyToClipboard(url), {
+          success: "Checkout link copied",
+        });
+      }}
+    />
+  );
+}
+
+function PaymentDetailMenu({ payment }: { payment: PaymentRow }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [, copyToClipboard] = useCopyToClipboard();
+
+  return (
+    <Popover
+      openPopover={isOpen}
+      setOpenPopover={setIsOpen}
+      content={
+        <Command tabIndex={0} loop className="focus:outline-none">
+          <Command.List className="flex w-screen flex-col gap-1 p-1.5 text-sm focus-visible:outline-none sm:w-auto sm:min-w-[180px]">
+            <MenuItem
+              as={Command.Item}
+              icon={Copy}
+              onSelect={() => {
+                toast.promise(copyToClipboard(payment.id), {
+                  success: "Copied payment ID",
+                });
+                setIsOpen(false);
+              }}
+            >
+              Copy payment ID
+            </MenuItem>
+            {payment.checkout_url && payment.status === "pending" ? (
+              <MenuItem
+                as={Command.Item}
+                icon={Link4}
+                onSelect={() => {
+                  toast.promise(copyToClipboard(payment.checkout_url), {
+                    success: "Checkout link copied",
+                  });
+                  setIsOpen(false);
+                }}
+              >
+                Copy checkout link
+              </MenuItem>
+            ) : null}
+          </Command.List>
+        </Command>
+      }
+      align="end"
+    >
+      <Button
+        type="button"
+        className="h-9 whitespace-nowrap px-2"
+        variant="outline"
+        icon={<Dots className="h-4 w-4 shrink-0" />}
+      />
+    </Popover>
   );
 }
