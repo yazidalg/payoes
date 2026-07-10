@@ -1,35 +1,11 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import {
-  ArrowLeftIcon,
-  DownloadIcon,
-  EllipsisIcon,
-  MailIcon,
-  PencilIcon,
-  UserRoundIcon,
-} from "lucide-react";
-import { toast } from "sonner";
 import { InvoiceChangeCustomerDialog } from "@/components/invoices/invoice-change-customer-dialog";
 import { InvoiceEditDialog } from "@/components/invoices/invoice-edit-dialog";
 import { AlertBlock } from "@/components/shared/alert-block";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { useAsyncData } from "@/hooks/use-async-data";
 import {
   canChangeInvoiceCustomer,
@@ -39,34 +15,39 @@ import {
   canResendInvoice,
   canVoidInvoice,
 } from "@/lib/invoices/activity";
-import { formatAmountWithUnit } from "@/lib/format/amount";
 import { getPaymentsHubHref } from "@/lib/navigation/payments-tabs";
 import type { InvoiceRow } from "@/lib/payments/types";
-import { cn } from "@/lib/utils";
-
-function InvoiceStatusPill({ status }: { status: string }) {
-  return (
-    <span
-      className={cn(
-        "inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium capitalize",
-        status === "paid" && "bg-emerald-100 text-emerald-800",
-        status === "open" && "bg-amber-100 text-amber-800",
-        status === "draft" && "bg-slate-100 text-slate-700",
-        status === "void" && "bg-rose-100 text-rose-800"
-      )}
-    >
-      {status}
-    </span>
-  );
-}
-
-function formatDetailDate(value: string | null) {
-  if (!value) {
-    return "N/A";
-  }
-
-  return new Date(value).toLocaleString();
-}
+import { InvoiceDetailSkeleton } from "@/ui/payments/invoice-detail-skeleton";
+import { InvoiceDetailStats } from "@/ui/payments/invoice-detail-stats";
+import { InvoiceDetailsColumn } from "@/ui/payments/invoice-details-column";
+import {
+  InvoiceActivitySection,
+  InvoiceLineItemsSection,
+  InvoiceMetadataSection,
+} from "@/ui/payments/invoice-sections";
+import { getInvoiceStatusVariant } from "@/ui/payments/payment-formatters";
+import { ShareLinkSection } from "@/ui/payments/share-link-section";
+import { useSetDashboardPageHeader } from "@/ui/layout/dashboard-page-header-context";
+import {
+  Button,
+  MenuItem,
+  Popover,
+  StatusBadge,
+  useCopyToClipboard,
+} from "@dub/ui";
+import {
+  ChevronRight,
+  Copy,
+  Dots,
+  Download,
+  Envelope,
+  FileContent,
+  Link4,
+  PenWriting,
+  User,
+} from "@dub/ui/icons";
+import { Command } from "cmdk";
+import { toast } from "sonner";
 
 export function InvoiceDetailPanel({
   organizationId,
@@ -81,7 +62,7 @@ export function InvoiceDetailPanel({
 
   const fetchInvoice = useCallback(async () => {
     const response = await fetch(
-      `/api/organizations/${organizationId}/invoices/${invoiceId}`
+      `/api/organizations/${organizationId}/invoices/${invoiceId}`,
     );
     const data = (await response.json()) as InvoiceRow & { error?: string };
 
@@ -97,15 +78,10 @@ export function InvoiceDetailPanel({
     invoiceId,
   ]);
 
-  async function copyCheckoutUrl(url: string) {
-    await navigator.clipboard.writeText(url);
-    toast.success("Checkout link copied");
-  }
-
-  async function finalizeInvoice() {
+  const finalizeInvoice = useCallback(async () => {
     const response = await fetch(
       `/api/organizations/${organizationId}/invoices/${invoiceId}/finalize`,
-      { method: "POST" }
+      { method: "POST" },
     );
     const data = (await response.json()) as { error?: string };
 
@@ -116,12 +92,12 @@ export function InvoiceDetailPanel({
 
     toast.success("Invoice finalized");
     reload();
-  }
+  }, [organizationId, invoiceId, reload]);
 
-  async function resendInvoice() {
+  const resendInvoice = useCallback(async () => {
     const response = await fetch(
       `/api/organizations/${organizationId}/invoices/${invoiceId}/send`,
-      { method: "POST" }
+      { method: "POST" },
     );
     const data = (await response.json()) as { error?: string };
 
@@ -132,12 +108,12 @@ export function InvoiceDetailPanel({
 
     toast.success("Invoice sent");
     reload();
-  }
+  }, [organizationId, invoiceId, reload]);
 
-  async function voidInvoice() {
+  const voidInvoice = useCallback(async () => {
     const response = await fetch(
       `/api/organizations/${organizationId}/invoices/${invoiceId}/void`,
-      { method: "POST" }
+      { method: "POST" },
     );
     const data = (await response.json()) as { error?: string };
 
@@ -148,12 +124,12 @@ export function InvoiceDetailPanel({
 
     toast.success("Invoice voided");
     reload();
-  }
+  }, [organizationId, invoiceId, reload]);
 
-  async function markAsPaid() {
+  const markAsPaid = useCallback(async () => {
     const response = await fetch(
       `/api/organizations/${organizationId}/invoices/${invoiceId}/mark-paid`,
-      { method: "POST" }
+      { method: "POST" },
     );
     const data = (await response.json()) as { error?: string };
 
@@ -164,12 +140,12 @@ export function InvoiceDetailPanel({
 
     toast.success("Invoice marked as paid");
     reload();
-  }
+  }, [organizationId, invoiceId, reload]);
 
-  async function deleteInvoice() {
+  const deleteInvoice = useCallback(async () => {
     const response = await fetch(
       `/api/organizations/${organizationId}/invoices/${invoiceId}`,
-      { method: "DELETE" }
+      { method: "DELETE" },
     );
     const data = (await response.json()) as { error?: string };
 
@@ -180,279 +156,126 @@ export function InvoiceDetailPanel({
 
     toast.success("Invoice deleted");
     router.push(getPaymentsHubHref("invoices"));
-  }
+  }, [organizationId, invoiceId, router]);
 
-  function downloadPdf() {
-    window.open(`/dashboard/payments/invoices/${invoiceId}/print`, "_blank", "noopener,noreferrer");
-  }
+  const downloadPdf = useCallback(() => {
+    window.open(
+      `/dashboard/payments/invoices/${invoiceId}/print`,
+      "_blank",
+      "noopener,noreferrer",
+    );
+  }, [invoiceId]);
+
+  const headerOverride = useMemo(() => {
+    if (!invoice) {
+      return null;
+    }
+
+    return {
+      title: (
+        <div className="flex min-w-0 items-center gap-1.5">
+          <Link
+            href={getPaymentsHubHref("invoices")}
+            aria-label="Back to invoices"
+            title="Back to invoices"
+            className="bg-bg-subtle hover:bg-bg-emphasis flex size-8 shrink-0 items-center justify-center rounded-lg transition-[transform,background-color] duration-150 active:scale-95"
+          >
+            <FileContent className="size-4" />
+          </Link>
+          <ChevronRight className="text-content-muted size-2.5 shrink-0 [&_*]:stroke-2" />
+          <span className="text-content-emphasis min-w-0 truncate text-base font-semibold">
+            {invoice.invoice_number}
+          </span>
+          <StatusBadge variant={getInvoiceStatusVariant(invoice.status)} icon={null}>
+            {invoice.status}
+          </StatusBadge>
+        </div>
+      ),
+      controls: (
+        <InvoiceDetailControls
+          invoice={invoice}
+          onEdit={() => setEditOpen(true)}
+          onChangeCustomer={() => setChangeCustomerOpen(true)}
+          onResend={resendInvoice}
+          onDownload={downloadPdf}
+          onFinalize={finalizeInvoice}
+          onMarkPaid={markAsPaid}
+          onVoid={voidInvoice}
+          onDelete={deleteInvoice}
+        />
+      ),
+    };
+  }, [
+    invoice,
+    resendInvoice,
+    downloadPdf,
+    finalizeInvoice,
+    markAsPaid,
+    voidInvoice,
+    deleteInvoice,
+  ]);
+
+  useSetDashboardPageHeader(headerOverride);
 
   if (isLoading) {
-    return <div className="text-sm text-muted-foreground">Loading invoice...</div>;
+    return <InvoiceDetailSkeleton />;
   }
 
   if (error || !invoice) {
     return (
       <div className="space-y-4">
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          render={<Link href={getPaymentsHubHref("invoices")} />}
+        <Link
+          href={getPaymentsHubHref("invoices")}
+          className="bg-bg-subtle hover:bg-bg-emphasis inline-flex size-8 items-center justify-center rounded-lg transition-colors"
         >
-          <ArrowLeftIcon />
-          Back to payments
-        </Button>
+          <FileContent className="size-4" />
+        </Link>
         <AlertBlock type="error">{error ?? "Invoice not found"}</AlertBlock>
       </div>
     );
   }
 
-  const editable = canEditInvoice(invoice.status);
-  const customerDisplay =
-    invoice.customer_name ?? invoice.customer_email ?? invoice.customer_id ?? "N/A";
-
   return (
-    <div className="space-y-6">
-      <div className="space-y-4">
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          render={<Link href={getPaymentsHubHref("invoices")} />}
-        >
-          <ArrowLeftIcon />
-          Back to payments
-        </Button>
+    <>
+      <div className="space-y-6 pb-10">
+        <InvoiceDetailStats invoice={invoice} />
 
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <div className="space-y-2">
-            <div className="flex flex-wrap items-center gap-3">
-              <h1 className="text-2xl font-semibold tracking-tight">
-                {invoice.invoice_number}
-              </h1>
-              <InvoiceStatusPill status={invoice.status} />
-            </div>
-            <p className="text-3xl font-semibold tracking-tight">
-              {formatAmountWithUnit(invoice.amount, invoice.currency_code)}
-            </p>
-            <p className="font-mono text-xs text-muted-foreground">{invoice.id}</p>
+        <div className="@3xl/page:grid-cols-[minmax(440px,1fr)_minmax(0,360px)] grid grid-cols-1 gap-6">
+          <div className="@3xl/page:order-2">
+            <InvoiceDetailsColumn invoice={invoice} />
           </div>
 
-          <div className="flex flex-wrap gap-2">
-            {editable ? (
-              <Button type="button" variant="outline" onClick={() => setEditOpen(true)}>
-                <PencilIcon />
-                Edit invoice
-              </Button>
-            ) : null}
-            {canResendInvoice(invoice.status) ? (
-              <Button type="button" variant="outline" onClick={() => void resendInvoice()}>
-                <MailIcon />
-                Resend invoice
-              </Button>
-            ) : null}
-            {canChangeInvoiceCustomer(invoice.status) ? (
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setChangeCustomerOpen(true)}
+          <div className="@3xl/page:order-1 space-y-6">
+            <InvoiceLineItemsSection invoice={invoice} />
+            <InvoiceMetadataSection invoice={invoice} />
+
+            {invoice.checkout_url ? (
+              <ShareLinkSection
+                title="Checkout"
+                description="Payment page and hosted invoice links."
+                url={invoice.checkout_url}
+                copyLabel="Copy checkout link"
+                copySuccessMessage="Checkout link copied"
               >
-                <UserRoundIcon />
-                Change customer
-              </Button>
-            ) : null}
-            <Button type="button" variant="outline" onClick={downloadPdf}>
-              <DownloadIcon />
-              Download PDF
-            </Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger
-                render={
-                  <Button type="button" variant="outline" size="icon" aria-label="More actions">
-                    <EllipsisIcon />
-                  </Button>
-                }
-              />
-              <DropdownMenuContent align="end" className="w-52">
-                {invoice.status === "draft" ? (
-                  <DropdownMenuItem onClick={() => void finalizeInvoice()}>
-                    Finalize invoice
-                  </DropdownMenuItem>
-                ) : null}
-                {canMarkInvoiceAsPaid(invoice.status) ? (
-                  <DropdownMenuItem onClick={() => void markAsPaid()}>
-                    Mark as paid
-                  </DropdownMenuItem>
-                ) : null}
-                <DropdownMenuItem onClick={downloadPdf}>Download PDF</DropdownMenuItem>
-                {canVoidInvoice(invoice.status) ? (
-                  <>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => void voidInvoice()}>
-                      Void invoice
-                    </DropdownMenuItem>
-                  </>
-                ) : null}
-                {canDeleteInvoice(invoice.status) ? (
-                  <DropdownMenuItem
-                    className="text-destructive focus:text-destructive"
-                    onClick={() => void deleteInvoice()}
-                  >
-                    Delete invoice
-                  </DropdownMenuItem>
-                ) : null}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.6fr)_minmax(280px,1fr)]">
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Summary</CardTitle>
-              <CardDescription>Line items and invoice totals.</CardDescription>
-            </CardHeader>
-            <CardContent className="px-0 pb-0">
-              <div className="overflow-hidden">
-                <table className="w-full text-sm">
-                  <thead className="bg-muted/40 text-left">
-                    <tr>
-                      <th className="px-6 py-3 font-medium">Description</th>
-                      <th className="px-4 py-3 font-medium">Qty</th>
-                      <th className="px-4 py-3 font-medium">Unit price</th>
-                      <th className="px-6 py-3 text-right font-medium">Amount</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {invoice.items.length === 0 ? (
-                      <tr>
-                        <td colSpan={4} className="px-6 py-8 text-center text-muted-foreground">
-                          {invoice.description ?? "No line items"}
-                        </td>
-                      </tr>
-                    ) : (
-                      invoice.items.map((item) => {
-                        const lineTotal =
-                          Number(item.unit_amount) * Number(item.quantity || "1");
-
-                        return (
-                          <tr key={`${item.description}-${item.unit_amount}`} className="border-t">
-                            <td className="px-6 py-3">{item.description}</td>
-                            <td className="px-4 py-3">{item.quantity}</td>
-                            <td className="px-4 py-3">
-                              {formatAmountWithUnit(item.unit_amount, invoice.currency_code)}
-                            </td>
-                            <td className="px-6 py-3 text-right">
-                              {formatAmountWithUnit(
-                                Number.isFinite(lineTotal) ? String(lineTotal) : item.unit_amount,
-                                invoice.currency_code
-                              )}
-                            </td>
-                          </tr>
-                        );
-                      })
-                    )}
-                  </tbody>
-                </table>
-              </div>
-              <div className="flex items-center justify-between border-t px-6 py-4 text-sm">
-                <span className="font-medium">Total</span>
-                <span className="text-lg font-semibold">
-                  {formatAmountWithUnit(invoice.amount, invoice.currency_code)}
-                </span>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Details</CardTitle>
-              <CardDescription>Billing metadata and linked resources.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <dl className="grid gap-4 text-sm md:grid-cols-2">
-                <div>
-                  <dt className="text-muted-foreground">Memo</dt>
-                  <dd className="mt-1">{invoice.description ?? "N/A"}</dd>
-                </div>
-                <div>
-                  <dt className="text-muted-foreground">Currency</dt>
-                  <dd className="mt-1">{invoice.currency_code}</dd>
-                </div>
-                <div>
-                  <dt className="text-muted-foreground">Created</dt>
-                  <dd className="mt-1">{formatDetailDate(invoice.created_at)}</dd>
-                </div>
-                <div>
-                  <dt className="text-muted-foreground">Due</dt>
-                  <dd className="mt-1">{formatDetailDate(invoice.due_at)}</dd>
-                </div>
-                <div>
-                  <dt className="text-muted-foreground">Sent</dt>
-                  <dd className="mt-1">{formatDetailDate(invoice.sent_at)}</dd>
-                </div>
-                <div>
-                  <dt className="text-muted-foreground">Paid</dt>
-                  <dd className="mt-1">{formatDetailDate(invoice.paid_at)}</dd>
-                </div>
-              </dl>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Checkout</CardTitle>
-              <CardDescription>Payment page and hosted invoice links.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {invoice.checkout_url ? (
-                <>
-                  <div>
-                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                      Checkout URL
-                    </p>
-                    <p className="mt-1 break-all font-mono text-xs">{invoice.checkout_url}</p>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => void copyCheckoutUrl(invoice.checkout_url!)}
-                    >
-                      Copy checkout link
-                    </Button>
-                    {invoice.checkout_session_id ? (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        onClick={() =>
-                          router.push(
-                            `/dashboard/payments/checkout-sessions/${invoice.checkout_session_id}`
-                          )
-                        }
-                      >
-                        View checkout session
-                      </Button>
-                    ) : null}
-                  </div>
-                </>
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  Finalize this invoice to generate a checkout link.
-                </p>
-              )}
-
-              {invoice.hosted_invoice_url ? (
-                <div>
-                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                    Hosted invoice
-                  </p>
+                {invoice.checkout_session_id ? (
                   <Button
                     type="button"
-                    variant="link"
-                    className="h-auto px-0"
+                    variant="outline"
+                    text="View checkout session"
+                    className="h-9"
+                    onClick={() =>
+                      router.push(
+                        `/dashboard/payments/checkout-sessions/${invoice.checkout_session_id}`,
+                      )
+                    }
+                  />
+                ) : null}
+                {invoice.hosted_invoice_url ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    text="Open hosted invoice"
+                    className="h-9"
                     render={
                       <a
                         href={invoice.hosted_invoice_url}
@@ -460,58 +283,27 @@ export function InvoiceDetailPanel({
                         rel="noreferrer"
                       />
                     }
-                  >
-                    Open hosted invoice page
-                  </Button>
+                  />
+                ) : null}
+              </ShareLinkSection>
+            ) : (
+              <div className="border-border-subtle overflow-hidden rounded-xl border bg-neutral-100">
+                <div className="border-border-subtle border-b px-4 py-3">
+                  <h2 className="text-content-emphasis text-sm font-semibold">Checkout</h2>
+                  <p className="mt-0.5 text-xs text-neutral-500">
+                    Payment page and hosted invoice links.
+                  </p>
                 </div>
-              ) : null}
-            </CardContent>
-          </Card>
-        </div>
+                <div className="border-border-subtle -mx-px -mb-px rounded-xl border bg-white p-4">
+                  <p className="text-sm text-neutral-500">
+                    Finalize this invoice to generate a checkout link.
+                  </p>
+                </div>
+              </div>
+            )}
 
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Customer</CardTitle>
-              <CardDescription>Who this invoice was issued to.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-2 text-sm">
-              <p className="font-medium">{customerDisplay}</p>
-              {invoice.customer_email ? (
-                <p className="text-muted-foreground">{invoice.customer_email}</p>
-              ) : null}
-              {invoice.customer_id ? (
-                <Link
-                  href={`/dashboard/customers/${invoice.customer_id}`}
-                  className="font-mono text-xs hover:underline"
-                >
-                  {invoice.customer_id}
-                </Link>
-              ) : null}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Recent activity</CardTitle>
-              <CardDescription>Invoice lifecycle events.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {invoice.activity.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No activity yet.</p>
-              ) : (
-                <ol className="space-y-4">
-                  {invoice.activity.map((event) => (
-                    <li key={`${event.id}-${event.at}`} className="relative pl-4">
-                      <span className="absolute left-0 top-2 h-2 w-2 rounded-full bg-primary" />
-                      <p className="text-sm">{event.label}</p>
-                      <p className="mt-1 text-xs text-muted-foreground">{event.at}</p>
-                    </li>
-                  ))}
-                </ol>
-              )}
-            </CardContent>
-          </Card>
+            <InvoiceActivitySection invoice={invoice} />
+          </div>
         </div>
       </div>
 
@@ -529,6 +321,201 @@ export function InvoiceDetailPanel({
         invoice={invoice}
         onSaved={reload}
       />
+    </>
+  );
+}
+
+function InvoiceDetailControls({
+  invoice,
+  onEdit,
+  onChangeCustomer,
+  onResend,
+  onDownload,
+  onFinalize,
+  onMarkPaid,
+  onVoid,
+  onDelete,
+}: {
+  invoice: InvoiceRow;
+  onEdit: () => void;
+  onChangeCustomer: () => void;
+  onResend: () => void;
+  onDownload: () => void;
+  onFinalize: () => void;
+  onMarkPaid: () => void;
+  onVoid: () => void;
+  onDelete: () => void;
+}) {
+  const editable = canEditInvoice(invoice.status);
+
+  return (
+    <div className="flex flex-wrap items-center justify-end gap-2">
+      {editable ? (
+        <Button
+          type="button"
+          variant="outline"
+          text="Edit invoice"
+          className="h-9"
+          icon={<PenWriting className="size-4" />}
+          onClick={onEdit}
+        />
+      ) : null}
+      {canResendInvoice(invoice.status) ? (
+        <Button
+          type="button"
+          variant="outline"
+          text="Resend invoice"
+          className="h-9"
+          icon={<Envelope className="size-4" />}
+          onClick={() => void onResend()}
+        />
+      ) : null}
+      {canChangeInvoiceCustomer(invoice.status) ? (
+        <Button
+          type="button"
+          variant="outline"
+          text="Change customer"
+          className="h-9"
+          icon={<User className="size-4" />}
+          onClick={onChangeCustomer}
+        />
+      ) : null}
+      <Button
+        type="button"
+        variant="outline"
+        text="Download PDF"
+        className="h-9"
+        icon={<Download className="size-4" />}
+        onClick={onDownload}
+      />
+      <InvoiceDetailMenu
+        invoice={invoice}
+        onFinalize={onFinalize}
+        onMarkPaid={onMarkPaid}
+        onDownload={onDownload}
+        onVoid={onVoid}
+        onDelete={onDelete}
+      />
     </div>
+  );
+}
+
+function InvoiceDetailMenu({
+  invoice,
+  onFinalize,
+  onMarkPaid,
+  onDownload,
+  onVoid,
+  onDelete,
+}: {
+  invoice: InvoiceRow;
+  onFinalize: () => void;
+  onMarkPaid: () => void;
+  onDownload: () => void;
+  onVoid: () => void;
+  onDelete: () => void;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [, copyToClipboard] = useCopyToClipboard();
+
+  return (
+    <Popover
+      openPopover={isOpen}
+      setOpenPopover={setIsOpen}
+      content={
+        <Command tabIndex={0} loop className="focus:outline-none">
+          <Command.List className="flex w-screen flex-col gap-1 p-1.5 text-sm focus-visible:outline-none sm:w-auto sm:min-w-[180px]">
+            <MenuItem
+              as={Command.Item}
+              icon={Copy}
+              onSelect={() => {
+                toast.promise(copyToClipboard(invoice.id), {
+                  success: "Copied invoice ID",
+                });
+                setIsOpen(false);
+              }}
+            >
+              Copy invoice ID
+            </MenuItem>
+            {invoice.checkout_url ? (
+              <MenuItem
+                as={Command.Item}
+                icon={Link4}
+                onSelect={() => {
+                  toast.promise(copyToClipboard(invoice.checkout_url!), {
+                    success: "Checkout link copied",
+                  });
+                  setIsOpen(false);
+                }}
+              >
+                Copy checkout link
+              </MenuItem>
+            ) : null}
+            {invoice.status === "draft" ? (
+              <MenuItem
+                as={Command.Item}
+                onSelect={() => {
+                  onFinalize();
+                  setIsOpen(false);
+                }}
+              >
+                Finalize invoice
+              </MenuItem>
+            ) : null}
+            {canMarkInvoiceAsPaid(invoice.status) ? (
+              <MenuItem
+                as={Command.Item}
+                onSelect={() => {
+                  onMarkPaid();
+                  setIsOpen(false);
+                }}
+              >
+                Mark as paid
+              </MenuItem>
+            ) : null}
+            <MenuItem
+              as={Command.Item}
+              icon={Download}
+              onSelect={() => {
+                onDownload();
+                setIsOpen(false);
+              }}
+            >
+              Download PDF
+            </MenuItem>
+            {canVoidInvoice(invoice.status) ? (
+              <MenuItem
+                as={Command.Item}
+                onSelect={() => {
+                  onVoid();
+                  setIsOpen(false);
+                }}
+              >
+                Void invoice
+              </MenuItem>
+            ) : null}
+            {canDeleteInvoice(invoice.status) ? (
+              <MenuItem
+                as={Command.Item}
+                onSelect={() => {
+                  onDelete();
+                  setIsOpen(false);
+                }}
+              >
+                Delete invoice
+              </MenuItem>
+            ) : null}
+          </Command.List>
+        </Command>
+      }
+      align="end"
+    >
+      <Button
+        type="button"
+        className="h-9 whitespace-nowrap px-2"
+        variant="outline"
+        icon={<Dots className="h-4 w-4 shrink-0" />}
+      />
+    </Popover>
   );
 }
