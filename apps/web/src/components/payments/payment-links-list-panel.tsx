@@ -13,6 +13,8 @@ import {
 import { useAsyncData } from "@/hooks/use-async-data";
 import { formatAmountWithUnit } from "@/lib/format/amount";
 import type { PaymentLinkRow } from "@/lib/payments/types";
+import { TableEmptyState } from "@/ui/shared/table-empty-state";
+import { Hyperlink } from "@dub/ui/icons";
 import { toast } from "sonner";
 
 type PaymentLinksListPanelProps = {
@@ -50,29 +52,27 @@ export function PaymentLinksListPanel({
         </CardHeader>
       ) : null}
       <CardContent className="px-0 pb-0">
-        <div className="overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-muted/40 text-left">
-              <tr>
-                <th className="px-4 py-3 font-medium">Link</th>
-                <th className="px-4 py-3 font-medium">Products</th>
-                <th className="px-4 py-3 font-medium">Amount</th>
-                <th className="px-4 py-3 font-medium">Status</th>
-                <th className="px-4 py-3 font-medium">Share</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(links ?? []).length === 0 ? (
+        {(links ?? []).length === 0 ? (
+          <TableEmptyState
+            title="No payment links yet"
+            description="Payment links you create will appear here."
+            icon={<Hyperlink className="size-4 text-neutral-700" />}
+            className="border-0"
+          />
+        ) : (
+          <div className="overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/40 text-left">
                 <tr>
-                  <td
-                    colSpan={5}
-                    className="px-4 py-8 text-center text-muted-foreground"
-                  >
-                    No payment links yet.
-                  </td>
+                  <th className="px-4 py-3 font-medium">Link</th>
+                  <th className="px-4 py-3 font-medium">Products</th>
+                  <th className="px-4 py-3 font-medium">Amount</th>
+                  <th className="px-4 py-3 font-medium">Status</th>
+                  <th className="px-4 py-3 font-medium">Share</th>
                 </tr>
-              ) : (
-                (links ?? []).map((link) => (
+              </thead>
+              <tbody>
+                {(links ?? []).map((link) => (
                   <tr key={link.id} className="border-t border-border/60">
                     <td className="px-4 py-3 font-mono text-xs">
                       <Link
@@ -109,11 +109,11 @@ export function PaymentLinksListPanel({
                       </Button>
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

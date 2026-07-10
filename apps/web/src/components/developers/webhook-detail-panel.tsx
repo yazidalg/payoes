@@ -21,6 +21,8 @@ import {
   WEBHOOK_RETRY_DELAYS_MS,
 } from "@/constants/webhooks/retry";
 import type { WebhookDeliveryRow, WebhookEndpointRow } from "@/lib/webhooks/types";
+import { TableEmptyState } from "@/ui/shared/table-empty-state";
+import { Webhook } from "@dub/ui/icons";
 
 type WebhookDetail = {
   endpoint: WebhookEndpointRow;
@@ -422,30 +424,28 @@ export function WebhookDetailPanel({
           </CardDescription>
         </CardHeader>
         <CardContent className="px-0 pb-0">
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[720px] text-sm">
-              <thead className="bg-muted/40 text-left">
-                <tr>
-                  <th className="px-4 py-3 font-medium">Event</th>
-                  <th className="px-4 py-3 font-medium">Status</th>
-                  <th className="px-4 py-3 font-medium">Attempts</th>
-                  <th className="px-4 py-3 font-medium">Response</th>
-                  <th className="px-4 py-3 font-medium">Time</th>
-                  <th className="px-4 py-3 font-medium">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {deliveries.length === 0 ? (
+          {deliveries.length === 0 ? (
+            <TableEmptyState
+              title="No deliveries yet"
+              description="Send a test event to verify your endpoint."
+              icon={<Webhook className="size-4 text-neutral-700" />}
+              className="border-0 md:min-h-[240px]"
+            />
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[720px] text-sm">
+                <thead className="bg-muted/40 text-left">
                   <tr>
-                    <td
-                      colSpan={6}
-                      className="px-4 py-8 text-center text-muted-foreground"
-                    >
-                      No deliveries yet. Send a test event to verify your endpoint.
-                    </td>
+                    <th className="px-4 py-3 font-medium">Event</th>
+                    <th className="px-4 py-3 font-medium">Status</th>
+                    <th className="px-4 py-3 font-medium">Attempts</th>
+                    <th className="px-4 py-3 font-medium">Response</th>
+                    <th className="px-4 py-3 font-medium">Time</th>
+                    <th className="px-4 py-3 font-medium">Actions</th>
                   </tr>
-                ) : (
-                  deliveries.map((delivery) => (
+                </thead>
+                <tbody>
+                  {deliveries.map((delivery) => (
                     <DeliveryLogRow
                       key={delivery.id}
                       organizationId={organizationId}
@@ -453,11 +453,11 @@ export function WebhookDetailPanel({
                       delivery={delivery}
                       onRetried={() => setReloadKey((current) => current + 1)}
                     />
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

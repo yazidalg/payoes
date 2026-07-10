@@ -13,6 +13,8 @@ import { useAsyncData } from "@/hooks/use-async-data";
 import { formatAmountWithUnit } from "@/lib/format/amount";
 import type { PaymentRow } from "@/lib/payments/types";
 import { formatAssetAmount } from "@/lib/payments/types";
+import { TableEmptyState } from "@/ui/shared/table-empty-state";
+import { CircleCheck } from "@dub/ui/icons";
 
 export function TransactionsTable({ organizationId }: { organizationId: string }) {
   const fetchTransactions = useCallback(async () => {
@@ -40,28 +42,29 @@ export function TransactionsTable({ organizationId }: { organizationId: string }
           </CardDescription>
         </CardHeader>
         <CardContent className="px-0 pb-0">
-          <div className="overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/40 text-left">
-                <tr>
-                  <th className="px-4 py-3 font-medium">Payment</th>
-                  <th className="px-4 py-3 font-medium">Paid</th>
-                  <th className="px-4 py-3 font-medium">Settlement</th>
-                  <th className="px-4 py-3 font-medium">Invoice</th>
-                  <th className="px-4 py-3 font-medium">Payer</th>
-                  <th className="px-4 py-3 font-medium">Tx Hash</th>
-                  <th className="px-4 py-3 font-medium">Confirmed</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(transactions ?? []).length === 0 ? (
+          {(transactions ?? []).length === 0 ? (
+            <TableEmptyState
+              title="No confirmed transactions yet"
+              description="Completed blockchain payments for your organization will appear here."
+              icon={<CircleCheck className="size-4 text-neutral-700" />}
+              className="border-0"
+            />
+          ) : (
+            <div className="overflow-hidden">
+              <table className="w-full text-sm">
+                <thead className="bg-muted/40 text-left">
                   <tr>
-                    <td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">
-                      No confirmed transactions yet.
-                    </td>
+                    <th className="px-4 py-3 font-medium">Payment</th>
+                    <th className="px-4 py-3 font-medium">Paid</th>
+                    <th className="px-4 py-3 font-medium">Settlement</th>
+                    <th className="px-4 py-3 font-medium">Invoice</th>
+                    <th className="px-4 py-3 font-medium">Payer</th>
+                    <th className="px-4 py-3 font-medium">Tx Hash</th>
+                    <th className="px-4 py-3 font-medium">Confirmed</th>
                   </tr>
-                ) : (
-                  (transactions ?? []).map((transaction) => (
+                </thead>
+                <tbody>
+                  {(transactions ?? []).map((transaction) => (
                     <tr key={transaction.id} className="border-t border-border/60">
                       <td className="px-4 py-3 font-mono text-xs">
                         <Link
@@ -112,11 +115,11 @@ export function TransactionsTable({ organizationId }: { organizationId: string }
                           : "N/A"}
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

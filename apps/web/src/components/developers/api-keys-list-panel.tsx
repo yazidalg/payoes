@@ -15,6 +15,8 @@ import {
 } from "@/components/ui/card";
 import { useAsyncData } from "@/hooks/use-async-data";
 import type { ApiKeyRow } from "@/lib/api-keys/types";
+import { TableEmptyState } from "@/ui/shared/table-empty-state";
+import { DatabaseKey } from "@dub/ui/icons";
 
 export function ApiKeysListPanel({ organizationId }: { organizationId: string }) {
   const router = useRouter();
@@ -49,27 +51,25 @@ export function ApiKeysListPanel({ organizationId }: { organizationId: string })
           <CardDescription>Click a row to open the key detail page.</CardDescription>
         </CardHeader>
         <CardContent className="px-0 pb-0">
-          <div className="overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/40 text-left">
-                <tr>
-                  <th className="px-4 py-3 font-medium">Name</th>
-                  <th className="px-4 py-3 font-medium">Prefix</th>
-                  <th className="px-4 py-3 font-medium">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(keys ?? []).length === 0 ? (
+          {(keys ?? []).length === 0 ? (
+            <TableEmptyState
+              title="No API keys yet"
+              description="Create an API key to start calling the Payoes API."
+              icon={<DatabaseKey className="size-4 text-neutral-700" />}
+              className="border-0"
+            />
+          ) : (
+            <div className="overflow-hidden">
+              <table className="w-full text-sm">
+                <thead className="bg-muted/40 text-left">
                   <tr>
-                    <td
-                      colSpan={3}
-                      className="px-4 py-8 text-center text-muted-foreground"
-                    >
-                      No API keys yet.
-                    </td>
+                    <th className="px-4 py-3 font-medium">Name</th>
+                    <th className="px-4 py-3 font-medium">Prefix</th>
+                    <th className="px-4 py-3 font-medium">Status</th>
                   </tr>
-                ) : (
-                  (keys ?? []).map((key) => (
+                </thead>
+                <tbody>
+                  {(keys ?? []).map((key) => (
                     <tr
                       key={key.id}
                       className="border-t border-border/60 hover:bg-muted/30"
@@ -87,11 +87,11 @@ export function ApiKeysListPanel({ organizationId }: { organizationId: string })
                         {key.revokedAt ? "revoked" : "active"}
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </CardContent>
       </Card>
 

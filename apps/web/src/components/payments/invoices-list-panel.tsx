@@ -12,6 +12,8 @@ import {
 import { useAsyncData } from "@/hooks/use-async-data";
 import { formatAmountWithUnit } from "@/lib/format/amount";
 import type { InvoiceRow } from "@/lib/payments/types";
+import { TableEmptyState } from "@/ui/shared/table-empty-state";
+import { FileContent } from "@dub/ui/icons";
 
 type InvoicesListPanelProps = {
   organizationId: string;
@@ -44,28 +46,26 @@ export function InvoicesListPanel({
         </CardHeader>
       ) : null}
       <CardContent className="px-0 pb-0">
-        <div className="overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-muted/40 text-left">
-              <tr>
-                <th className="px-4 py-3 font-medium">Invoice</th>
-                <th className="px-4 py-3 font-medium">Amount</th>
-                <th className="px-4 py-3 font-medium">Customer</th>
-                <th className="px-4 py-3 font-medium">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(invoices ?? []).length === 0 ? (
+        {(invoices ?? []).length === 0 ? (
+          <TableEmptyState
+            title="No invoices yet"
+            description="Invoices you create will appear here."
+            icon={<FileContent className="size-4 text-neutral-700" />}
+            className="border-0"
+          />
+        ) : (
+          <div className="overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/40 text-left">
                 <tr>
-                  <td
-                    colSpan={4}
-                    className="px-4 py-8 text-center text-muted-foreground"
-                  >
-                    No invoices yet.
-                  </td>
+                  <th className="px-4 py-3 font-medium">Invoice</th>
+                  <th className="px-4 py-3 font-medium">Amount</th>
+                  <th className="px-4 py-3 font-medium">Customer</th>
+                  <th className="px-4 py-3 font-medium">Status</th>
                 </tr>
-              ) : (
-                (invoices ?? []).map((invoice) => (
+              </thead>
+              <tbody>
+                {(invoices ?? []).map((invoice) => (
                   <tr key={invoice.id} className="border-t border-border/60">
                     <td className="px-4 py-3 font-mono text-xs">
                       <Link
@@ -83,11 +83,11 @@ export function InvoicesListPanel({
                     </td>
                     <td className="px-4 py-3 capitalize">{invoice.status}</td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

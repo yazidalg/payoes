@@ -15,6 +15,8 @@ import {
 } from "@/components/ui/card";
 import { useAsyncData } from "@/hooks/use-async-data";
 import { formatAssetAmount, type CheckoutSessionRow } from "@/lib/payments/types";
+import { TableEmptyState } from "@/ui/shared/table-empty-state";
+import { CreditCard } from "@dub/ui/icons";
 
 export function CheckoutSessionsListPanel({
   organizationId,
@@ -61,28 +63,26 @@ export function CheckoutSessionsListPanel({
           </CardDescription>
         </CardHeader>
         <CardContent className="px-0 pb-0">
-          <div className="overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/40 text-left">
-                <tr>
-                  <th className="px-4 py-3 font-medium">Session</th>
-                  <th className="px-4 py-3 font-medium">Amount</th>
-                  <th className="px-4 py-3 font-medium">Payment intent</th>
-                  <th className="px-4 py-3 font-medium">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(sessions ?? []).length === 0 ? (
+          {(sessions ?? []).length === 0 ? (
+            <TableEmptyState
+              title="No checkout sessions yet"
+              description="Create a checkout session to start accepting payments."
+              icon={<CreditCard className="size-4 text-neutral-700" />}
+              className="border-0"
+            />
+          ) : (
+            <div className="overflow-hidden">
+              <table className="w-full text-sm">
+                <thead className="bg-muted/40 text-left">
                   <tr>
-                    <td
-                      colSpan={4}
-                      className="px-4 py-8 text-center text-muted-foreground"
-                    >
-                      No checkout sessions yet.
-                    </td>
+                    <th className="px-4 py-3 font-medium">Session</th>
+                    <th className="px-4 py-3 font-medium">Amount</th>
+                    <th className="px-4 py-3 font-medium">Payment intent</th>
+                    <th className="px-4 py-3 font-medium">Status</th>
                   </tr>
-                ) : (
-                  (sessions ?? []).map((session) => (
+                </thead>
+                <tbody>
+                  {(sessions ?? []).map((session) => (
                     <tr
                       key={session.id}
                       className="border-t border-border/60 hover:bg-muted/30"
@@ -114,11 +114,11 @@ export function CheckoutSessionsListPanel({
                       </td>
                       <td className="px-4 py-3 capitalize">{session.status}</td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </CardContent>
       </Card>
 

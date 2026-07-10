@@ -20,6 +20,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useAsyncData } from "@/hooks/use-async-data";
 import type { MemberRole } from "@/lib/db/schema";
+import { TableEmptyState } from "@/ui/shared/table-empty-state";
+import { UserPlus, Users } from "@dub/ui/icons";
 
 type MemberRow = {
   id: string;
@@ -220,40 +222,33 @@ export function TeamMembersPanel({
           <CardDescription>People with access to this organization.</CardDescription>
         </CardHeader>
         <CardContent className="px-0 pb-0">
-          <div className="overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/40 text-left">
-                <tr>
-                  <th className="px-4 py-3 font-medium">Member</th>
-                  <th className="px-4 py-3 font-medium">Email</th>
-                  <th className="px-4 py-3 font-medium">Role</th>
-                  <th className="px-4 py-3 font-medium">Joined</th>
-                  {canManageTeam ? (
-                    <th className="px-4 py-3 font-medium text-right">Actions</th>
-                  ) : null}
-                </tr>
-              </thead>
-              <tbody>
-                {membersLoading ? (
+          {membersLoading ? (
+            <p className="px-4 py-8 text-center text-sm text-muted-foreground">
+              Loading members...
+            </p>
+          ) : (members ?? []).length === 0 ? (
+            <TableEmptyState
+              title="No team members yet"
+              description="Invite teammates to collaborate on this organization."
+              icon={<Users className="size-4 text-neutral-700" />}
+              className="border-0"
+            />
+          ) : (
+            <div className="overflow-hidden">
+              <table className="w-full text-sm">
+                <thead className="bg-muted/40 text-left">
                   <tr>
-                    <td
-                      colSpan={canManageTeam ? 5 : 4}
-                      className="px-4 py-8 text-center text-muted-foreground"
-                    >
-                      Loading members...
-                    </td>
+                    <th className="px-4 py-3 font-medium">Member</th>
+                    <th className="px-4 py-3 font-medium">Email</th>
+                    <th className="px-4 py-3 font-medium">Role</th>
+                    <th className="px-4 py-3 font-medium">Joined</th>
+                    {canManageTeam ? (
+                      <th className="px-4 py-3 font-medium text-right">Actions</th>
+                    ) : null}
                   </tr>
-                ) : (members ?? []).length === 0 ? (
-                  <tr>
-                    <td
-                      colSpan={canManageTeam ? 5 : 4}
-                      className="px-4 py-8 text-center text-muted-foreground"
-                    >
-                      No team members yet.
-                    </td>
-                  </tr>
-                ) : (
-                  (members ?? []).map((member) => {
+                </thead>
+                <tbody>
+                  {(members ?? []).map((member) => {
                     const canRemove =
                       canManageTeam &&
                       member.role !== "owner" &&
@@ -331,11 +326,11 @@ export function TeamMembersPanel({
                         ) : null}
                       </tr>
                     );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -348,33 +343,32 @@ export function TeamMembersPanel({
             </CardDescription>
           </CardHeader>
           <CardContent className="px-0 pb-0">
-            <div className="overflow-hidden">
-              <table className="w-full text-sm">
-                <thead className="bg-muted/40 text-left">
-                  <tr>
-                    <th className="px-4 py-3 font-medium">Email</th>
-                    <th className="px-4 py-3 font-medium">Role</th>
-                    <th className="px-4 py-3 font-medium">Invited by</th>
-                    <th className="px-4 py-3 font-medium">Sent</th>
-                    <th className="px-4 py-3 font-medium">Expires</th>
-                    <th className="px-4 py-3 font-medium text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {invitesLoading ? (
+            {invitesLoading ? (
+              <p className="px-4 py-8 text-center text-sm text-muted-foreground">
+                Loading invitations...
+              </p>
+            ) : (invites ?? []).length === 0 ? (
+              <TableEmptyState
+                title="No pending invitations"
+                description="Invitations you send will appear here until they are accepted or expire."
+                icon={<UserPlus className="size-4 text-neutral-700" />}
+                className="border-0 md:min-h-[240px]"
+              />
+            ) : (
+              <div className="overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead className="bg-muted/40 text-left">
                     <tr>
-                      <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
-                        Loading invitations...
-                      </td>
+                      <th className="px-4 py-3 font-medium">Email</th>
+                      <th className="px-4 py-3 font-medium">Role</th>
+                      <th className="px-4 py-3 font-medium">Invited by</th>
+                      <th className="px-4 py-3 font-medium">Sent</th>
+                      <th className="px-4 py-3 font-medium">Expires</th>
+                      <th className="px-4 py-3 font-medium text-right">Actions</th>
                     </tr>
-                  ) : (invites ?? []).length === 0 ? (
-                    <tr>
-                      <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
-                        No pending invitations.
-                      </td>
-                    </tr>
-                  ) : (
-                    (invites ?? []).map((invite) => (
+                  </thead>
+                  <tbody>
+                    {(invites ?? []).map((invite) => (
                       <tr
                         key={invite.id}
                         className="border-t border-border/60 hover:bg-muted/30"
@@ -422,11 +416,11 @@ export function TeamMembersPanel({
                           </DropdownMenu>
                         </td>
                       </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </CardContent>
         </Card>
       ) : null}

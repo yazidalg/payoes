@@ -14,6 +14,8 @@ import { formatAmountWithUnit } from "@/lib/format/amount";
 import { formatAssetAmount, type SettlementConversionRow } from "@/lib/payments/types";
 import type { Organization } from "@/lib/db/schema";
 import { getStellarExpertTxUrl } from "@/lib/stellar/explorer";
+import { TableEmptyState } from "@/ui/shared/table-empty-state";
+import { CircleDollarOut } from "@dub/ui/icons";
 
 export function SettlementsTable({
   organizationId,
@@ -61,6 +63,13 @@ export function SettlementsTable({
             <p className="px-4 py-8 text-sm text-muted-foreground">Loading settlements...</p>
           ) : error ? (
             <p className="px-4 py-8 text-sm text-destructive">{error}</p>
+          ) : (settlements ?? []).length === 0 ? (
+            <TableEmptyState
+              title="No settlement conversions yet"
+              description="Cross-asset invoice payments converted into your settlement asset will appear here."
+              icon={<CircleDollarOut className="size-4 text-neutral-700" />}
+              className="border-0"
+            />
           ) : (
             <div className="overflow-hidden">
               <table className="w-full text-sm">
@@ -76,14 +85,7 @@ export function SettlementsTable({
                   </tr>
                 </thead>
                 <tbody>
-                  {(settlements ?? []).length === 0 ? (
-                    <tr>
-                      <td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">
-                        No settlement conversions yet.
-                      </td>
-                    </tr>
-                  ) : (
-                    (settlements ?? []).map((row) => (
+                  {(settlements ?? []).map((row) => (
                       <tr key={row.payment_id} className="border-t border-border/60">
                         <td className="px-4 py-3 font-mono text-xs">
                           <Link
@@ -136,8 +138,7 @@ export function SettlementsTable({
                             : "N/A"}
                         </td>
                       </tr>
-                    ))
-                  )}
+                  ))}
                 </tbody>
               </table>
             </div>

@@ -15,6 +15,8 @@ import {
 } from "@/components/ui/card";
 import { useAsyncData } from "@/hooks/use-async-data";
 import type { WebhookEndpointRow } from "@/lib/webhooks/types";
+import { TableEmptyState } from "@/ui/shared/table-empty-state";
+import { Webhook } from "@dub/ui/icons";
 
 export function WebhooksListPanel({ organizationId }: { organizationId: string }) {
   const router = useRouter();
@@ -51,27 +53,25 @@ export function WebhooksListPanel({ organizationId }: { organizationId: string }
           </CardDescription>
         </CardHeader>
         <CardContent className="px-0 pb-0">
-          <div className="overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/40 text-left">
-                <tr>
-                  <th className="px-4 py-3 font-medium">URL</th>
-                  <th className="px-4 py-3 font-medium">Events</th>
-                  <th className="px-4 py-3 font-medium">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(endpoints ?? []).length === 0 ? (
+          {(endpoints ?? []).length === 0 ? (
+            <TableEmptyState
+              title="No webhook endpoints yet"
+              description="Add an endpoint to receive payment events from Payoes."
+              icon={<Webhook className="size-4 text-neutral-700" />}
+              className="border-0"
+            />
+          ) : (
+            <div className="overflow-hidden">
+              <table className="w-full text-sm">
+                <thead className="bg-muted/40 text-left">
                   <tr>
-                    <td
-                      colSpan={3}
-                      className="px-4 py-8 text-center text-muted-foreground"
-                    >
-                      No webhook endpoints yet.
-                    </td>
+                    <th className="px-4 py-3 font-medium">URL</th>
+                    <th className="px-4 py-3 font-medium">Events</th>
+                    <th className="px-4 py-3 font-medium">Status</th>
                   </tr>
-                ) : (
-                  (endpoints ?? []).map((endpoint) => (
+                </thead>
+                <tbody>
+                  {(endpoints ?? []).map((endpoint) => (
                     <tr
                       key={endpoint.id}
                       className="border-t border-border/60 hover:bg-muted/30"
@@ -89,11 +89,11 @@ export function WebhooksListPanel({ organizationId }: { organizationId: string }
                         {endpoint.enabled ? "enabled" : "disabled"}
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </CardContent>
       </Card>
 
