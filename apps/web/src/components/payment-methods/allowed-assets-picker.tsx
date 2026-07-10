@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Label } from "@/components/ui/label";
 import { useEnabledPaymentMethods, paymentMethodKey } from "@/hooks/use-payment-methods";
-import { cn } from "@/lib/utils";
+import { FormFieldLabel } from "@/ui/forms/form-field-label";
+import { Combobox, type ComboboxOption } from "@dub/ui";
+import { cn } from "@dub/utils";
 
 type AllowedAssetsPickerProps = {
   organizationId: string;
@@ -12,7 +13,25 @@ type AllowedAssetsPickerProps = {
   settlementKey?: string;
   selectedKeys: string[];
   onChange: (keys: string[], issuers: Map<string, string | null>) => void;
+  error?: string;
+  onTouch?: () => void;
 };
+
+function methodToOption(
+  method: {
+    id: string;
+    asset_code: string;
+    issuer_address: string | null;
+    display_name: string;
+    subtitle: string | null;
+  },
+): ComboboxOption {
+  return {
+    value: paymentMethodKey(method),
+    label: method.display_name,
+    meta: method,
+  };
+}
 
 export function AllowedAssetsPicker({
   organizationId,
@@ -21,6 +40,8 @@ export function AllowedAssetsPicker({
   settlementKey,
   selectedKeys,
   onChange,
+  error,
+  onTouch,
 }: AllowedAssetsPickerProps) {
   const { data: methods, isLoading } = useEnabledPaymentMethods(organizationId);
 
@@ -32,37 +53,20 @@ export function AllowedAssetsPicker({
     return map;
   }, [methods]);
 
-  if (isLoading) {
-    return (
-      <p className="text-sm text-muted-foreground">Loading accepted assets…</p>
-    );
-  }
+  const options = useMemo(
+    () => (methods ?? []).map(methodToOption),
+    [methods],
+  );
 
-  if (!methods || methods.length === 0) {
-    return (
-      <p className="text-sm text-muted-foreground">
-        No enabled assets. Configure assets in Settings → Assets.
-      </p>
-    );
-  }
+  const selectedOptions = useMemo(
+    () => options.filter((option) => selectedKeys.includes(option.value)),
+    [options, selectedKeys],
+  );
 
-  function toggleKey(key: string) {
-    if (mode === "settlement" || mode === "pay") {
-      onChange([key], issuerMap);
-      return;
-    }
-
-    const next = selectedKeys.includes(key)
-      ? selectedKeys.filter((item) => item !== key)
-      : [...selectedKeys, key];
-
-    if (settlementKey && !next.includes(settlementKey)) {
-      onChange([...next, settlementKey], issuerMap);
-      return;
-    }
-
-    onChange(next.length > 0 ? next : [key], issuerMap);
-  }
+  const selectedSingle = useMemo(
+    () => selectedOptions[0] ?? null,
+    [selectedOptions],
+  );
 
   const label =
     labelOverride ??
@@ -72,35 +76,99 @@ export function AllowedAssetsPicker({
         ? "Pay with"
         : "Allowed assets");
 
+  if (isLoading) {
+    return (
+      <p className="text-content-subtle text-sm">Loading payment methods...</p>
+    );
+  }
+
+  if (!methods || methods.length === 0) {
+    return (
+      <p className="text-content-subtle text-sm">
+        No enabled payment methods. Configure them in Settings → Payment Methods.
+      </p>
+    );
+  }
+
+  if (mode === "allowed") {
+    return (
+      <div className="space-y-2">
+        <FormFieldLabel htmlFor="allowed-assets-picker" required>
+          {label}
+        </FormFieldLabel>
+        <Combobox
+          multiple
+          selected={selectedOptions}
+          setSelected={(next: ComboboxOption[]) => {
+            const nextKeys = next.map((option: ComboboxOption) => option.value);
+
+            if (mode === "allowed" && settlementKey && !nextKeys.includes(settlementKey)) {
+              onChange([...nextKeys, settlementKey], issuerMap);
+              return;
+            }
+
+            onChange(nextKeys.length > 0 ? nextKeys : [options[0]!.value], issuerMap);
+          }}
+          options={options}
+          placeholder="Select allowed assets"
+          searchPlaceholder="Search assets..."
+          matchTriggerWidth
+          optionDescription={(option) => {
+            const method = option.meta as { subtitle?: string | null } | undefined;
+            return method?.subtitle ?? null;
+          }}
+          buttonProps={{
+            id: "allowed-assets-picker",
+            className: "h-10 w-full justify-between",
+            textWrapperClassName: "min-w-0 flex-1 text-left",
+          }}
+        />
+        <p className="text-content-subtle text-xs">
+          Customers can pay using any selected asset. Settlement asset must stay
+          enabled.
+        </p>
+      </div>
+    );
+  }
+
+  const singleFieldId =
+    mode === "pay" ? "pay-with-asset-picker" : "settlement-asset-picker";
+
   return (
     <div className="space-y-2">
-      <Label>{label}</Label>
-      <div className="flex flex-wrap gap-2">
-        {methods.map((method) => {
-          const key = paymentMethodKey(method);
-          const isSelected = selectedKeys.includes(key);
+      <FormFieldLabel htmlFor={singleFieldId} required>
+        {label}
+      </FormFieldLabel>
+      <Combobox
+        selected={selectedSingle}
+        setSelected={(option: ComboboxOption | null) => {
+          onTouch?.();
 
-          return (
-            <button
-              key={method.id}
-              type="button"
-              onClick={() => toggleKey(key)}
-              className={cn(
-                "rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors",
-                isSelected
-                  ? "border-primary bg-primary/10 text-foreground"
-                  : "border-border bg-background text-muted-foreground hover:bg-muted"
-              )}
-            >
-              {method.display_name}
-            </button>
-          );
-        })}
-      </div>
-      {mode === "allowed" ? (
-        <p className="text-xs text-muted-foreground">
-          Customers can pay using any selected asset. Settlement asset must stay enabled.
-        </p>
+          if (!option) {
+            return;
+          }
+
+          onChange([option.value], issuerMap);
+        }}
+        options={options}
+        placeholder={mode === "pay" ? "Select asset" : "Select settlement asset"}
+        searchPlaceholder="Search assets..."
+        matchTriggerWidth
+        optionDescription={(option) => {
+          const method = option.meta as { subtitle?: string | null } | undefined;
+          return method?.subtitle ?? null;
+        }}
+        buttonProps={{
+          id: singleFieldId,
+          className: cn(
+            "h-10 w-full justify-between",
+            error && "border-red-500",
+          ),
+          textWrapperClassName: "min-w-0 flex-1 text-left",
+        }}
+      />
+      {error ? (
+        <p className="text-xs font-medium text-red-600">{error}</p>
       ) : null}
     </div>
   );
@@ -122,7 +190,7 @@ export function useDefaultAssetSelection(organizationId: string) {
     const defaultKey = paymentMethodKey(defaultMethod);
     const allKeys = methods.map((method) => paymentMethodKey(method));
     const map = new Map(
-      methods.map((method) => [paymentMethodKey(method), method.issuer_address] as const)
+      methods.map((method) => [paymentMethodKey(method), method.issuer_address] as const),
     );
 
     setSettlementKey(defaultKey);
@@ -144,7 +212,7 @@ export function useDefaultAssetSelection(organizationId: string) {
 export function keysToAssetPayload(
   settlementKey: string,
   allowedKeys: string[],
-  issuers: Map<string, string | null>
+  issuers: Map<string, string | null>,
 ) {
   const [settlementCode] = settlementKey.split(":");
 
@@ -165,7 +233,7 @@ export function keysToAssetPayload(
 
 export function parsePaymentAssetSelection(
   key: string,
-  issuerFromMethod: string | null
+  issuerFromMethod: string | null,
 ) {
   const [assetCode] = key.split(":");
 

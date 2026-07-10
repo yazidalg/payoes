@@ -1,14 +1,11 @@
 "use client";
 
-import { useState } from "react";
-import { BadgeCheckIcon, CheckCircle2Icon, Loader2Icon } from "lucide-react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { AlertBlock } from "@/components/shared/alert-block";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { cn } from "@/lib/utils";
+import { FormFieldLabel } from "@/ui/forms/form-field-label";
 import { AppModal } from "@/ui/modals/app-modal";
+import { Button, Combobox, Input, type ComboboxOption } from "@dub/ui";
 
 type OfficialAssetOption = {
   asset_code: string;
@@ -31,6 +28,14 @@ type AddAssetDialogProps = {
   onAdded: () => void;
 };
 
+function toOfficialOption(asset: OfficialAssetOption): ComboboxOption {
+  return {
+    value: asset.asset_code,
+    label: asset.display_name,
+    meta: asset,
+  };
+}
+
 export function AddAssetDialog({
   organizationId,
   open,
@@ -38,13 +43,20 @@ export function AddAssetDialog({
   availableOfficialAssets,
   onAdded,
 }: AddAssetDialogProps) {
-  const [selectedOfficial, setSelectedOfficial] = useState<string | null>(null);
+  const [selectedOfficial, setSelectedOfficial] = useState<ComboboxOption | null>(
+    null,
+  );
   const [assetCode, setAssetCode] = useState("");
   const [issuerAddress, setIssuerAddress] = useState("");
   const [validation, setValidation] = useState<ValidationResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isValidating, setIsValidating] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const officialOptions = useMemo(
+    () => availableOfficialAssets.map(toOfficialOption),
+    [availableOfficialAssets],
+  );
 
   function reset() {
     setSelectedOfficial(null);
@@ -77,7 +89,7 @@ export function AddAssetDialog({
           asset_code: assetCode.trim().toUpperCase(),
           issuer_address: issuerAddress.trim(),
         }),
-      }
+      },
     );
 
     const data = (await response.json()) as ValidationResult & {
@@ -109,7 +121,7 @@ export function AddAssetDialog({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         type: "official",
-        asset_code: selectedOfficial,
+        asset_code: selectedOfficial.value,
       }),
     });
 
@@ -121,7 +133,7 @@ export function AddAssetDialog({
       return;
     }
 
-    toast.success(`${selectedOfficial} added`);
+    toast.success(`${selectedOfficial.label} added`);
     onAdded();
     handleOpenChange(false);
   }
@@ -158,182 +170,146 @@ export function AddAssetDialog({
     handleOpenChange(false);
   }
 
+  const canSubmitCustom = Boolean(validation);
+  const canSubmitOfficial = Boolean(selectedOfficial);
+
   return (
     <AppModal
       open={open}
       onOpenChange={handleOpenChange}
-      title="Add Asset"
+      title="Add asset"
       description="Add an official Stellar asset or configure a custom asset with its issuer."
-      className="max-h-[90vh] overflow-y-auto sm:max-w-xl"
+      className="sm:max-w-md"
       bodyClassName="space-y-6"
       footer={
-        <>
-          <Button variant="outline" onClick={() => handleOpenChange(false)}>
-            Cancel
-          </Button>
-          {validation ? (
-            <Button onClick={addCustomAsset} isLoading={isSubmitting}>
-              Add Asset
-            </Button>
-          ) : (
-            <Button
-              onClick={addOfficialAsset}
-              isLoading={isSubmitting}
-              disabled={!selectedOfficial}
-            >
-              Add Asset
-            </Button>
-          )}
-        </>
+        <div className="flex w-full justify-end gap-2">
+          <Button
+            type="button"
+            variant="secondary"
+            text="Cancel"
+            onClick={() => handleOpenChange(false)}
+          />
+          <Button
+            type="button"
+            text="Add asset"
+            loading={isSubmitting}
+            disabled={canSubmitCustom ? false : !canSubmitOfficial}
+            onClick={() => void (canSubmitCustom ? addCustomAsset() : addOfficialAsset())}
+          />
+        </div>
       }
     >
-      <div className="space-y-6">
-          <section className="space-y-3">
-            <div>
-              <h3 className="text-sm font-semibold">Official Assets</h3>
-              <p className="text-sm text-muted-foreground">
-                Pre-verified assets with known issuers. No issuer address required.
-              </p>
-            </div>
+      <div className="space-y-2">
+        <FormFieldLabel htmlFor="official-asset-picker">Official asset</FormFieldLabel>
+        {officialOptions.length === 0 ? (
+          <p className="text-content-subtle text-sm">
+            All official assets are already configured.
+          </p>
+        ) : (
+          <Combobox
+            selected={selectedOfficial}
+            setSelected={(option: ComboboxOption | null) => {
+              setSelectedOfficial(option);
+              setValidation(null);
+              setError(null);
+            }}
+            options={officialOptions}
+            placeholder="Select official asset"
+            searchPlaceholder="Search official assets..."
+            matchTriggerWidth
+            optionDescription={(option) => {
+              const asset = option.meta as OfficialAssetOption | undefined;
+              return asset?.description ?? null;
+            }}
+            buttonProps={{
+              id: "official-asset-picker",
+              className: "h-10 w-full justify-between",
+              textWrapperClassName: "min-w-0 flex-1 text-left",
+            }}
+          />
+        )}
+        <p className="text-content-subtle text-xs">
+          Pre-verified assets with known issuers. No issuer address required.
+        </p>
+      </div>
 
-            {availableOfficialAssets.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                All official assets are already configured.
-              </p>
-            ) : (
-              <div className="space-y-2">
-                {availableOfficialAssets.map((asset) => {
-                  const isSelected = selectedOfficial === asset.asset_code;
-
-                  return (
-                    <button
-                      key={asset.asset_code}
-                      type="button"
-                      onClick={() => {
-                        setSelectedOfficial(asset.asset_code);
-                        setValidation(null);
-                        setError(null);
-                      }}
-                      className={cn(
-                        "flex w-full items-start gap-3 rounded-2xl border p-4 text-left transition-colors",
-                        isSelected
-                          ? "border-primary bg-primary/5"
-                          : "border-border hover:bg-muted/50"
-                      )}
-                    >
-                      <span
-                        className={cn(
-                          "mt-0.5 size-4 shrink-0 rounded-full border",
-                          isSelected ? "border-primary bg-primary" : "border-muted-foreground/40"
-                        )}
-                      />
-                      <span className="space-y-1">
-                        <span className="flex items-center gap-2 font-medium">
-                          {asset.display_name}
-                          <span className="bg-primary/10 text-primary inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide">
-                            <BadgeCheckIcon className="size-3" />
-                            Official
-                          </span>
-                        </span>
-                        <span className="block text-sm text-muted-foreground">
-                          {asset.description}
-                        </span>
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </section>
-
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-background text-muted-foreground px-2">or</span>
-            </div>
-          </div>
-
-          <section className="space-y-4">
-            <div>
-              <h3 className="text-sm font-semibold">Custom Stellar Asset</h3>
-              <p className="text-sm text-muted-foreground">
-                Add any Stellar asset by code and issuer address.
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="asset-code">Asset Code</Label>
-              <Input
-                id="asset-code"
-                placeholder="ACME"
-                value={assetCode}
-                onChange={(event) => {
-                  setAssetCode(event.target.value.toUpperCase());
-                  setValidation(null);
-                }}
-                className="rounded-xl"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="issuer-address">Issuer Address</Label>
-              <Input
-                id="issuer-address"
-                placeholder="GXXXXXXXXXXXXXXXXXXXXXXXX"
-                value={issuerAddress}
-                onChange={(event) => {
-                  setIssuerAddress(event.target.value);
-                  setValidation(null);
-                }}
-                className="rounded-xl font-mono text-sm"
-              />
-            </div>
-
-            <Button
-              type="button"
-              variant="outline"
-              className="rounded-xl"
-              onClick={validateCustomAsset}
-              disabled={isValidating || !assetCode.trim() || !issuerAddress.trim()}
-            >
-              {isValidating ? <Loader2Icon className="size-4 animate-spin" /> : null}
-              Validate Asset
-            </Button>
-
-            {validation ? (
-              <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-4">
-                <p className="flex items-center gap-2 text-sm font-medium text-emerald-700 dark:text-emerald-400">
-                  <CheckCircle2Icon className="size-4" />
-                  Asset found
-                </p>
-                <dl className="mt-3 grid gap-2 text-sm">
-                  <div className="flex justify-between gap-4">
-                    <dt className="text-muted-foreground">Asset Name</dt>
-                    <dd className="font-medium">{validation.asset_name}</dd>
-                  </div>
-                  <div className="flex justify-between gap-4">
-                    <dt className="text-muted-foreground">Issuer</dt>
-                    <dd className="max-w-[220px] truncate font-mono text-xs">
-                      {validation.issuer}
-                    </dd>
-                  </div>
-                  <div className="flex justify-between gap-4">
-                    <dt className="text-muted-foreground">Network</dt>
-                    <dd className="font-medium">{validation.network}</dd>
-                  </div>
-                  <div className="flex justify-between gap-4">
-                    <dt className="text-muted-foreground">Status</dt>
-                    <dd className="font-medium">Ready to add</dd>
-                  </div>
-                </dl>
-              </div>
-            ) : null}
-          </section>
-
-          {error ? <AlertBlock type="error">{error}</AlertBlock> : null}
+      <div className="relative">
+        <div className="absolute inset-0 flex items-center">
+          <span className="w-full border-t border-neutral-200" />
         </div>
+        <div className="relative flex justify-center text-xs uppercase">
+          <span className="bg-white px-2 text-neutral-400">or</span>
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        <div>
+          <p className="text-content-default text-sm font-medium">Custom asset</p>
+          <p className="text-content-subtle mt-1 text-xs">
+            Add any Stellar asset by code and issuer address.
+          </p>
+        </div>
+
+        <div className="space-y-2">
+          <FormFieldLabel htmlFor="asset-code">Asset code</FormFieldLabel>
+          <Input
+            id="asset-code"
+            placeholder="ACME"
+            value={assetCode}
+            onChange={(event) => {
+              setAssetCode(event.target.value.toUpperCase());
+              setValidation(null);
+            }}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <FormFieldLabel htmlFor="issuer-address">Issuer address</FormFieldLabel>
+          <Input
+            id="issuer-address"
+            placeholder="GXXXXXXXXXXXXXXXXXXXXXXXX"
+            value={issuerAddress}
+            onChange={(event) => {
+              setIssuerAddress(event.target.value);
+              setValidation(null);
+            }}
+            className="font-mono text-sm"
+          />
+        </div>
+
+        <Button
+          type="button"
+          variant="secondary"
+          text="Validate asset"
+          loading={isValidating}
+          disabled={!assetCode.trim() || !issuerAddress.trim()}
+          onClick={() => void validateCustomAsset()}
+        />
+
+        {validation ? (
+          <div className="space-y-2 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-3 text-sm">
+            <p className="font-medium text-emerald-800">Asset found</p>
+            <dl className="grid gap-1 text-xs text-emerald-900">
+              <div className="flex justify-between gap-4">
+                <dt className="text-emerald-700">Name</dt>
+                <dd className="font-medium">{validation.asset_name}</dd>
+              </div>
+              <div className="flex justify-between gap-4">
+                <dt className="text-emerald-700">Issuer</dt>
+                <dd className="max-w-[220px] truncate font-mono">
+                  {validation.issuer}
+                </dd>
+              </div>
+              <div className="flex justify-between gap-4">
+                <dt className="text-emerald-700">Network</dt>
+                <dd className="font-medium">{validation.network}</dd>
+              </div>
+            </dl>
+          </div>
+        ) : null}
+      </div>
+
+      {error ? <AlertBlock type="error">{error}</AlertBlock> : null}
     </AppModal>
   );
 }
