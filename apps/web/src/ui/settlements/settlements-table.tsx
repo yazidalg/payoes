@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useAsyncData } from "@/hooks/use-async-data";
 import type { Organization } from "@/lib/db/schema";
 import { formatAssetAmount, type SettlementConversionRow } from "@/lib/payments/types";
-import { getStellarExpertTxUrl } from "@/lib/stellar/explorer";
+import { getStellarExpertTxUrlIfValid } from "@/lib/stellar/explorer";
 import { SettlementsFilters } from "@/ui/settlements/use-settlement-filters";
 import { SettlementsTableSkeleton } from "@/ui/settlements/settlements-table-skeleton";
 import { TableEmptyState } from "@/ui/shared/table-empty-state";
@@ -188,10 +188,15 @@ export function SettlementsTable({
         id: "tx",
         header: "Tx",
         minSize: 120,
-        cell: ({ row }: { row: Row<SettlementConversionRow> }) =>
-          row.original.tx_hash ? (
+        cell: ({ row }: { row: Row<SettlementConversionRow> }) => {
+          const explorerUrl = getStellarExpertTxUrlIfValid(
+            row.original.tx_hash,
+            environment,
+          );
+
+          return row.original.tx_hash && explorerUrl ? (
             <a
-              href={getStellarExpertTxUrl(row.original.tx_hash, environment)}
+              href={explorerUrl}
               target="_blank"
               rel="noreferrer"
               className="truncate font-mono text-xs decoration-dotted underline-offset-2 hover:underline"
@@ -201,7 +206,8 @@ export function SettlementsTable({
             </a>
           ) : (
             "-"
-          ),
+          );
+        },
       },
       {
         id: "confirmedAt",
@@ -345,13 +351,16 @@ function RowMenuButton({
                 Copy tx hash
               </MenuItem>
             ) : null}
-            {row.original.tx_hash ? (
+            {getStellarExpertTxUrlIfValid(row.original.tx_hash, environment) ? (
               <MenuItem
                 as={Command.Item}
                 icon={CircleDollarOut}
                 onSelect={() => {
                   window.open(
-                    getStellarExpertTxUrl(row.original.tx_hash!, environment),
+                    getStellarExpertTxUrlIfValid(
+                      row.original.tx_hash,
+                      environment,
+                    )!,
                     "_blank",
                   );
                   setIsOpen(false);
