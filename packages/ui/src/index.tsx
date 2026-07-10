@@ -5,6 +5,7 @@ import "./styles.css";
 export * from "./accordion";
 export * from "./activity-ring";
 export * from "./alert";
+export * from "./animated-empty-state";
 export * from "./avatar";
 export * from "./badge";
 export * from "./button";

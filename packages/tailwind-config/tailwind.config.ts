@@ -79,6 +79,7 @@ const config: Config = {
         blink: "blink 1.4s infinite both",
         // Custom pulse animation
         pulse: "pulse 1s linear infinite alternate",
+        "infinite-scroll-y": "infinite-scroll-y 22s linear infinite",
       },
       keyframes: {
         // Modal
@@ -200,6 +201,10 @@ const config: Config = {
           to: {
             opacity: "1",
           },
+        },
+        "infinite-scroll-y": {
+          "0%": { transform: "translateY(0)" },
+          "100%": { transform: "translateY(var(--scroll, -150%))" },
         },
       },
       colors: {
