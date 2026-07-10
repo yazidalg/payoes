@@ -1,15 +1,5 @@
-import { ApiKeyDetailPanel } from "@/components/developers/api-key-detail-panel";
-import { getDashboardOrganization } from "@/lib/dashboard/get-organization";
+import { redirect } from "next/navigation";
 
-export default async function ApiKeyDetailPage({
-  params,
-}: {
-  params: Promise<{ apiKeyId: string }>;
-}) {
-  const organization = await getDashboardOrganization();
-  const { apiKeyId } = await params;
-
-  return (
-    <ApiKeyDetailPanel organizationId={organization.id} apiKeyId={apiKeyId} />
-  );
+export default function ApiKeyDetailPage() {
+  redirect("/dashboard/developers/api-keys");
 }
