@@ -22,6 +22,7 @@ export async function createUser(input: {
   email: string;
   name: string;
   password: string;
+  callbackUrl?: string | null;
 }) {
   const existing = await findUserByEmail(input.email);
 
@@ -56,6 +57,7 @@ export async function createUser(input: {
     to: user.email,
     name: user.name,
     token,
+    callbackUrl: input.callbackUrl,
   });
 
   if (!delivery.delivered) {
@@ -84,7 +86,10 @@ export async function markEmailVerified(userId: string) {
   return user ?? null;
 }
 
-export async function resendEmailVerification(userId: string) {
+export async function resendEmailVerification(
+  userId: string,
+  callbackUrl?: string | null,
+) {
   const user = await findUserById(userId);
 
   if (!user) {
@@ -105,6 +110,7 @@ export async function resendEmailVerification(userId: string) {
     to: user.email,
     name: user.name,
     token,
+    callbackUrl,
   });
 
   if (!delivery.delivered) {
