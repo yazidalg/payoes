@@ -5,6 +5,7 @@ import {
   createInvoice,
   getInvoiceDetail,
   listInvoices,
+  listInvoicesPaginated,
   serializeInvoice,
   serializeInvoices,
 } from "@/lib/invoices/service";
@@ -12,7 +13,15 @@ import {
   fiatAmountPattern,
   resolveInvoiceCurrencyCode,
 } from "@/lib/invoices/currencies";
-import { getOrganizationForMember } from "@/lib/organizations/wallet";
+import { getOrganizationForMember } from "@/lib/organizations/settlement-wallet";
+
+const listInvoicesQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).optional(),
+  pageSize: z.coerce.number().int().min(1).max(100).optional(),
+  sortOrder: z.enum(["asc", "desc"]).optional(),
+  search: z.string().optional(),
+  status: z.enum(["draft", "open", "paid", "void"]).optional(),
+});
 
 const createInvoiceSchema = z
   .object({
@@ -63,8 +72,8 @@ const createInvoiceSchema = z
   });
 
 export async function GET(
-  _request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  request: Request,
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await auth();
 
@@ -79,6 +88,39 @@ export async function GET(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
+  const { searchParams } = new URL(request.url);
+  const parsedQuery = listInvoicesQuerySchema.safeParse({
+    page: searchParams.get("page") ?? undefined,
+    pageSize: searchParams.get("pageSize") ?? undefined,
+    sortOrder: searchParams.get("sortOrder") ?? undefined,
+    search: searchParams.get("search") ?? undefined,
+    status: searchParams.get("status") ?? undefined,
+  });
+
+  if (!parsedQuery.success) {
+    return NextResponse.json(
+      { error: parsedQuery.error.issues[0]?.message ?? "Invalid query" },
+      { status: 400 },
+    );
+  }
+
+  const hasListParams =
+    parsedQuery.data.page !== undefined ||
+    parsedQuery.data.pageSize !== undefined ||
+    parsedQuery.data.search !== undefined ||
+    parsedQuery.data.status !== undefined ||
+    parsedQuery.data.sortOrder !== undefined;
+
+  if (hasListParams) {
+    const result = await listInvoicesPaginated(
+      organization.id,
+      organization.environment,
+      parsedQuery.data,
+    );
+
+    return NextResponse.json(result);
+  }
+
   const rows = await listInvoices(organization.id, organization.environment);
 
   return NextResponse.json({
@@ -88,7 +130,7 @@ export async function GET(
 
 export async function POST(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await auth();
 
@@ -109,7 +151,7 @@ export async function POST(
   if (!parsed.success) {
     return NextResponse.json(
       { error: parsed.error.issues[0]?.message ?? "Invalid request" },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
@@ -136,13 +178,13 @@ export async function POST(
     const detail = await getInvoiceDetail(
       invoice.publicId,
       organization.id,
-      organization.environment
+      organization.environment,
     );
 
     if (!detail) {
       return NextResponse.json(
         { error: "Unable to load created invoice" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -152,16 +194,16 @@ export async function POST(
         {
           checkoutUrl: detail.checkoutUrl,
           checkoutSessionPublicId: detail.checkoutSessionPublicId,
-        }
+        },
       ),
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error) {
     return NextResponse.json(
       {
         error: error instanceof Error ? error.message : "Unable to create invoice",
       },
-      { status: 400 }
+      { status: 400 },
     );
   }
 }

@@ -1,22 +1,32 @@
 import { auth } from "@/auth";
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { parseAndResolveAssetConfig } from "@/lib/assets/validation";
 import {
   createPaymentLink,
   listPaymentLinks,
+  listPaymentLinksPaginated,
   serializePaymentLink,
 } from "@/lib/payment-links/service";
 import { createPaymentLinkBodySchema } from "@/lib/payment-links/schemas";
 import { resolveInvoiceCurrencyCode } from "@/lib/invoices/currencies";
 import {
   getOrganizationForMember,
-  organizationHasReceivingWallet,
-  receivingWalletNotConfiguredMessage,
-} from "@/lib/organizations/wallet";
+  organizationHasSettlementWallet,
+  settlementWalletNotConfiguredMessage,
+} from "@/lib/organizations/settlement-wallet";
+
+const listPaymentLinksQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).optional(),
+  pageSize: z.coerce.number().int().min(1).max(100).optional(),
+  sortOrder: z.enum(["asc", "desc"]).optional(),
+  search: z.string().optional(),
+  status: z.enum(["active", "inactive"]).optional(),
+});
 
 export async function GET(
-  _request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  request: Request,
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await auth();
 
@@ -31,6 +41,39 @@ export async function GET(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
+  const { searchParams } = new URL(request.url);
+  const parsedQuery = listPaymentLinksQuerySchema.safeParse({
+    page: searchParams.get("page") ?? undefined,
+    pageSize: searchParams.get("pageSize") ?? undefined,
+    sortOrder: searchParams.get("sortOrder") ?? undefined,
+    search: searchParams.get("search") ?? undefined,
+    status: searchParams.get("status") ?? undefined,
+  });
+
+  if (!parsedQuery.success) {
+    return NextResponse.json(
+      { error: parsedQuery.error.issues[0]?.message ?? "Invalid query" },
+      { status: 400 },
+    );
+  }
+
+  const hasListParams =
+    parsedQuery.data.page !== undefined ||
+    parsedQuery.data.pageSize !== undefined ||
+    parsedQuery.data.search !== undefined ||
+    parsedQuery.data.status !== undefined ||
+    parsedQuery.data.sortOrder !== undefined;
+
+  if (hasListParams) {
+    const result = await listPaymentLinksPaginated(
+      organization.id,
+      organization.environment,
+      parsedQuery.data,
+    );
+
+    return NextResponse.json(result);
+  }
+
   const links = await listPaymentLinks(organization.id, organization.environment);
 
   return NextResponse.json({
@@ -40,7 +83,7 @@ export async function GET(
 
 export async function POST(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await auth();
 
@@ -61,19 +104,19 @@ export async function POST(
   if (!parsed.success) {
     return NextResponse.json(
       { error: parsed.error.issues[0]?.message ?? "Invalid request" },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
-  const hasWallet = await organizationHasReceivingWallet(
+  const hasWallet = await organizationHasSettlementWallet(
     organization.id,
-    organization.environment
+    organization.environment,
   );
 
   if (!hasWallet) {
     return NextResponse.json(
-      { error: receivingWalletNotConfiguredMessage(organization.environment) },
-      { status: 400 }
+      { error: settlementWalletNotConfiguredMessage(organization.environment) },
+      { status: 400 },
     );
   }
 
@@ -103,7 +146,7 @@ export async function POST(
 
     return NextResponse.json(
       await serializePaymentLink(link, { includeItems: true }),
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error) {
     return NextResponse.json(
@@ -111,7 +154,7 @@ export async function POST(
         error:
           error instanceof Error ? error.message : "Unable to create payment link",
       },
-      { status: 400 }
+      { status: 400 },
     );
   }
 }

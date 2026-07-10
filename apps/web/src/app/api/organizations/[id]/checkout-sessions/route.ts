@@ -5,10 +5,19 @@ import { parseAndResolveAssetConfig } from "@/lib/assets/validation";
 import {
   createCheckoutSession,
   listCheckoutSessions,
+  listCheckoutSessionsPaginated,
   serializeCheckoutSession,
 } from "@/lib/checkout-sessions/service";
 import { paymentAssetConfigFields } from "@/lib/payment-methods/schemas";
-import { getOrganizationForMember } from "@/lib/organizations/wallet";
+import { getOrganizationForMember } from "@/lib/organizations/settlement-wallet";
+
+const listCheckoutSessionsQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).optional(),
+  pageSize: z.coerce.number().int().min(1).max(100).optional(),
+  sortOrder: z.enum(["asc", "desc"]).optional(),
+  search: z.string().optional(),
+  status: z.enum(["open", "complete", "expired"]).optional(),
+});
 
 const createCheckoutSessionSchema = z.object({
   amount: z
@@ -24,8 +33,8 @@ const createCheckoutSessionSchema = z.object({
 });
 
 export async function GET(
-  _request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  request: Request,
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await auth();
 
@@ -40,9 +49,42 @@ export async function GET(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
+  const { searchParams } = new URL(request.url);
+  const parsedQuery = listCheckoutSessionsQuerySchema.safeParse({
+    page: searchParams.get("page") ?? undefined,
+    pageSize: searchParams.get("pageSize") ?? undefined,
+    sortOrder: searchParams.get("sortOrder") ?? undefined,
+    search: searchParams.get("search") ?? undefined,
+    status: searchParams.get("status") ?? undefined,
+  });
+
+  if (!parsedQuery.success) {
+    return NextResponse.json(
+      { error: parsedQuery.error.issues[0]?.message ?? "Invalid query" },
+      { status: 400 },
+    );
+  }
+
+  const hasListParams =
+    parsedQuery.data.page !== undefined ||
+    parsedQuery.data.pageSize !== undefined ||
+    parsedQuery.data.search !== undefined ||
+    parsedQuery.data.status !== undefined ||
+    parsedQuery.data.sortOrder !== undefined;
+
+  if (hasListParams) {
+    const result = await listCheckoutSessionsPaginated(
+      organization.id,
+      organization.environment,
+      parsedQuery.data,
+    );
+
+    return NextResponse.json(result);
+  }
+
   const sessions = await listCheckoutSessions(
     organization.id,
-    organization.environment
+    organization.environment,
   );
 
   return NextResponse.json({
@@ -52,7 +94,7 @@ export async function GET(
 
 export async function POST(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await auth();
 
@@ -73,7 +115,7 @@ export async function POST(
   if (!parsed.success) {
     return NextResponse.json(
       { error: parsed.error.issues[0]?.message ?? "Invalid request" },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
@@ -102,7 +144,7 @@ export async function POST(
         paymentPublicId: payment.publicId,
         payment,
       }),
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error) {
     return NextResponse.json(
@@ -112,7 +154,7 @@ export async function POST(
             ? error.message
             : "Unable to create checkout session",
       },
-      { status: 400 }
+      { status: 400 },
     );
   }
 }
