@@ -1,0 +1,10 @@
+{
+  "extends": "../../packages/tsconfig/react-library.json",
+  "include": ["src/**/*"],
+  "exclude": ["node_modules"],
+  "compilerOptions": {
+    "baseUrl": ".",
+    "module": "ESNext",
+    "moduleResolution": "Bundler"
+  }
+}
