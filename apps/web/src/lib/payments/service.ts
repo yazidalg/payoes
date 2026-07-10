@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import { and, desc, eq, inArray, lt } from "drizzle-orm";
+import { and, asc, count, desc, eq, ilike, inArray, isNotNull, isNull, lt, or, type SQL } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { customers, payments, type Organization, type Payment } from "@/lib/db/schema";
 import type { AllowedAsset } from "@/lib/assets/types";
@@ -496,4 +496,80 @@ export async function listCompletedPayments(
       )
     )
     .orderBy(desc(payments.createdAt));
+}
+
+export type TransactionSortOrder = "asc" | "desc";
+
+export type ListTransactionsQuery = {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  customerStatus?: "has_customer" | "no_customer";
+  sortOrder?: TransactionSortOrder;
+};
+
+export async function listTransactionsPaginated(
+  organizationId: string,
+  environment: Organization["environment"],
+  query: ListTransactionsQuery = {},
+) {
+  const page = Math.max(1, query.page ?? 1);
+  const pageSize = Math.min(100, Math.max(1, query.pageSize ?? 20));
+  const offset = (page - 1) * pageSize;
+  const search = query.search?.trim();
+  const sortOrder = query.sortOrder ?? "desc";
+
+  const envWhere = organizationEnvironmentWhere(
+    payments.organizationId,
+    payments.environment,
+    organizationId,
+    environment,
+  );
+
+  let whereClause: SQL | undefined = and(
+    envWhere,
+    eq(payments.status, "completed"),
+  );
+
+  if (search) {
+    const pattern = `%${search}%`;
+    whereClause = and(
+      whereClause,
+      or(
+        ilike(payments.publicId, pattern),
+        ilike(payments.payerAddress, pattern),
+        ilike(payments.txHash, pattern),
+      ),
+    );
+  }
+
+  if (query.customerStatus === "has_customer") {
+    whereClause = and(whereClause, isNotNull(payments.customerId));
+  } else if (query.customerStatus === "no_customer") {
+    whereClause = and(whereClause, isNull(payments.customerId));
+  }
+
+  const orderBy =
+    sortOrder === "asc"
+      ? asc(payments.confirmedAt)
+      : desc(payments.confirmedAt);
+
+  const [rows, totalRows] = await Promise.all([
+    db
+      .select()
+      .from(payments)
+      .where(whereClause)
+      .orderBy(orderBy)
+      .limit(pageSize)
+      .offset(offset),
+    db
+      .select({ count: count() })
+      .from(payments)
+      .where(whereClause),
+  ]);
+
+  return {
+    transactions: await serializePayments(rows),
+    total: totalRows[0]?.count ?? 0,
+  };
 }
