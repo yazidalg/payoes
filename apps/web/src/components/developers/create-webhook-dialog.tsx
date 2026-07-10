@@ -5,17 +5,10 @@ import { toast } from "sonner";
 import { WebhookEventsPicker } from "@/components/developers/webhook-events-picker";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { WEBHOOK_EVENTS } from "@/constants/webhooks/events";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { AppModal } from "@/ui/modals/app-modal";
 
 type CreateWebhookDialogProps = {
   organizationId: string;
@@ -82,7 +75,7 @@ export function CreateWebhookDialog({
   }
 
   return (
-    <Dialog
+    <AppModal
       open={open}
       onOpenChange={(nextOpen) => {
         if (!nextOpen) {
@@ -91,69 +84,62 @@ export function CreateWebhookDialog({
         }
         onOpenChange(nextOpen);
       }}
-    >
-      <DialogContent className="max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Add webhook endpoint</DialogTitle>
-          <DialogDescription>
-            Receive signed HTTP callbacks when payment events occur.
-          </DialogDescription>
-        </DialogHeader>
-
-        {error ? <AlertBlock type="error">{error}</AlertBlock> : null}
-
-        {secret ? (
-          <AlertBlock type="success">
-            <p className="font-medium">Webhook signing secret</p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Copy this secret now. You will not be able to view it again.
-            </p>
-            <code className="mt-2 block break-all rounded bg-background/80 p-2 text-xs">
-              {secret}
-            </code>
-          </AlertBlock>
+      title="Add webhook endpoint"
+      description="Receive signed HTTP callbacks when payment events occur."
+      className="max-h-[90vh] overflow-y-auto"
+      footer={
+        secret ? (
+          <Button type="button" onClick={handleClose}>
+            Done
+          </Button>
         ) : (
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="create-webhook-url">Endpoint URL</Label>
-              <Input
-                id="create-webhook-url"
-                placeholder="https://example.com/webhooks/payoes"
-                value={url}
-                onChange={(event) => setUrl(event.target.value)}
-              />
-            </div>
-            <WebhookEventsPicker value={events} onChange={setEvents} />
-          </div>
-        )}
-
-        <DialogFooter>
-          {secret ? (
-            <Button type="button" onClick={handleClose}>
-              Done
+          <>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleClose}
+              disabled={isLoading}
+            >
+              Cancel
             </Button>
-          ) : (
-            <>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleClose}
-                disabled={isLoading}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="button"
-                onClick={() => void handleCreate()}
-                disabled={!url.trim()}
-                isLoading={isLoading}
-              >
-                Add endpoint
-              </Button>
-            </>
-          )}
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+            <Button
+              type="button"
+              onClick={() => void handleCreate()}
+              disabled={!url.trim()}
+              isLoading={isLoading}
+            >
+              Add endpoint
+            </Button>
+          </>
+        )
+      }
+    >
+      {error ? <AlertBlock type="error">{error}</AlertBlock> : null}
+
+      {secret ? (
+        <AlertBlock type="success">
+          <p className="font-medium">Webhook signing secret</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Copy this secret now. You will not be able to view it again.
+          </p>
+          <code className="mt-2 block break-all rounded bg-background/80 p-2 text-xs">
+            {secret}
+          </code>
+        </AlertBlock>
+      ) : (
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="create-webhook-url">Endpoint URL</Label>
+            <Input
+              id="create-webhook-url"
+              placeholder="https://example.com/webhooks/payoes"
+              value={url}
+              onChange={(event) => setUrl(event.target.value)}
+            />
+          </div>
+          <WebhookEventsPicker value={events} onChange={setEvents} />
+        </div>
+      )}
+    </AppModal>
   );
 }

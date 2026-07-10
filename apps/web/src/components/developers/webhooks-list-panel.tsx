@@ -1,113 +1,56 @@
 "use client";
 
-import { useCallback, useState } from "react";
-import Link from "next/link";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { PlusIcon } from "lucide-react";
 import { CreateWebhookDialog } from "@/components/developers/create-webhook-dialog";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { useAsyncData } from "@/hooks/use-async-data";
-import type { WebhookEndpointRow } from "@/lib/webhooks/types";
-import { TableEmptyState } from "@/ui/shared/table-empty-state";
-import { Webhook } from "@dub/ui/icons";
+import { WebhooksList } from "@/ui/developers/webhooks-list";
+import { useSetDashboardPageHeader } from "@/ui/layout/dashboard-page-header-context";
+import { Button } from "@dub/ui";
+import { Plus2 } from "@dub/ui/icons";
 
 export function WebhooksListPanel({ organizationId }: { organizationId: string }) {
   const router = useRouter();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
-  const fetchEndpoints = useCallback(async () => {
-    const response = await fetch(`/api/organizations/${organizationId}/webhooks`);
-    const data = (await response.json()) as { endpoints?: WebhookEndpointRow[] };
-    return data.endpoints ?? [];
-  }, [organizationId]);
+  const headerOverride = useMemo(
+    () => ({
+      titleInfo: {
+        title:
+          "Webhooks allow you to receive HTTP requests whenever a payment event occurs in Payoes.",
+        href: "/dashboard/developers/documentation",
+      },
+      controls: (
+        <Button
+          type="button"
+          variant="primary"
+          text="Create webhook"
+          icon={<Plus2 className="size-4" />}
+          className="h-9 w-fit"
+          onClick={() => setIsCreateOpen(true)}
+        />
+      ),
+    }),
+    [],
+  );
 
-  const { data: endpoints, reload } = useAsyncData(fetchEndpoints, [organizationId]);
+  useSetDashboardPageHeader(headerOverride);
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Webhooks</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Manage endpoints that receive payment events.
-          </p>
-        </div>
-        <Button type="button" onClick={() => setIsCreateOpen(true)}>
-          <PlusIcon />
-          Add endpoint
-        </Button>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Endpoint list</CardTitle>
-          <CardDescription>
-            Click a row to view deliveries and endpoint details.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="px-0 pb-0">
-          {(endpoints ?? []).length === 0 ? (
-            <TableEmptyState
-              title="No webhook endpoints yet"
-              description="Add an endpoint to receive payment events from Payoes."
-              icon={<Webhook className="size-4 text-neutral-700" />}
-              className="border-0"
-            />
-          ) : (
-            <div className="overflow-hidden">
-              <table className="w-full text-sm">
-                <thead className="bg-muted/40 text-left">
-                  <tr>
-                    <th className="px-4 py-3 font-medium">URL</th>
-                    <th className="px-4 py-3 font-medium">Events</th>
-                    <th className="px-4 py-3 font-medium">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(endpoints ?? []).map((endpoint) => (
-                    <tr
-                      key={endpoint.id}
-                      className="border-t border-border/60 hover:bg-muted/30"
-                    >
-                      <td className="px-4 py-3 font-medium">
-                        <Link
-                          href={`/dashboard/developers/webhooks/${endpoint.id}`}
-                          className="break-all hover:underline"
-                        >
-                          {endpoint.url}
-                        </Link>
-                      </td>
-                      <td className="px-4 py-3">{endpoint.events.length} events</td>
-                      <td className="px-4 py-3 capitalize">
-                        {endpoint.enabled ? "enabled" : "disabled"}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+    <>
+      <WebhooksList organizationId={organizationId} refreshKey={refreshKey} />
 
       <CreateWebhookDialog
         organizationId={organizationId}
         open={isCreateOpen}
         onOpenChange={setIsCreateOpen}
         onCreated={(webhookId) => {
-          reload();
+          setRefreshKey((current) => current + 1);
           if (webhookId) {
             router.push(`/dashboard/developers/webhooks/${webhookId}`);
           }
         }}
       />
-    </div>
+    </>
   );
 }
