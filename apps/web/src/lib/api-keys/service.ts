@@ -14,20 +14,23 @@ function buildRawApiKey(environment: Organization["environment"]) {
   return `${prefix}${secret}`;
 }
 
+const apiKeySelectFields = {
+  id: apiKeys.id,
+  name: apiKeys.name,
+  keyPrefix: apiKeys.keyPrefix,
+  environment: apiKeys.environment,
+  scopes: apiKeys.scopes,
+  lastUsedAt: apiKeys.lastUsedAt,
+  revokedAt: apiKeys.revokedAt,
+  createdAt: apiKeys.createdAt,
+};
+
 export async function listApiKeys(
   organizationId: string,
   environment: Organization["environment"]
 ) {
   return db
-    .select({
-      id: apiKeys.id,
-      name: apiKeys.name,
-      keyPrefix: apiKeys.keyPrefix,
-      environment: apiKeys.environment,
-      lastUsedAt: apiKeys.lastUsedAt,
-      revokedAt: apiKeys.revokedAt,
-      createdAt: apiKeys.createdAt,
-    })
+    .select(apiKeySelectFields)
     .from(apiKeys)
     .where(
       organizationEnvironmentWhere(
@@ -46,15 +49,7 @@ export async function getApiKey(
   environment: Organization["environment"]
 ) {
   const [apiKey] = await db
-    .select({
-      id: apiKeys.id,
-      name: apiKeys.name,
-      keyPrefix: apiKeys.keyPrefix,
-      environment: apiKeys.environment,
-      lastUsedAt: apiKeys.lastUsedAt,
-      revokedAt: apiKeys.revokedAt,
-      createdAt: apiKeys.createdAt,
-    })
+    .select(apiKeySelectFields)
     .from(apiKeys)
     .where(
       and(
@@ -72,6 +67,7 @@ export async function createApiKey(input: {
   organizationId: string;
   name: string;
   environment: Organization["environment"];
+  scopes: string[];
 }) {
   const rawKey = buildRawApiKey(input.environment);
   const keyPrefix = `${rawKey.slice(0, 12)}...`;
@@ -84,14 +80,9 @@ export async function createApiKey(input: {
       keyPrefix,
       keyHash: hashApiKey(rawKey),
       environment: input.environment,
+      scopes: input.scopes,
     })
-    .returning({
-      id: apiKeys.id,
-      name: apiKeys.name,
-      keyPrefix: apiKeys.keyPrefix,
-      environment: apiKeys.environment,
-      createdAt: apiKeys.createdAt,
-    });
+    .returning(apiKeySelectFields);
 
   return { apiKey, rawKey };
 }
@@ -116,6 +107,31 @@ export async function revokeApiKey(
       id: apiKeys.id,
       revokedAt: apiKeys.revokedAt,
     });
+
+  return apiKey ?? null;
+}
+
+export async function updateApiKey(
+  organizationId: string,
+  apiKeyId: string,
+  environment: Organization["environment"],
+  input: { name: string; scopes: string[] }
+) {
+  const [apiKey] = await db
+    .update(apiKeys)
+    .set({
+      name: input.name.trim(),
+      scopes: input.scopes,
+    })
+    .where(
+      and(
+        eq(apiKeys.id, apiKeyId),
+        eq(apiKeys.organizationId, organizationId),
+        eq(apiKeys.environment, environment),
+        isNull(apiKeys.revokedAt)
+      )
+    )
+    .returning(apiKeySelectFields);
 
   return apiKey ?? null;
 }

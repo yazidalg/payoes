@@ -1,4 +1,8 @@
 import { NextResponse } from "next/server";
+import {
+  apiKeyHasScope,
+  type ApiKeyResourceKey,
+} from "@/lib/api-keys/scopes";
 import { authenticateApiKey } from "@/lib/api-keys/service";
 import { logApiRequest } from "@/lib/api-logs/service";
 
@@ -13,17 +17,30 @@ export async function getApiKeyFromRequest(request: Request) {
   return authenticateApiKey(rawKey);
 }
 
+export type ApiKeyAuthOptions = {
+  resource: ApiKeyResourceKey;
+  action: "read" | "write";
+};
+
 export async function withApiKeyAuth(
   request: Request,
   handler: (context: {
     apiKey: NonNullable<Awaited<ReturnType<typeof authenticateApiKey>>>;
-  }) => Promise<Response>
+  }) => Promise<Response>,
+  options?: ApiKeyAuthOptions
 ) {
   const startedAt = Date.now();
   const apiKey = await getApiKeyFromRequest(request);
 
   if (!apiKey) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  if (
+    options &&
+    !apiKeyHasScope(apiKey.scopes ?? ["apis.all"], options.resource, options.action)
+  ) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const response = await handler({ apiKey });

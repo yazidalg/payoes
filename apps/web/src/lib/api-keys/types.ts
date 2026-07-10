@@ -3,6 +3,7 @@ export type ApiKeyRow = {
   name: string;
   keyPrefix: string;
   environment: string;
+  scopes: string[];
   lastUsedAt: string | null;
   revokedAt: string | null;
   createdAt: string;
