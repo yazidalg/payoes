@@ -1,26 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { CalendarIcon } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/utils";
+import { DatePicker } from "@dub/ui";
+import { cn } from "@dub/utils";
+import { startOfDay } from "date-fns";
+import {
+  FormFieldErrorIcon,
+  FormFieldErrorMessage,
+} from "@/ui/forms/form-field-error";
 
-function formatDateInputValue(date: Date) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
-
-function parseDateInputValue(value: string) {
-  const [year, month, day] = value.split("-").map(Number);
-
-  if (!year || !month || !day) {
-    return null;
-  }
-
-  return new Date(year, month - 1, day);
+function endOfLocalDay(date: Date) {
+  const normalized = new Date(date);
+  normalized.setHours(23, 59, 59, 999);
+  return normalized;
 }
 
 export function InvoiceDueDatePicker({
@@ -28,38 +19,42 @@ export function InvoiceDueDatePicker({
   onChange,
   className,
   allowPast = false,
+  error,
+  id,
 }: {
   value: Date;
   onChange: (date: Date) => void;
   className?: string;
   allowPast?: boolean;
+  error?: string;
+  id?: string;
 }) {
-  const [inputValue, setInputValue] = useState(formatDateInputValue(value));
-
-  useEffect(() => {
-    setInputValue(formatDateInputValue(value));
-  }, [value]);
+  const hasError = Boolean(error);
+  const minSelectableDate = startOfDay(new Date());
 
   return (
-    <div className={cn("relative", className)}>
-      <CalendarIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-      <Input
-        type="date"
-        value={inputValue}
-        min={allowPast ? undefined : formatDateInputValue(new Date())}
-        className="pl-9"
-        onChange={(event) => {
-          const nextValue = event.target.value;
-          setInputValue(nextValue);
+    <div className={cn("w-full", className)}>
+      <div className="flex w-full items-center">
+        <DatePicker
+          id={id}
+          value={value}
+          placeholder="Select due date"
+          className="w-full"
+          hasError={hasError}
+          aria-invalid={hasError || undefined}
+          fromDate={allowPast ? undefined : minSelectableDate}
+          disabledDays={allowPast ? undefined : { before: minSelectableDate }}
+          onChange={(date) => {
+            if (!date) {
+              return;
+            }
 
-          const parsed = parseDateInputValue(nextValue);
-
-          if (parsed) {
-            parsed.setHours(23, 59, 59, 999);
-            onChange(parsed);
-          }
-        }}
-      />
+            onChange(endOfLocalDay(date));
+          }}
+        />
+        <FormFieldErrorIcon visible={hasError} />
+      </div>
+      {error ? <FormFieldErrorMessage>{error}</FormFieldErrorMessage> : null}
     </div>
   );
 }

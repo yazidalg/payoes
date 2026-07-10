@@ -1,20 +1,12 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useMemo, useState } from "react";
-import { ArrowLeftIcon, PlusIcon, Trash2Icon } from "lucide-react";
 import { toast } from "sonner";
-import { CustomerPicker } from "@/components/invoices/customer-picker";
 import { InvoiceCurrencyPicker } from "@/components/invoices/invoice-currency-picker";
 import { InvoiceDueDatePicker } from "@/components/invoices/invoice-due-date-picker";
 import { InvoicePreviewPanel } from "@/components/invoices/invoice-preview-panel";
 import { InvoiceReviewDialog } from "@/components/invoices/invoice-review-dialog";
-import { AlertBlock } from "@/components/shared/alert-block";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { useAsyncData } from "@/hooks/use-async-data";
 import {
   calculateInvoiceTotal,
   calculateTotalQuantity,
@@ -24,22 +16,34 @@ import {
 import { DEFAULT_INVOICE_CURRENCY_CODE } from "@/lib/invoices/currencies";
 import type { InvoicePresentation } from "@/lib/invoices/presentation";
 import type { CustomerOption } from "@/lib/payments/types";
-import { cn } from "@/lib/utils";
+import {
+  createInvoiceInlineValidators,
+  createInvoiceRequiredValidators,
+  customerEmailRequiredError,
+  type CreateInvoiceFormValues,
+  type InvoiceLineItemValues,
+} from "@/lib/validation/create-invoice-validation";
+import {
+  getVisibleInlineError,
+  useSplitFormValidation,
+  useTouchedFields,
+} from "@/lib/validation/form-validation";
+import { CustomerCombobox } from "@/ui/invoices/customer-combobox";
+import { InvoiceCreateShell } from "@/ui/invoices/invoice-create-shell";
+import { InvoiceLineItemsEditor } from "@/ui/invoices/invoice-line-items-editor";
+import { FormFieldLabel } from "@/ui/forms/form-field-label";
+import { FormTextarea } from "@/ui/forms/form-textarea";
+import { ValidatedSubmitButton } from "@/ui/forms/validated-submit-button";
+import { useAsyncData } from "@/hooks/use-async-data";
+import { cn } from "@dub/utils";
 
-type DraftInvoiceItem = {
-  id: string;
-  description: string;
-  quantity: string;
-  unitAmount: string;
-};
+type CreateInvoiceField = keyof CreateInvoiceFormValues | "customerEmail";
 
-function createDraftItem(): DraftInvoiceItem {
-  return {
-    id: crypto.randomUUID(),
-    description: "",
-    quantity: "1",
-    unitAmount: "0",
-  };
+function formatDateInputValue(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 function defaultDueDate() {
@@ -58,11 +62,13 @@ function buildDraftPresentation(input: {
   currencyCode: string;
   description: string;
   dueAt: Date;
-  items: DraftInvoiceItem[];
+  items: InvoiceLineItemValues[];
 }): InvoicePresentation {
   const draftItems = input.items.map((item) => {
     const hasValues =
-      item.description.trim() && Number(item.unitAmount) > 0 && Number(item.quantity) > 0;
+      item.description.trim() &&
+      Number(item.unitAmount) > 0 &&
+      Number(item.quantity) > 0;
 
     return {
       id: item.id,
@@ -76,14 +82,14 @@ function buildDraftPresentation(input: {
               quantity: item.quantity || "1",
               unitAmount: item.unitAmount,
             },
-            input.currencyCode
+            input.currencyCode,
           )
         : "0",
     };
   });
 
   const validItems = input.items.filter(
-    (item) => item.description.trim() && Number(item.unitAmount) > 0
+    (item) => item.description.trim() && Number(item.unitAmount) > 0,
   );
 
   const amount =
@@ -94,7 +100,7 @@ function buildDraftPresentation(input: {
             quantity: item.quantity || "1",
             unitAmount: item.unitAmount,
           })),
-          input.currencyCode
+          input.currencyCode,
         )
       : "0";
 
@@ -150,13 +156,41 @@ export function CreateInvoicePage({
   const [currencyCode, setCurrencyCode] = useState(DEFAULT_INVOICE_CURRENCY_CODE);
   const [description, setDescription] = useState("");
   const [dueAt, setDueAt] = useState<Date>(defaultDueDate);
-  const [items, setItems] = useState<DraftInvoiceItem[]>([createDraftItem()]);
-  const [error, setError] = useState<string | null>(null);
+  const [items, setItems] = useState<InvoiceLineItemValues[]>([]);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [reviewOpen, setReviewOpen] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [isEditingItem, setIsEditingItem] = useState(false);
+  const { touched, touch } = useTouchedFields<CreateInvoiceField>();
 
   const selectedCustomer =
     customers?.find((customer) => customer.id === customerId) ?? null;
+
+  const dueAtValue = formatDateInputValue(dueAt);
+
+  const formValues = useMemo<CreateInvoiceFormValues>(
+    () => ({
+      customerId,
+      currencyCode,
+      description,
+      dueAt: dueAtValue,
+      items,
+    }),
+    [customerId, currencyCode, description, dueAtValue, items],
+  );
+
+  const {
+    firstRequiredError,
+    inlineErrorsByField,
+    hasInlineErrors,
+    isValid,
+  } = useSplitFormValidation(
+    formValues,
+    createInvoiceRequiredValidators,
+    createInvoiceInlineValidators,
+  );
+
+  const customerEmailError = customerEmailRequiredError(selectedCustomer?.email);
 
   const presentation = useMemo(
     () =>
@@ -181,7 +215,7 @@ export function CreateInvoicePage({
       description,
       dueAt,
       items,
-    ]
+    ],
   );
 
   const totalQuantity = calculateTotalQuantity(
@@ -189,44 +223,61 @@ export function CreateInvoicePage({
       description: item.description,
       quantity: item.quantity || "1",
       unitAmount: item.unitAmount,
-    }))
+    })),
   );
 
-  function updateItem(id: string, patch: Partial<DraftInvoiceItem>) {
-    setItems((current) =>
-      current.map((item) => (item.id === id ? { ...item, ...patch } : item))
-    );
-  }
+  const descriptionError = getVisibleInlineError(
+    inlineErrorsByField.description,
+    Boolean(touched.description),
+  );
+  const customerError = getVisibleInlineError(
+    touched.customerId
+      ? inlineErrorsByField.customerId ||
+          (customerId && customerEmailError ? customerEmailError : undefined)
+      : undefined,
+    Boolean(touched.customerId),
+  );
+  const itemsError = getVisibleInlineError(
+    inlineErrorsByField.items,
+    Boolean(touched.items),
+  );
+  const dueAtError = getVisibleInlineError(
+    inlineErrorsByField.dueAt,
+    Boolean(touched.dueAt),
+  );
 
-  function validateForm() {
-    if (!customerId) {
-      return "Select a customer";
-    }
+  const reviewDisabled =
+    Boolean(firstRequiredError) ||
+    hasInlineErrors ||
+    Boolean(customerEmailError) ||
+    items.length === 0;
 
-    if (!selectedCustomer?.email) {
-      return "Selected customer must have an email address";
-    }
+  const reviewTooltip =
+    firstRequiredError ??
+    (customerEmailError && customerId ? customerEmailError : null) ??
+    dueAtError ??
+    (items.length === 0 ? "Add at least one item" : null);
 
-    const validItems = items.filter(
-      (item) => item.description.trim() && Number(item.unitAmount) > 0
-    );
+  function openReview() {
+    touch("customerId");
+    touch("items");
+    touch("description");
+    touch("dueAt");
 
-    if (validItems.length === 0) {
-      return "Add at least one invoice item with a description and unit price";
-    }
-
-    return null;
-  }
-
-  async function handleSend() {
-    const validationError = validateForm();
-
-    if (validationError) {
-      setError(validationError);
+    if (reviewDisabled) {
       return;
     }
 
-    setError(null);
+    setSubmitError(null);
+    setReviewOpen(true);
+  }
+
+  async function handleSend() {
+    if (!isValid || customerEmailError) {
+      return;
+    }
+
+    setSubmitError(null);
     setIsSending(true);
 
     const response = await fetch(
@@ -247,7 +298,7 @@ export function CreateInvoicePage({
               unit_amount: item.unitAmount,
             })),
         }),
-      }
+      },
     );
 
     const data = (await response.json()) as {
@@ -260,7 +311,7 @@ export function CreateInvoicePage({
     setIsSending(false);
 
     if (!response.ok) {
-      setError(data.error ?? "Unable to send invoice");
+      setSubmitError(data.error ?? "Unable to send invoice");
       return;
     }
 
@@ -276,163 +327,125 @@ export function CreateInvoicePage({
   }
 
   return (
-    <div className="flex min-h-[calc(100vh-8rem)] flex-col">
-      <div className="flex items-center justify-between gap-4 border-b px-4 py-4 sm:px-6">
-        <div className="flex items-center gap-3">
-          <Link
-            href="/dashboard/payments?tab=invoices"
-            className="inline-flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-          >
-            <ArrowLeftIcon className="size-4" />
-          </Link>
+    <InvoiceCreateShell>
+      <div className="flex min-h-0 flex-1 flex-col">
+        <div className="flex items-center justify-between gap-4 border-b border-neutral-200 px-6 py-4">
           <div>
-            <h1 className="text-lg font-semibold">
+            <h1 className="text-content-default text-lg font-semibold">
               Create {environment === "production" ? "" : "test "}invoice
             </h1>
-            <p className="text-sm text-muted-foreground">
-              Choose a currency, build line items, preview, then send to your customer.
+            <p className="text-content-subtle text-sm">
+              Build line items, preview, then send to your customer.
             </p>
           </div>
-        </div>
-        <Button
-          type="button"
-          onClick={() => {
-            const validationError = validateForm();
-            if (validationError) {
-              setError(validationError);
-              return;
-            }
-            setError(null);
-            setReviewOpen(true);
-          }}
-        >
-          Review invoice
-        </Button>
-      </div>
-
-      <div className="grid min-h-0 flex-1 gap-0 lg:grid-cols-[minmax(0,420px)_minmax(0,1fr)]">
-        <div className="overflow-auto border-r px-4 py-6 sm:px-6">
-          {error ? <AlertBlock type="error" className="mb-4">{error}</AlertBlock> : null}
-
-          <div className="space-y-6">
-            <section className="space-y-2">
-              <Label>Customer</Label>
-              <CustomerPicker
-                customers={customers ?? []}
-                value={customerId}
-                onChange={setCustomerId}
-              />
-            </section>
-
-            <section className="space-y-2">
-              <InvoiceCurrencyPicker
-                value={currencyCode}
-                onChange={setCurrencyCode}
-              />
-              <p className="text-xs text-muted-foreground">
-                Customers can pay with any enabled Stellar token at checkout. The
-                invoice total stays in this currency.
-              </p>
-            </section>
-
-            <section className="space-y-3">
-              <div className="flex items-center justify-between">
-                <Label>Items</Label>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setItems((current) => [...current, createDraftItem()])}
-                >
-                  <PlusIcon className="size-4" />
-                  Add item
-                </Button>
-              </div>
-
-              <div className="space-y-3">
-                {items.map((item) => (
-                  <div key={item.id} className="rounded-lg border p-3">
-                    <div className="grid gap-3">
-                      <Input
-                        placeholder="Item description"
-                        value={item.description}
-                        onChange={(event) =>
-                          updateItem(item.id, { description: event.target.value })
-                        }
-                      />
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="space-y-1">
-                          <Label className="text-xs text-muted-foreground">Qty</Label>
-                          <Input
-                            value={item.quantity}
-                            onChange={(event) =>
-                              updateItem(item.id, { quantity: event.target.value })
-                            }
-                          />
-                        </div>
-                        <div className="space-y-1">
-                          <Label className="text-xs text-muted-foreground">
-                            Unit price ({currencyCode})
-                          </Label>
-                          <Input
-                            value={item.unitAmount}
-                            onChange={(event) =>
-                              updateItem(item.id, { unitAmount: event.target.value })
-                            }
-                          />
-                        </div>
-                      </div>
-                    </div>
-                    {items.length > 1 ? (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="mt-2"
-                        onClick={() =>
-                          setItems((current) =>
-                            current.filter((entry) => entry.id !== item.id)
-                          )
-                        }
-                      >
-                        <Trash2Icon className="size-4" />
-                        Remove
-                      </Button>
-                    ) : null}
-                  </div>
-                ))}
-              </div>
-
-              <div className="space-y-1 text-sm">
-                <p className="font-medium text-foreground">
-                  Total: {formatInvoiceAmount(presentation.amount, currencyCode)}
-                </p>
-                <p className="text-muted-foreground">Total quantity: {totalQuantity}</p>
-              </div>
-            </section>
-
-            <section className="space-y-2">
-              <Label htmlFor="invoice-memo">Memo</Label>
-              <Input
-                id="invoice-memo"
-                placeholder="Optional note on the invoice"
-                value={description}
-                onChange={(event) => setDescription(event.target.value)}
-              />
-            </section>
-
-            <section className="space-y-2">
-              <Label htmlFor="invoice-due-date">Due date</Label>
-              <InvoiceDueDatePicker value={dueAt} onChange={setDueAt} />
-            </section>
-          </div>
-        </div>
-
-        <div className="min-h-[480px] p-4 sm:p-6">
-          <InvoicePreviewPanel
-            presentation={presentation}
-            environment={environment}
+          <ValidatedSubmitButton
+            text="Review invoice"
+            className="h-9"
+            type="button"
+            onClick={openReview}
+            requiredError={reviewTooltip}
+            submitDisabled={reviewDisabled}
           />
+        </div>
+
+        <div className="grid min-h-0 flex-1 lg:grid-cols-2">
+          <div className="relative min-h-0 overflow-y-auto px-6 py-6">
+            {isEditingItem ? (
+              <div className="absolute inset-0 z-10 bg-white" />
+            ) : null}
+
+            {submitError ? (
+              <p className="relative z-0 mb-4 text-xs font-medium text-red-600">
+                {submitError}
+              </p>
+            ) : null}
+
+            <div className="relative mx-auto flex w-full max-w-lg flex-col gap-8">
+              {!isEditingItem ? (
+                <div className="flex flex-col gap-8">
+                  <CustomerCombobox
+                    customers={customers ?? []}
+                    value={customerId}
+                    onChange={setCustomerId}
+                    error={customerError}
+                    onTouch={() => touch("customerId")}
+                  />
+
+                  <InvoiceCurrencyPicker
+                    value={currencyCode}
+                    onChange={setCurrencyCode}
+                    onTouch={() => touch("currencyCode")}
+                  />
+                </div>
+              ) : null}
+
+              <div className={cn("relative", isEditingItem && "z-20")}>
+                <InvoiceLineItemsEditor
+                  items={items}
+                  currencyCode={currencyCode}
+                  onChange={setItems}
+                  error={itemsError}
+                  onTouch={() => touch("items")}
+                  onEditingChange={setIsEditingItem}
+                />
+              </div>
+
+              {!isEditingItem ? (
+              <div className="flex flex-col gap-8">
+                <div className="space-y-1 border-t border-neutral-100 pt-4 text-sm">
+                  <div className="flex items-center justify-between">
+                    <span className="text-content-subtle">Total</span>
+                    <span className="text-content-default font-medium">
+                      {formatInvoiceAmount(presentation.amount, currencyCode)}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-content-subtle">Quantity</span>
+                    <span className="text-content-default">{totalQuantity}</span>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <FormFieldLabel htmlFor="invoice-memo">Memo</FormFieldLabel>
+                  <FormTextarea
+                    id="invoice-memo"
+                    rows={3}
+                    placeholder="Optional note on the invoice"
+                    value={description}
+                    error={descriptionError}
+                    onChange={(event) => {
+                      touch("description");
+                      setDescription(event.target.value);
+                    }}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <FormFieldLabel htmlFor="invoice-due-date">Due date</FormFieldLabel>
+                  <InvoiceDueDatePicker
+                    id="invoice-due-date"
+                    value={dueAt}
+                    error={dueAtError}
+                    onChange={(date) => {
+                      touch("dueAt");
+                      setDueAt(date);
+                    }}
+                  />
+                </div>
+              </div>
+              ) : null}
+            </div>
+          </div>
+
+          <div className="bg-bg-preview flex min-h-[420px] flex-col border-t border-neutral-200 px-6 py-6 lg:border-t-0 lg:border-l">
+            <div className="mx-auto flex h-full min-h-0 w-full max-w-xl flex-col">
+              <InvoicePreviewPanel
+                organizationId={organizationId}
+                presentation={presentation}
+                environment={environment}
+              />
+            </div>
+          </div>
         </div>
       </div>
 
@@ -444,6 +457,6 @@ export function CreateInvoicePage({
         isSending={isSending}
         onSend={() => void handleSend()}
       />
-    </div>
+    </InvoiceCreateShell>
   );
 }
