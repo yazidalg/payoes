@@ -83,6 +83,7 @@ export type PaymentLinkRow = {
     require_phone_number: boolean;
   };
   active: boolean;
+  item_count?: number;
   metadata: Record<string, string> | null;
   url: string;
   environment: string;

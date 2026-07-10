@@ -9,11 +9,12 @@ import {
   serializePaymentAssets,
 } from "@/lib/assets/serialize";
 import { organizationEnvironmentWhere } from "@/lib/organizations/environment-scope";
-import { requireReceivingWallet } from "@/lib/organizations/wallet";
+import { requireSettlementWallet } from "@/lib/organizations/settlement-wallet";
 import { getCustomerByPublicId } from "@/lib/customers/service";
 import type { InvoiceCurrencyCode } from "@/lib/invoices/currencies";
 import { buildPaymentQuote } from "@/lib/pricing/quotes";
 import { normalizeStellarAmount } from "@/lib/stellar/amount";
+import { resolveStellarTransactionHash } from "@/lib/stellar/transaction-hash";
 import { DEFAULT_AUTH_URL } from "@/constants/app";
 import {
   DEFAULT_PAYMENT_EXPIRY_MINUTES,
@@ -131,7 +132,7 @@ export async function createPayment(input: {
   pricingCurrency?: string | null;
   pricingAmount?: string | null;
 }) {
-  const wallet = await requireReceivingWallet(
+  const wallet = await requireSettlementWallet(
     input.organizationId,
     input.environment
   );
@@ -208,8 +209,9 @@ export async function createPayment(input: {
 export async function createManualPayment(input: {
   organizationId: string;
   environment: Organization["environment"];
-  pricingAmount: string;
-  pricingCurrency: InvoiceCurrencyCode;
+  pricingAmount?: string | null;
+  pricingCurrency?: InvoiceCurrencyCode | null;
+  assetAmount?: string;
   settlementAsset: AllowedAsset;
   allowedAssets: AllowedAsset[];
   paidAsset: AllowedAsset;
@@ -217,7 +219,7 @@ export async function createManualPayment(input: {
   paidAt: Date;
   customerId?: string | null;
 }) {
-  const wallet = await requireReceivingWallet(
+  const wallet = await requireSettlementWallet(
     input.organizationId,
     input.environment
   );
@@ -242,14 +244,40 @@ export async function createManualPayment(input: {
     payerAddress = customer.primaryStellarAddress;
   }
 
-  const quote = await buildPaymentQuote({
-    pricingAmount: input.pricingAmount,
-    pricingCurrency: input.pricingCurrency,
-    paidAsset: input.paidAsset,
-    settlementAsset: input.settlementAsset,
-  });
+  const usesFiatPricing = Boolean(
+    input.pricingCurrency && input.pricingAmount,
+  );
 
   const publicId = createPublicId();
+
+  const paymentValues = usesFiatPricing
+    ? await (async () => {
+        const quote = await buildPaymentQuote({
+          pricingAmount: input.pricingAmount!,
+          pricingCurrency: input.pricingCurrency!,
+          paidAsset: input.paidAsset,
+          settlementAsset: input.settlementAsset,
+        });
+
+        return {
+          amount: PLACEHOLDER_PRICING_PAYMENT_AMOUNT,
+          pricingCurrency: input.pricingCurrency,
+          pricingAmount: input.pricingAmount,
+          quotedPaidAmount: quote.paid_amount,
+          quotedSettlementAmount: quote.settlement_amount,
+          quoteRate: quote.rate,
+          settlementQuoteRate: quote.settlement_quote_rate,
+        };
+      })()
+    : {
+        amount: normalizeStellarAmount(input.assetAmount!),
+        pricingCurrency: null,
+        pricingAmount: null,
+        quotedPaidAmount: normalizeStellarAmount(input.assetAmount!),
+        quotedSettlementAmount: normalizeStellarAmount(input.assetAmount!),
+        quoteRate: null,
+        settlementQuoteRate: null,
+      };
 
   const [payment] = await db
     .insert(payments)
@@ -259,13 +287,7 @@ export async function createManualPayment(input: {
       customerId: customerInternalId,
       sourceType: "direct",
       environment: input.environment,
-      amount: PLACEHOLDER_PRICING_PAYMENT_AMOUNT,
-      pricingCurrency: input.pricingCurrency,
-      pricingAmount: input.pricingAmount,
-      quotedPaidAmount: quote.paid_amount,
-      quotedSettlementAmount: quote.settlement_amount,
-      quoteRate: quote.rate,
-      settlementQuoteRate: quote.settlement_quote_rate,
+      ...paymentValues,
       settlementAsset: input.settlementAsset.asset_code,
       settlementAssetIssuer: input.settlementAsset.issuer_address,
       allowedAssets: dbAllowedAssets(input.allowedAssets),
@@ -448,7 +470,7 @@ export function serializePayment(
     source_type: payment.sourceType,
     customer_id: options?.customerPublicId ?? null,
     payer_address: payment.payerAddress,
-    tx_hash: payment.txHash,
+    tx_hash: resolveStellarTransactionHash(payment.txHash),
     confirmed_at: payment.confirmedAt,
     expires_at: payment.expiresAt,
     created_at: payment.createdAt,
@@ -570,6 +592,82 @@ export async function listTransactionsPaginated(
 
   return {
     transactions: await serializePayments(rows),
+    total: totalRows[0]?.count ?? 0,
+  };
+}
+
+export type PaymentSortOrder = "asc" | "desc";
+
+export type ListPaymentsQuery = {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  customerStatus?: "has_customer" | "no_customer";
+  status?: "pending" | "completed" | "failed" | "expired";
+  sortOrder?: PaymentSortOrder;
+};
+
+export async function listPaymentsPaginated(
+  organizationId: string,
+  environment: Organization["environment"],
+  query: ListPaymentsQuery = {},
+) {
+  const page = Math.max(1, query.page ?? 1);
+  const pageSize = Math.min(100, Math.max(1, query.pageSize ?? 20));
+  const offset = (page - 1) * pageSize;
+  const search = query.search?.trim();
+  const sortOrder = query.sortOrder ?? "desc";
+
+  const envWhere = organizationEnvironmentWhere(
+    payments.organizationId,
+    payments.environment,
+    organizationId,
+    environment,
+  );
+
+  let whereClause: SQL | undefined = envWhere;
+
+  if (search) {
+    const pattern = `%${search}%`;
+    whereClause = and(
+      whereClause,
+      or(
+        ilike(payments.publicId, pattern),
+        ilike(payments.payerAddress, pattern),
+        ilike(payments.description, pattern),
+      ),
+    );
+  }
+
+  if (query.customerStatus === "has_customer") {
+    whereClause = and(whereClause, isNotNull(payments.customerId));
+  } else if (query.customerStatus === "no_customer") {
+    whereClause = and(whereClause, isNull(payments.customerId));
+  }
+
+  if (query.status) {
+    whereClause = and(whereClause, eq(payments.status, query.status));
+  }
+
+  const orderBy =
+    sortOrder === "asc" ? asc(payments.createdAt) : desc(payments.createdAt);
+
+  const [rows, totalRows] = await Promise.all([
+    db
+      .select()
+      .from(payments)
+      .where(whereClause)
+      .orderBy(orderBy)
+      .limit(pageSize)
+      .offset(offset),
+    db
+      .select({ count: count() })
+      .from(payments)
+      .where(whereClause),
+  ]);
+
+  return {
+    payments: await serializePayments(rows),
     total: totalRows[0]?.count ?? 0,
   };
 }

@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import { asc, desc, eq } from "drizzle-orm";
+import { and, asc, count, desc, eq, ilike, inArray, or, type SQL } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
   organizations,
@@ -204,6 +204,103 @@ export async function listPaymentLinks(
     )
     .orderBy(desc(paymentLinks.createdAt))
     .limit(limit);
+}
+
+export type PaymentLinkSortOrder = "asc" | "desc";
+
+export type ListPaymentLinksQuery = {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  status?: "active" | "inactive";
+  sortOrder?: PaymentLinkSortOrder;
+};
+
+export async function listPaymentLinksPaginated(
+  organizationId: string,
+  environment: Organization["environment"],
+  query: ListPaymentLinksQuery = {},
+) {
+  const page = Math.max(1, query.page ?? 1);
+  const pageSize = Math.min(100, Math.max(1, query.pageSize ?? 20));
+  const offset = (page - 1) * pageSize;
+  const search = query.search?.trim();
+  const sortOrder = query.sortOrder ?? "desc";
+
+  const envWhere = organizationEnvironmentWhere(
+    paymentLinks.organizationId,
+    paymentLinks.environment,
+    organizationId,
+    environment,
+  );
+
+  let whereClause: SQL | undefined = envWhere;
+
+  if (search) {
+    const pattern = `%${search}%`;
+    whereClause = and(
+      whereClause,
+      or(
+        ilike(paymentLinks.publicId, pattern),
+        ilike(paymentLinks.productName, pattern),
+        ilike(paymentLinks.description, pattern),
+      ),
+    );
+  }
+
+  if (query.status === "active") {
+    whereClause = and(whereClause, eq(paymentLinks.active, 1));
+  } else if (query.status === "inactive") {
+    whereClause = and(whereClause, eq(paymentLinks.active, 0));
+  }
+
+  const orderBy =
+    sortOrder === "asc"
+      ? asc(paymentLinks.createdAt)
+      : desc(paymentLinks.createdAt);
+
+  const [rows, totalRows] = await Promise.all([
+    db
+      .select()
+      .from(paymentLinks)
+      .where(whereClause)
+      .orderBy(orderBy)
+      .limit(pageSize)
+      .offset(offset),
+    db
+      .select({ count: count() })
+      .from(paymentLinks)
+      .where(whereClause),
+  ]);
+
+  const linkIds = rows.map((row) => row.id);
+  const itemCounts =
+    linkIds.length > 0
+      ? await db
+          .select({
+            paymentLinkId: paymentLinkItems.paymentLinkId,
+            count: count(),
+          })
+          .from(paymentLinkItems)
+          .where(inArray(paymentLinkItems.paymentLinkId, linkIds))
+          .groupBy(paymentLinkItems.paymentLinkId)
+      : [];
+
+  const itemCountMap = new Map(
+    itemCounts.map((row) => [row.paymentLinkId, row.count] as const),
+  );
+
+  const payment_links = await Promise.all(
+    rows.map(async (link) => ({
+      ...(await serializePaymentLink(link)),
+      item_count: itemCountMap.get(link.id) ?? 0,
+    })),
+  );
+
+  return {
+    payment_links,
+    total: totalRows[0]?.count ?? 0,
+  };
 }
 
 export async function getPaymentLinkByPublicId(publicId: string) {
