@@ -230,7 +230,7 @@ export const emailVerificationOtpsRelations = relations(
   })
 );
 
-export const organizationReceivingWallets = pgTable(
+export const organizationSettlementWallets = pgTable(
   "organization_receiving_wallets",
   {
     id: uuid("id").defaultRandom().primaryKey(),
@@ -262,7 +262,7 @@ export const organizationReceivingWallets = pgTable(
 export const organizationsRelations = relations(organizations, ({ many }) => ({
   members: many(organizationMembers),
   invites: many(organizationInvites),
-  receivingWallets: many(organizationReceivingWallets),
+  settlementWallets: many(organizationSettlementWallets),
   paymentMethods: many(paymentMethods),
   customers: many(customers),
   verificationApplications: many(organizationVerificationApplications),
@@ -285,11 +285,11 @@ export const organizationVerificationApplicationsRelations = relations(
   })
 );
 
-export const organizationReceivingWalletsRelations = relations(
-  organizationReceivingWallets,
+export const organizationSettlementWalletsRelations = relations(
+  organizationSettlementWallets,
   ({ one }) => ({
     organization: one(organizations, {
-      fields: [organizationReceivingWallets.organizationId],
+      fields: [organizationSettlementWallets.organizationId],
       references: [organizations.id],
     }),
   })
@@ -331,8 +331,8 @@ export type MemberRole = OrganizationMember["role"];
 export type VerificationStatus = Organization["verificationStatus"];
 export type OrganizationVerificationApplication =
   typeof organizationVerificationApplications.$inferSelect;
-export type OrganizationReceivingWallet =
-  typeof organizationReceivingWallets.$inferSelect;
+export type OrganizationSettlementWallet =
+  typeof organizationSettlementWallets.$inferSelect;
 
 export const apiKeys = pgTable(
   "api_keys",
