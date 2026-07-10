@@ -4,16 +4,9 @@ import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { CustomerPicker } from "@/components/invoices/customer-picker";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { useAsyncData } from "@/hooks/use-async-data";
 import type { CustomerOption, InvoiceRow } from "@/lib/payments/types";
+import { AppModal } from "@/ui/modals/app-modal";
 
 export function InvoiceChangeCustomerDialog({
   open,
@@ -91,30 +84,28 @@ export function InvoiceChangeCustomerDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
-          <DialogTitle>Change customer</DialogTitle>
-          <DialogDescription>
-            Reassign this unpaid invoice to a different customer.
-          </DialogDescription>
-        </DialogHeader>
-
-        {isLoading ? (
-          <p className="text-sm text-muted-foreground">Loading customers...</p>
-        ) : (
-          <CustomerPicker customers={customers ?? []} value={customerId} onChange={setCustomerId} />
-        )}
-
-        <DialogFooter>
+    <AppModal
+      open={open}
+      onOpenChange={onOpenChange}
+      title="Change customer"
+      description="Reassign this unpaid invoice to a different customer."
+      className="max-w-lg"
+      footer={
+        <>
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
           <Button type="button" disabled={isSaving || isLoading} onClick={() => void handleSave()}>
             {isSaving ? "Saving..." : "Save customer"}
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </>
+      }
+    >
+      {isLoading ? (
+        <p className="text-sm text-muted-foreground">Loading customers...</p>
+      ) : (
+        <CustomerPicker customers={customers ?? []} value={customerId} onChange={setCustomerId} />
+      )}
+    </AppModal>
   );
 }

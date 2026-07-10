@@ -4,17 +4,10 @@ import { useEffect, useState } from "react";
 import { PlusIcon, Trash2Icon } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { InvoiceLineItemRow, InvoiceRow } from "@/lib/payments/types";
+import { AppModal } from "@/ui/modals/app-modal";
 
 type DraftItem = InvoiceLineItemRow & { key: string };
 
@@ -112,16 +105,25 @@ export function InvoiceEditDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Edit invoice</DialogTitle>
-          <DialogDescription>
-            Update line items, memo, and due date while the invoice is still unpaid.
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="space-y-5">
+    <AppModal
+      open={open}
+      onOpenChange={onOpenChange}
+      title="Edit invoice"
+      description="Update line items, memo, and due date while the invoice is still unpaid."
+      className="max-h-[90vh] max-w-2xl overflow-y-auto"
+      bodyClassName="space-y-5"
+      footer={
+        <>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button type="button" disabled={isSaving} onClick={() => void handleSave()}>
+            {isSaving ? "Saving..." : "Save changes"}
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-5">
           <div className="space-y-2">
             <Label htmlFor="invoice-description">Memo</Label>
             <Input
@@ -227,16 +229,6 @@ export function InvoiceEditDialog({
             </div>
           </div>
         </div>
-
-        <DialogFooter>
-          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          <Button type="button" disabled={isSaving} onClick={() => void handleSave()}>
-            {isSaving ? "Saving..." : "Save changes"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    </AppModal>
   );
 }
