@@ -1,7 +1,7 @@
 import { auth } from "@/auth";
 import { NextResponse } from "next/server";
 import { getPaymentsHubCounts } from "@/lib/payments/hub-counts";
-import { getOrganizationForMember } from "@/lib/organizations/wallet";
+import { getOrganizationForMember } from "@/lib/organizations/settlement-wallet";
 
 export async function GET(
   _request: Request,

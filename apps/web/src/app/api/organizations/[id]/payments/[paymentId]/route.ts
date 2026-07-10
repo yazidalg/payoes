@@ -4,7 +4,7 @@ import {
   getPaymentForOrganization,
   serializePayments,
 } from "@/lib/payments/service";
-import { getOrganizationForMember } from "@/lib/organizations/wallet";
+import { getOrganizationForMember } from "@/lib/organizations/settlement-wallet";
 
 export async function GET(
   _request: Request,

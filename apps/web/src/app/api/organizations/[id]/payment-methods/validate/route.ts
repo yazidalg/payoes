@@ -2,7 +2,7 @@ import { auth } from "@/auth";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { resolveSessionUserId } from "@/lib/auth/session";
-import { getOrganizationForMember } from "@/lib/organizations/wallet";
+import { getOrganizationForMember } from "@/lib/organizations/settlement-wallet";
 import { validateCustomAsset } from "@/lib/payment-methods/service";
 
 const validateSchema = z.object({

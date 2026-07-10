@@ -2,7 +2,7 @@ import { auth } from "@/auth";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { WEBHOOK_EVENTS } from "@/constants/webhooks/events";
-import { getOrganizationForMember } from "@/lib/organizations/wallet";
+import { getOrganizationForMember } from "@/lib/organizations/settlement-wallet";
 import {
   createWebhookEndpoint,
   listWebhookEndpoints,

@@ -1,7 +1,7 @@
 import { auth } from "@/auth";
 import { getOrganizationAnalytics } from "@/lib/analytics/service";
 import { analyticsQuerySchema } from "@/lib/analytics/schemas";
-import { getOrganizationForMember } from "@/lib/organizations/wallet";
+import { getOrganizationForMember } from "@/lib/organizations/settlement-wallet";
 import { NextResponse } from "next/server";
 
 export async function GET(

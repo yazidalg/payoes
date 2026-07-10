@@ -6,7 +6,7 @@ import {
   listTransactionsPaginated,
   serializePayments,
 } from "@/lib/payments/service";
-import { getOrganizationForMember } from "@/lib/organizations/wallet";
+import { getOrganizationForMember } from "@/lib/organizations/settlement-wallet";
 
 const listTransactionsQuerySchema = z.object({
   page: z.coerce.number().int().min(1).optional(),

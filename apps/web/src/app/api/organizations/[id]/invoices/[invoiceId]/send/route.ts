@@ -5,7 +5,7 @@ import {
   sendInvoice,
   serializeInvoice,
 } from "@/lib/invoices/service";
-import { getOrganizationForMember } from "@/lib/organizations/wallet";
+import { getOrganizationForMember } from "@/lib/organizations/settlement-wallet";
 
 export async function POST(
   _request: Request,

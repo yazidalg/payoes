@@ -5,7 +5,7 @@ import {
   listSettlementConversions,
   listSettlementConversionsPaginated,
 } from "@/lib/settlements/service";
-import { getOrganizationForMember } from "@/lib/organizations/wallet";
+import { getOrganizationForMember } from "@/lib/organizations/settlement-wallet";
 
 const listSettlementsQuerySchema = z.object({
   page: z.coerce.number().int().min(1).optional(),

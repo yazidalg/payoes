@@ -4,7 +4,7 @@ import {
   getPaymentLinkForOrganization,
   serializePaymentLink,
 } from "@/lib/payment-links/service";
-import { getOrganizationForMember } from "@/lib/organizations/wallet";
+import { getOrganizationForMember } from "@/lib/organizations/settlement-wallet";
 
 export async function GET(
   _request: Request,

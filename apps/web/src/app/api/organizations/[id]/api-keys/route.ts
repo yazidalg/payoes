@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { validateScopes } from "@/lib/api-keys/scopes";
 import { createApiKey, listApiKeys } from "@/lib/api-keys/service";
-import { getOrganizationForMember } from "@/lib/organizations/wallet";
+import { getOrganizationForMember } from "@/lib/organizations/settlement-wallet";
 
 const createApiKeySchema = z.object({
   name: z.string().min(1, "Name is required").max(80),

@@ -12,7 +12,7 @@ import {
   fiatAmountPattern,
   resolveInvoiceCurrencyCode,
 } from "@/lib/invoices/currencies";
-import { getOrganizationForMember } from "@/lib/organizations/wallet";
+import { getOrganizationForMember } from "@/lib/organizations/settlement-wallet";
 
 const sendInvoiceSchema = z
   .object({

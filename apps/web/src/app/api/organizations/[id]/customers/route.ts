@@ -7,7 +7,7 @@ import {
   listCustomersPaginated,
   serializeCustomer,
 } from "@/lib/customers/service";
-import { getOrganizationForMember } from "@/lib/organizations/wallet";
+import { getOrganizationForMember } from "@/lib/organizations/settlement-wallet";
 
 const createCustomerSchema = z.object({
   email: z.string().email().optional().nullable(),

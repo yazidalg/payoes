@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { buildInvoiceActivity } from "@/lib/invoices/activity";
 import { getInvoiceDetail, markInvoiceAsPaid, serializeInvoice } from "@/lib/invoices/service";
 import { getHostedInvoiceUrl } from "@/lib/invoices/url";
-import { getOrganizationForMember } from "@/lib/organizations/wallet";
+import { getOrganizationForMember } from "@/lib/organizations/settlement-wallet";
 
 export async function POST(
   _request: Request,

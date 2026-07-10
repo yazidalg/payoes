@@ -8,7 +8,7 @@ import {
   updateCustomer,
 } from "@/lib/customers/service";
 import { serializePayments } from "@/lib/payments/service";
-import { getOrganizationForMember } from "@/lib/organizations/wallet";
+import { getOrganizationForMember } from "@/lib/organizations/settlement-wallet";
 
 const updateCustomerSchema = z.object({
   email: z.string().email().optional().nullable(),

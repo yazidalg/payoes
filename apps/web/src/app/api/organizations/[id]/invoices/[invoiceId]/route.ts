@@ -10,7 +10,7 @@ import {
   updateInvoice,
 } from "@/lib/invoices/service";
 import { getHostedInvoiceUrl } from "@/lib/invoices/url";
-import { getOrganizationForMember } from "@/lib/organizations/wallet";
+import { getOrganizationForMember } from "@/lib/organizations/settlement-wallet";
 
 const updateInvoiceSchema = z.object({
   description: z.string().nullable().optional(),
