@@ -169,6 +169,13 @@
       "when": 1783424000000,
       "tag": "0024_api_key_scopes",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1783840400000,
+      "tag": "0025_soroban_payment_flow",
+      "breakpoints": true
     }
   ]
 }

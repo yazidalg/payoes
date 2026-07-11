@@ -1,5 +1,7 @@
 import { relations } from "drizzle-orm";
 import {
+  bigint,
+  index,
   integer,
   jsonb,
   pgEnum,
@@ -21,6 +23,33 @@ export const paymentStatusEnum = pgEnum("payment_status", [
   "completed",
   "failed",
   "expired",
+]);
+
+export const paymentFlowEnum = pgEnum("payment_flow", ["direct", "soroban"]);
+
+export const blockchainStatusEnum = pgEnum("blockchain_status", [
+  "not_started",
+  "submitted",
+  "confirmed",
+  "failed",
+]);
+
+export const stellarTransactionKindEnum = pgEnum("stellar_transaction_kind", [
+  "classic_payment",
+  "soroban_payment",
+  "refund",
+  "payout",
+  "unknown",
+]);
+
+export const stellarSyncSourceEnum = pgEnum("stellar_sync_source", [
+  "soroban_events",
+  "horizon_operations",
+]);
+
+export const sorobanContractStatusEnum = pgEnum("soroban_contract_status", [
+  "active",
+  "retired",
 ]);
 
 export const paymentAssetEnum = pgEnum("payment_asset", ["USDC", "XLM"]);
@@ -468,6 +497,14 @@ export const payments = pgTable(
     paidAsset: text("paid_asset"),
     paidAssetIssuer: text("paid_asset_issuer"),
     status: paymentStatusEnum("status").notNull().default("pending"),
+    paymentFlow: paymentFlowEnum("payment_flow").notNull().default("direct"),
+    blockchainStatus: blockchainStatusEnum("blockchain_status")
+      .notNull()
+      .default("not_started"),
+    sorobanContractId: text("soroban_contract_id"),
+    platformFeeAmount: text("platform_fee_amount").notNull().default("0"),
+    merchantSettlementAmount: text("merchant_settlement_amount"),
+    paymentAuthorizationHash: text("payment_authorization_hash"),
     receivingAddress: text("receiving_address").notNull(),
     payerAddress: text("payer_address"),
     description: text("description"),
@@ -480,6 +517,114 @@ export const payments = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [uniqueIndex("payments_public_id_idx").on(table.publicId)]
+);
+
+export const sorobanContractDeployments = pgTable(
+  "soroban_contract_deployments",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    environment: environmentModeEnum("environment").notNull(),
+    contractId: text("contract_id").notNull(),
+    wasmHash: text("wasm_hash").notNull(),
+    version: text("version").notNull(),
+    status: sorobanContractStatusEnum("status").notNull().default("active"),
+    deployedAt: timestamp("deployed_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("soroban_contract_deployments_environment_contract_idx").on(
+      table.environment,
+      table.contractId
+    ),
+  ]
+);
+
+export const stellarTransactions = pgTable(
+  "stellar_transactions",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    paymentId: uuid("payment_id").references(() => payments.id, {
+      onDelete: "set null",
+    }),
+    environment: environmentModeEnum("environment").notNull(),
+    txHash: text("tx_hash").notNull(),
+    ledgerSequence: bigint("ledger_sequence", { mode: "number" }),
+    sourceAccount: text("source_account"),
+    transactionKind: stellarTransactionKindEnum("transaction_kind")
+      .notNull()
+      .default("unknown"),
+    contractId: text("contract_id"),
+    rawTransaction: jsonb("raw_transaction").$type<Record<string, unknown>>(),
+    confirmedAt: timestamp("confirmed_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("stellar_transactions_environment_tx_hash_idx").on(
+      table.environment,
+      table.txHash
+    ),
+    index("stellar_transactions_organization_environment_created_idx").on(
+      table.organizationId,
+      table.environment,
+      table.createdAt
+    ),
+    index("stellar_transactions_payment_id_idx").on(table.paymentId),
+  ]
+);
+
+export const sorobanEvents = pgTable(
+  "soroban_events",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    stellarTransactionId: uuid("stellar_transaction_id")
+      .notNull()
+      .references(() => stellarTransactions.id, { onDelete: "cascade" }),
+    environment: environmentModeEnum("environment").notNull(),
+    contractId: text("contract_id").notNull(),
+    eventId: text("event_id").notNull(),
+    topic: text("topic").notNull(),
+    payload: jsonb("payload").$type<Record<string, unknown>>().notNull(),
+    ledgerSequence: bigint("ledger_sequence", { mode: "number" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("soroban_events_environment_event_id_idx").on(
+      table.environment,
+      table.eventId
+    ),
+    index("soroban_events_contract_ledger_idx").on(
+      table.contractId,
+      table.ledgerSequence
+    ),
+  ]
+);
+
+export const stellarSyncCursors = pgTable(
+  "stellar_sync_cursors",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    environment: environmentModeEnum("environment").notNull(),
+    sourceType: stellarSyncSourceEnum("source_type").notNull(),
+    sourceIdentifier: text("source_identifier").notNull(),
+    cursor: text("cursor").notNull(),
+    lastSyncedAt: timestamp("last_synced_at", { withTimezone: true }),
+    lastError: text("last_error"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("stellar_sync_cursors_environment_source_idx").on(
+      table.environment,
+      table.sourceType,
+      table.sourceIdentifier
+    ),
+  ]
 );
 
 export const checkoutSessions = pgTable(
