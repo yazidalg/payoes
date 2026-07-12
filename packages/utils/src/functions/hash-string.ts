@@ -4,7 +4,10 @@ export async function hashStringSHA256(str: string) {
   const data = encoder.encode(str);
 
   // Hash the data with SHA-256
-  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+  const hashBuffer = await crypto.subtle.digest(
+    "SHA-256",
+    data as unknown as BufferSource,
+  );
 
   // Convert the buffer to a hexadecimal string
   const hashArray = Array.from(new Uint8Array(hashBuffer));
