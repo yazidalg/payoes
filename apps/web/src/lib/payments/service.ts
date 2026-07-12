@@ -179,6 +179,7 @@ export async function createPayment(input: {
       paymentLinkId: input.paymentLinkId ?? null,
       invoiceId: input.invoiceId ?? null,
       environment: input.environment,
+      paymentFlow: "soroban",
       amount: input.pricingAmount
         ? PLACEHOLDER_PRICING_PAYMENT_AMOUNT
         : normalizeStellarAmount(input.amount),
