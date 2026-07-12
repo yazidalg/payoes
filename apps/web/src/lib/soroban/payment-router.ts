@@ -10,6 +10,7 @@ import {
   rpc,
   TransactionBuilder,
   authorizeEntry,
+  xdr,
 } from "@stellar/stellar-sdk";
 import type { Payment } from "@/lib/db/schema";
 import { getNetworkPassphrase, getHorizonUrl } from "@/lib/stellar/network";
@@ -49,7 +50,7 @@ export async function buildSorobanPaymentTransaction(input: {
       contract.call(
         "pay",
         nativeToScVal(payerAddress, { type: "address" }),
-        nativeToScVal(paymentIdHash(payment), { type: "bytesN" }),
+        xdr.ScVal.scvBytes(paymentIdHash(payment)),
         nativeToScVal(settlementAssetContractId(payment), { type: "address" }),
         nativeToScVal(BigInt(Math.round(Number(grossAmount) * 10_000_000)), { type: "i128" }),
         nativeToScVal(BigInt(Math.round(Number(platformFee) * 10_000_000)), { type: "i128" }),
