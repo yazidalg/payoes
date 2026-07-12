@@ -177,11 +177,25 @@ export async function POST(
       return NextResponse.json({ error: "Invalid request" }, { status: 400 });
     }
 
-    const result = await confirmSorobanPayment({
-      payment,
-      txHash: parsed.data.txHash,
-      payerAddress: parsed.data.payerAddress,
-    });
+    let result;
+
+    try {
+      result = await confirmSorobanPayment({
+        payment,
+        txHash: parsed.data.txHash,
+        payerAddress: parsed.data.payerAddress,
+      });
+    } catch (error) {
+      return NextResponse.json(
+        {
+          error:
+            error instanceof Error
+              ? error.message
+              : "Unable to confirm Soroban transaction",
+        },
+        { status: 502 }
+      );
+    }
 
     if (!result.completed) {
       return NextResponse.json({ status: "processing" }, { status: 202 });

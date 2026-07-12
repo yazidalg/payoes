@@ -118,11 +118,34 @@ export async function confirmSorobanPayment(input: {
   payerAddress: string;
 }) {
   const config = getSorobanPaymentRouterConfig(input.payment.environment);
-  const server = new rpc.Server(config.rpcUrl);
-  const transaction = await server.getTransaction(input.txHash);
+  const response = await fetch(config.rpcUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      jsonrpc: "2.0",
+      id: 1,
+      method: "getTransaction",
+      params: { hash: input.txHash },
+    }),
+  });
 
-  if (transaction.status !== "SUCCESS") {
-    return { completed: false as const, status: transaction.status };
+  if (!response.ok) {
+    throw new Error("Unable to confirm Soroban transaction");
+  }
+
+  const payload = (await response.json()) as {
+    error?: { message?: string };
+    result?: { status?: string };
+  };
+
+  if (payload.error) {
+    throw new Error(payload.error.message ?? "Unable to confirm Soroban transaction");
+  }
+
+  const status = payload.result?.status;
+
+  if (status !== "SUCCESS") {
+    return { completed: false as const, status: status ?? "NOT_FOUND" };
   }
 
   const payment = await updatePaymentStatus(input.payment, "completed", {

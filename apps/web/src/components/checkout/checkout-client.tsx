@@ -289,7 +289,7 @@ export function CheckoutClient({ paymentId }: { paymentId: string }) {
       ),
     });
 
-    const confirmData = (await confirmResponse.json()) as {
+    const confirmData = (await confirmResponse.json().catch(() => ({}))) as {
       status?: string;
       error?: string;
     };
