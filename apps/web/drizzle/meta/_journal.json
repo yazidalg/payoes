@@ -176,6 +176,20 @@
       "when": 1783840400000,
       "tag": "0025_soroban_payment_flow",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1783890384185,
+      "tag": "0026_simple_trauma",
+      "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1784020000000,
+      "tag": "0027_repair_payment_quote_columns",
+      "breakpoints": true
     }
   ]
 }
