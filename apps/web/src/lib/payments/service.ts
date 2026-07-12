@@ -17,6 +17,8 @@ import { normalizeStellarAmount } from "@/lib/stellar/amount";
 import { resolveStellarTransactionHash } from "@/lib/stellar/transaction-hash";
 import { DEFAULT_AUTH_URL } from "@/constants/app";
 import {
+  calculateMerchantSettlementAmount,
+  calculatePlatformFeeAmount,
   DEFAULT_PAYMENT_EXPIRY_MINUTES,
   PLACEHOLDER_PRICING_PAYMENT_AMOUNT,
 } from "@/constants/payments/defaults";
@@ -168,6 +170,9 @@ export async function createPayment(input: {
     );
 
   const publicId = createPublicId();
+  const amount = input.pricingAmount
+    ? PLACEHOLDER_PRICING_PAYMENT_AMOUNT
+    : normalizeStellarAmount(input.amount);
 
   const [payment] = await db
     .insert(payments)
@@ -180,11 +185,11 @@ export async function createPayment(input: {
       invoiceId: input.invoiceId ?? null,
       environment: input.environment,
       paymentFlow: "soroban",
-      amount: input.pricingAmount
-        ? PLACEHOLDER_PRICING_PAYMENT_AMOUNT
-        : normalizeStellarAmount(input.amount),
+      amount,
       pricingCurrency: input.pricingCurrency ?? null,
       pricingAmount: input.pricingAmount ?? null,
+      platformFeeAmount: calculatePlatformFeeAmount(amount),
+      merchantSettlementAmount: calculateMerchantSettlementAmount(amount),
       settlementAsset: assetConfig.settlement_asset.asset_code,
       settlementAssetIssuer: assetConfig.settlement_asset.issuer_address,
       allowedAssets: dbAllowedAssets(assetConfig.allowed_assets),
@@ -363,6 +368,10 @@ export async function applyPaymentQuote(
       quoteRate: quote.rate,
       settlementQuoteRate: quote.settlementQuoteRate ?? null,
       quoteExpiresAt: quote.expiresAt,
+      platformFeeAmount: calculatePlatformFeeAmount(quote.paidAmount),
+      merchantSettlementAmount: calculateMerchantSettlementAmount(
+        quote.paidAmount
+      ),
       updatedAt: new Date(),
     })
     .where(eq(payments.id, payment.id))
