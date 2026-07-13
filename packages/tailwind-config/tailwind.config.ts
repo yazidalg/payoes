@@ -79,6 +79,7 @@ const config: Config = {
         blink: "blink 1.4s infinite both",
         // Custom pulse animation
         pulse: "pulse 1s linear infinite alternate",
+        "infinite-scroll": "infinite-scroll 22s linear infinite",
         "infinite-scroll-y": "infinite-scroll-y 22s linear infinite",
       },
       keyframes: {
@@ -201,6 +202,10 @@ const config: Config = {
           to: {
             opacity: "1",
           },
+        },
+        "infinite-scroll": {
+          "0%": { transform: "translateX(0)" },
+          "100%": { transform: "translateX(var(--scroll, -150%))" },
         },
         "infinite-scroll-y": {
           "0%": { transform: "translateY(0)" },
