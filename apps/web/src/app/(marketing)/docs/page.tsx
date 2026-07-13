@@ -1,5 +1,6 @@
 import { ArrowUpRight, BookOpen, Rocket, Server, Wallet } from "lucide-react";
 import type { Metadata } from "next";
+import Link from "next/link";
 import { ButtonLink } from "../button-link";
 import { DarkCta } from "../dark-cta";
 import { Grid } from "../grid";
@@ -18,7 +19,8 @@ const GUIDE_GROUPS = [
   {
     title: "Get started",
     icon: Rocket,
-    href: `${DOCS_REPO_URL}/quickstart.mdx`,
+    href: "/docs/get-started",
+    accent: "bg-gradient-to-b from-amber-500 to-amber-600",
     pages: [
       {
         name: "Introduction",
@@ -33,7 +35,8 @@ const GUIDE_GROUPS = [
   {
     title: "Core concepts",
     icon: BookOpen,
-    href: `${DOCS_REPO_URL}/guides`,
+    href: "/docs/core-concepts",
+    accent: "bg-gradient-to-b from-indigo-500 to-indigo-600",
     pages: [
       {
         name: "Concepts & object model",
@@ -56,7 +59,8 @@ const GUIDE_GROUPS = [
   {
     title: "Payments",
     icon: Wallet,
-    href: `${DOCS_REPO_URL}/guides`,
+    href: "/docs/payments",
+    accent: "bg-gradient-to-b from-emerald-500 to-emerald-600",
     pages: [
       {
         name: "Checkout",
@@ -79,7 +83,8 @@ const GUIDE_GROUPS = [
   {
     title: "Self-hosting",
     icon: Server,
-    href: `${DOCS_REPO_URL}/local-setup`,
+    href: "/docs/self-hosting",
+    accent: "bg-gradient-to-b from-teal-500 to-teal-600",
     pages: [
       {
         name: "Local setup",
@@ -256,27 +261,24 @@ export default function DocsPage() {
             infrastructure.
           </p>
           <div className="mt-12 grid gap-4 sm:grid-cols-2">
-            {GUIDE_GROUPS.map(({ title, icon: Icon, href, pages }) => (
-              <a
+            {GUIDE_GROUPS.map(({ title, icon: Icon, href, accent, pages }) => (
+              <Link
                 key={title}
                 href={href}
-                target="_blank"
-                rel="noreferrer"
-                className="group flex flex-col gap-4 rounded-xl border border-neutral-200 bg-white p-6 transition-colors hover:border-neutral-300"
+                className="group flex flex-col gap-4 rounded-xl border border-neutral-200 bg-white p-6 transition-all duration-300 hover:-translate-y-1 hover:border-neutral-300 hover:shadow-lg"
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2.5">
-                    <div className="flex size-8 items-center justify-center rounded-lg border border-neutral-200 bg-gradient-to-t from-neutral-100">
-                      <Icon
-                        className="size-4 text-neutral-700"
-                        strokeWidth={1.75}
-                      />
+                    <div
+                      className={`flex size-8 items-center justify-center rounded-lg text-white transition-transform duration-300 group-hover:scale-110 ${accent}`}
+                    >
+                      <Icon className="size-4" strokeWidth={1.75} />
                     </div>
                     <h3 className="text-base font-medium text-neutral-900">
                       {title}
                     </h3>
                   </div>
-                  <ArrowUpRight className="size-4 text-neutral-400 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+                  <ArrowUpRight className="size-4 text-neutral-400 transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
                 </div>
                 <ul className="flex flex-col gap-2.5">
                   {pages.map(({ name, description }) => (
@@ -288,7 +290,7 @@ export default function DocsPage() {
                     </li>
                   ))}
                 </ul>
-              </a>
+              </Link>
             ))}
           </div>
         </div>
