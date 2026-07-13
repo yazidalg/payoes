@@ -1,5 +1,6 @@
 # Host ports are configurable via .env (see docker-compose.env.example).
-# Defaults avoid common conflicts when 5432, 9000, and 8080 are already in use.
+# Defaults avoid common conflicts when 5432 and 8080 are already in use.
+# S3/R2 credentials are configured in apps/api/.env (not bundled here).
 services:
   postgres:
     image: postgres:16-alpine
@@ -19,40 +20,6 @@ services:
       timeout: 5s
       retries: 10
 
-  minio:
-    image: minio/minio:latest
-    container_name: payoes-minio
-    restart: unless-stopped
-    command: server /data --console-address ":9001"
-    environment:
-      MINIO_ROOT_USER: payoes
-      MINIO_ROOT_PASSWORD: payoessecret
-    ports:
-      - "${PAYOES_MINIO_PORT:-9100}:9000"
-      - "${PAYOES_MINIO_CONSOLE_PORT:-9101}:9001"
-    volumes:
-      - minio_data:/data
-    healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://localhost:9000/minio/health/live || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 10s
-
-  minio-init:
-    image: minio/mc:latest
-    container_name: payoes-minio-init
-    depends_on:
-      minio:
-        condition: service_started
-    entrypoint: >
-      /bin/sh -c "
-      until mc alias set local http://minio:9000 payoes payoessecret; do sleep 1; done;
-      mc mb local/payoes-uploads --ignore-existing;
-      mc anonymous set download local/payoes-uploads;
-      echo 'MinIO bucket payoes-uploads is ready';
-      "
-
   api:
     build:
       context: ./apps/api
@@ -67,16 +34,12 @@ services:
     environment:
       PORT: "8080"
       DATABASE_URL: postgresql://payoes:payoes@postgres:5432/payoes
-      S3_ENDPOINT: http://minio:9000
-      S3_PUBLIC_URL: http://localhost:9000/payoes-uploads
       WEB_URL: http://localhost:3000
       API_URL: http://localhost:8080
       AUTH_URL: http://localhost:8080
     depends_on:
       postgres:
         condition: service_healthy
-      minio:
-        condition: service_started
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://localhost:8080/healthz || exit 1"]
       interval: 10s
@@ -86,4 +49,3 @@ services:
 
 volumes:
   postgres_data:
-  minio_data:
