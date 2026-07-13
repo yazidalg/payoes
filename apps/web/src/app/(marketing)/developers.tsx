@@ -1,4 +1,5 @@
 import { Check } from "lucide-react";
+import { ButtonLink } from "./button-link";
 import { CodeTabs } from "./code-tabs";
 
 const BULLETS = [
@@ -55,6 +56,12 @@ export function Developers() {
               </li>
             ))}
           </ul>
+
+          <div className="mt-8">
+            <ButtonLink variant="secondary" href="/developers">
+              Explore the developer platform
+            </ButtonLink>
+          </div>
         </div>
 
         <CodeTabs />
