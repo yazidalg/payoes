@@ -99,19 +99,19 @@ export default function DevelopersPage() {
         />
 
         <div className="relative mx-auto flex w-full max-w-3xl flex-col items-center">
-          <div className="mx-auto flex h-7 w-fit items-center gap-2 rounded-full border border-neutral-200 bg-white px-4 text-xs font-medium text-neutral-800 shadow-sm">
+          <div className="animate-slide-up-fade mx-auto flex h-7 w-fit items-center gap-2 rounded-full border border-neutral-200 bg-white px-4 text-xs font-medium text-neutral-800 shadow-sm [--offset:5px] [animation-duration:1s] [animation-fill-mode:both]">
             <span className={`size-2 rounded-full ${ACCENT}`} />
             Payoes API
           </div>
-          <h1 className="font-display mt-6 text-balance text-4xl font-medium text-neutral-900 sm:text-5xl sm:leading-[1.1]">
+          <h1 className="font-display animate-slide-up-fade mt-6 text-balance text-4xl font-medium text-neutral-900 sm:text-5xl sm:leading-[1.1] [--offset:20px] [animation-delay:100ms] [animation-duration:1s] [animation-fill-mode:both]">
             Built for developers first
           </h1>
-          <p className="mt-5 max-w-2xl text-balance text-base text-neutral-600 sm:text-lg">
+          <p className="animate-slide-up-fade mt-5 max-w-2xl text-balance text-base text-neutral-600 sm:text-lg [--offset:10px] [animation-delay:200ms] [animation-duration:1s] [animation-fill-mode:both]">
             Every Payoes feature starts with an API. Create payments, checkout
             sessions, payment links, invoices, and customers from your
             codebase, and let Payoes handle the blockchain.
           </p>
-          <div className="xs:flex-row mt-8 flex max-w-fit flex-col items-center gap-4">
+          <div className="xs:flex-row animate-slide-up-fade mt-8 flex max-w-fit flex-col items-center gap-4 [--offset:5px] [animation-delay:300ms] [animation-duration:1s] [animation-fill-mode:both]">
             <ButtonLink variant="primary" href="/register">
               Get your API keys
             </ButtonLink>
@@ -125,15 +125,15 @@ export default function DevelopersPage() {
       {/* Code example */}
       <section className="px-4">
         <div className="mx-auto w-full max-w-screen-md">
-          <h2 className="font-display text-center text-3xl font-medium text-neutral-900">
+          <h2 className="font-display animate-slide-up-fade text-center text-3xl font-medium text-neutral-900 [--offset:10px] [animation-duration:700ms] [animation-fill-mode:both]">
             One request to get paid
           </h2>
-          <p className="mx-auto mt-4 max-w-xl text-center text-neutral-500">
+          <p className="animate-slide-up-fade mx-auto mt-4 max-w-xl text-center text-neutral-500 [--offset:10px] [animation-delay:100ms] [animation-duration:700ms] [animation-fill-mode:both]">
             Create a payment and share the checkout URL it returns. Wallet
             connection, on-chain verification, and settlement are handled for
             you.
           </p>
-          <div className="mt-10">
+          <div className="animate-slide-up-fade mt-10 [--offset:15px] [animation-delay:200ms] [animation-duration:700ms] [animation-fill-mode:both]">
             <CodeTabs />
           </div>
         </div>
@@ -142,19 +142,20 @@ export default function DevelopersPage() {
       {/* API resources */}
       <section id="resources" className="scroll-mt-24 px-4 py-20">
         <div className="mx-auto w-full max-w-screen-lg">
-          <h2 className="font-display text-center text-3xl font-medium text-neutral-900">
+          <h2 className="font-display animate-slide-up-fade text-center text-3xl font-medium text-neutral-900 [--offset:10px] [animation-duration:700ms] [animation-fill-mode:both]">
             Five resources, one predictable API
           </h2>
-          <p className="mx-auto mt-4 max-w-xl text-center text-neutral-500">
+          <p className="animate-slide-up-fade mx-auto mt-4 max-w-xl text-center text-neutral-500 [--offset:10px] [animation-delay:100ms] [animation-duration:700ms] [animation-fill-mode:both]">
             Stripe-style objects and IDs, Bearer key authentication, and JSON
             everywhere. If you have integrated a payment API before, you
             already know this one.
           </p>
           <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {RESOURCES.map(({ name, endpoint, prefix, description }) => (
+            {RESOURCES.map(({ name, endpoint, prefix, description }, index) => (
               <div
                 key={name}
-                className="flex flex-col gap-2 rounded-xl border border-neutral-200 bg-white p-5"
+                style={{ animationDelay: `${index * 80 + 150}ms` }}
+                className="animate-slide-up-fade flex flex-col gap-2 rounded-xl border border-neutral-200 bg-white p-5 transition-all duration-200 [--offset:15px] [animation-fill-mode:both] hover:-translate-y-0.5 hover:shadow-md"
               >
                 <div className="flex items-center justify-between gap-2">
                   <h3 className="text-base font-medium text-neutral-900">
@@ -168,7 +169,10 @@ export default function DevelopersPage() {
                 <p className="text-sm text-neutral-500">{description}</p>
               </div>
             ))}
-            <div className="flex flex-col justify-center gap-2 rounded-xl border border-dashed border-neutral-300 p-5 text-center">
+            <div
+              style={{ animationDelay: `${RESOURCES.length * 80 + 150}ms` }}
+              className="animate-slide-up-fade flex flex-col justify-center gap-2 rounded-xl border border-dashed border-neutral-300 p-5 text-center [--offset:15px] [animation-fill-mode:both]"
+            >
               <p className="text-sm font-medium text-neutral-900">
                 Webhooks included
               </p>
@@ -189,13 +193,17 @@ export default function DevelopersPage() {
       {/* Tooling */}
       <section className="border-y border-neutral-200 bg-neutral-50/60 px-4 py-20">
         <div className="mx-auto w-full max-w-screen-lg">
-          <h2 className="font-display text-center text-3xl font-medium text-neutral-900">
+          <h2 className="font-display animate-slide-up-fade text-center text-3xl font-medium text-neutral-900 [--offset:10px] [animation-duration:700ms] [animation-fill-mode:both]">
             Everything around the API
           </h2>
           <ul className="mx-auto mt-12 grid max-w-screen-md gap-x-12 gap-y-6 sm:grid-cols-2">
-            {TOOLING.map(({ title, description }) => (
-              <li key={title} className="flex items-start gap-3">
-                <div className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white">
+            {TOOLING.map(({ title, description }, index) => (
+              <li
+                key={title}
+                style={{ animationDelay: `${index * 80 + 150}ms` }}
+                className="group animate-slide-up-fade flex items-start gap-3 rounded-xl border border-neutral-200 bg-white p-4 transition-all duration-200 [--offset:15px] [animation-fill-mode:both] hover:-translate-y-0.5 hover:shadow-md"
+              >
+                <div className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white transition-transform duration-200 group-hover:scale-110">
                   <Check className="size-3" strokeWidth={3} />
                 </div>
                 <div>

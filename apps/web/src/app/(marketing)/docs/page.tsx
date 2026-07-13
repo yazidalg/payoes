@@ -187,18 +187,18 @@ export default function DocsPage() {
         />
 
         <div className="relative mx-auto flex w-full max-w-3xl flex-col items-center">
-          <div className="mx-auto flex h-7 w-fit items-center gap-2 rounded-full border border-neutral-200 bg-white px-4 text-xs font-medium text-neutral-800 shadow-sm">
+          <div className="animate-slide-up-fade mx-auto flex h-7 w-fit items-center gap-2 rounded-full border border-neutral-200 bg-white px-4 text-xs font-medium text-neutral-800 shadow-sm [--offset:5px] [animation-duration:1s] [animation-fill-mode:both]">
             <span className={`size-2 rounded-full ${ACCENT}`} />
             Documentation
           </div>
-          <h1 className="font-display mt-6 text-balance text-4xl font-medium text-neutral-900 sm:text-5xl sm:leading-[1.1]">
+          <h1 className="font-display animate-slide-up-fade mt-6 text-balance text-4xl font-medium text-neutral-900 sm:text-5xl sm:leading-[1.1] [--offset:20px] [animation-delay:100ms] [animation-duration:1s] [animation-fill-mode:both]">
             Learn, integrate, ship
           </h1>
-          <p className="mt-5 max-w-2xl text-balance text-base text-neutral-600 sm:text-lg">
+          <p className="animate-slide-up-fade mt-5 max-w-2xl text-balance text-base text-neutral-600 sm:text-lg [--offset:10px] [animation-delay:200ms] [animation-duration:1s] [animation-fill-mode:both]">
             Guides, a five-minute quickstart, and a full API reference for
             accepting USDC and XLM payments on Stellar.
           </p>
-          <div className="xs:flex-row mt-8 flex max-w-fit flex-col items-center gap-4">
+          <div className="xs:flex-row animate-slide-up-fade mt-8 flex max-w-fit flex-col items-center gap-4 [--offset:5px] [animation-delay:300ms] [animation-duration:1s] [animation-fill-mode:both]">
             <ButtonLink variant="primary" href="#quickstart">
               Quickstart
             </ButtonLink>
@@ -213,16 +213,20 @@ export default function DocsPage() {
       <section id="quickstart" className="scroll-mt-24 px-4 py-20">
         <div className="mx-auto grid w-full max-w-screen-lg items-center gap-12 lg:grid-cols-2">
           <div>
-            <h2 className="font-display text-3xl font-medium text-neutral-900">
+            <h2 className="font-display animate-slide-up-fade text-3xl font-medium text-neutral-900 [--offset:10px] [animation-duration:700ms] [animation-fill-mode:both]">
               From zero to paid in five minutes
             </h2>
-            <p className="mt-4 text-lg text-neutral-500">
+            <p className="animate-slide-up-fade mt-4 text-lg text-neutral-500 [--offset:10px] [animation-delay:100ms] [animation-duration:700ms] [animation-fill-mode:both]">
               The quickstart walks you through the full loop on Stellar
               Testnet, with nothing at stake.
             </p>
             <ol className="mt-8 flex flex-col gap-5">
               {QUICKSTART_STEPS.map(({ title, description }, idx) => (
-                <li key={title} className="flex items-start gap-3">
+                <li
+                  key={title}
+                  style={{ animationDelay: `${idx * 100 + 200}ms` }}
+                  className="animate-slide-up-fade flex items-start gap-3 [--offset:12px] [animation-duration:700ms] [animation-fill-mode:both]"
+                >
                   <div
                     className={`mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold text-white ${ACCENT}`}
                   >
@@ -239,7 +243,7 @@ export default function DocsPage() {
             </ol>
           </div>
 
-          <div className="overflow-hidden rounded-2xl border border-neutral-800 bg-neutral-950 shadow-xl">
+          <div className="animate-slide-up-fade overflow-hidden rounded-2xl border border-neutral-800 bg-neutral-950 shadow-xl transition-shadow duration-300 [--offset:15px] [animation-delay:200ms] [animation-duration:700ms] [animation-fill-mode:both] hover:shadow-2xl">
             <div className="border-b border-neutral-800 px-5 py-3 font-mono text-xs text-neutral-400">
               Create a sandbox payment
             </div>
@@ -253,19 +257,21 @@ export default function DocsPage() {
       {/* Guides */}
       <section className="border-y border-neutral-200 bg-neutral-50/60 px-4 py-20">
         <div className="mx-auto w-full max-w-screen-lg">
-          <h2 className="font-display text-center text-3xl font-medium text-neutral-900">
+          <h2 className="font-display animate-slide-up-fade text-center text-3xl font-medium text-neutral-900 [--offset:10px] [animation-duration:700ms] [animation-fill-mode:both]">
             Guides
           </h2>
-          <p className="mx-auto mt-4 max-w-xl text-center text-neutral-500">
+          <p className="animate-slide-up-fade mx-auto mt-4 max-w-xl text-center text-neutral-500 [--offset:10px] [animation-delay:100ms] [animation-duration:700ms] [animation-fill-mode:both]">
             Everything from core concepts to running Payoes on your own
             infrastructure.
           </p>
           <div className="mt-12 grid gap-4 sm:grid-cols-2">
-            {GUIDE_GROUPS.map(({ title, icon: Icon, href, accent, pages }) => (
+            {GUIDE_GROUPS.map(
+              ({ title, icon: Icon, href, accent, pages }, index) => (
               <Link
                 key={title}
                 href={href}
-                className="group flex flex-col gap-4 rounded-xl border border-neutral-200 bg-white p-6 transition-all duration-300 hover:-translate-y-1 hover:border-neutral-300 hover:shadow-lg"
+                style={{ animationDelay: `${index * 80 + 150}ms` }}
+                className="group animate-slide-up-fade flex flex-col gap-4 rounded-xl border border-neutral-200 bg-white p-6 transition-all duration-300 [--offset:15px] [animation-fill-mode:both] hover:-translate-y-1 hover:border-neutral-300 hover:shadow-lg"
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2.5">
@@ -299,10 +305,10 @@ export default function DocsPage() {
       {/* API reference */}
       <section id="api-reference" className="scroll-mt-24 px-4 py-20">
         <div className="mx-auto w-full max-w-screen-lg">
-          <h2 className="font-display text-center text-3xl font-medium text-neutral-900">
+          <h2 className="font-display animate-slide-up-fade text-center text-3xl font-medium text-neutral-900 [--offset:10px] [animation-duration:700ms] [animation-fill-mode:both]">
             API reference
           </h2>
-          <p className="mx-auto mt-4 max-w-xl text-center text-neutral-500">
+          <p className="animate-slide-up-fade mx-auto mt-4 max-w-xl text-center text-neutral-500 [--offset:10px] [animation-delay:100ms] [animation-duration:700ms] [animation-fill-mode:both]">
             Authenticate with a Bearer API key against{" "}
             <code className="rounded bg-neutral-100 px-1.5 py-0.5 font-mono text-[13px] text-neutral-800">
               /api/v1
@@ -310,10 +316,11 @@ export default function DocsPage() {
             . Sandbox keys use pk_test_, production keys use pk_live_.
           </p>
           <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {API_GROUPS.map(({ name, endpoints }) => (
+            {API_GROUPS.map(({ name, endpoints }, index) => (
               <div
                 key={name}
-                className="flex flex-col gap-3 rounded-xl border border-neutral-200 bg-white p-5"
+                style={{ animationDelay: `${index * 80 + 150}ms` }}
+                className="animate-slide-up-fade flex flex-col gap-3 rounded-xl border border-neutral-200 bg-white p-5 transition-all duration-200 [--offset:15px] [animation-fill-mode:both] hover:-translate-y-0.5 hover:shadow-md"
               >
                 <h3 className="text-base font-medium text-neutral-900">
                   {name}
@@ -330,7 +337,10 @@ export default function DocsPage() {
                 </ul>
               </div>
             ))}
-            <div className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-neutral-300 p-5 text-center">
+            <div
+              style={{ animationDelay: `${API_GROUPS.length * 80 + 150}ms` }}
+              className="animate-slide-up-fade flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-neutral-300 p-5 text-center [--offset:15px] [animation-fill-mode:both]"
+            >
               <p className="text-sm font-medium text-neutral-900">
                 Full OpenAPI spec
               </p>

@@ -11,7 +11,7 @@ import {
   X,
 } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 
 const PRODUCT_ITEMS = [
@@ -62,6 +62,19 @@ const NAV_LINKS: { label: string; href: string }[] = [
 export function Nav() {
   const [open, setOpen] = useState(false);
   const [productOpen, setProductOpen] = useState(false);
+  const productRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!productOpen) return;
+    function handlePointerDown(event: MouseEvent) {
+      if (!productRef.current?.contains(event.target as Node)) {
+        setProductOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handlePointerDown);
+    return () =>
+      document.removeEventListener("mousedown", handlePointerDown);
+  }, [productOpen]);
 
   return (
     <header className="sticky inset-x-0 top-0 z-50 w-full border-b border-neutral-100 bg-white/80 backdrop-blur-lg">
@@ -74,11 +87,7 @@ export function Nav() {
         </Link>
 
         <nav className="hidden items-center gap-8 md:flex">
-          <div
-            className="relative"
-            onMouseEnter={() => setProductOpen(true)}
-            onMouseLeave={() => setProductOpen(false)}
-          >
+          <div className="relative" ref={productRef}>
             <button
               type="button"
               onClick={() => setProductOpen((prev) => !prev)}
@@ -95,19 +104,40 @@ export function Nav() {
               />
             </button>
 
-            {productOpen && (
-              <div className="absolute left-1/2 top-full w-80 -translate-x-1/2 rounded-xl border border-neutral-200 bg-white p-2 shadow-lg">
+            <div className="absolute left-1/2 top-full -translate-x-1/2 pt-1">
+              <div
+                className={cn(
+                  "w-80 origin-top rounded-xl border border-neutral-200 bg-white p-2 shadow-lg transition-all duration-200 ease-out",
+                  productOpen
+                    ? "translate-y-0 scale-100 opacity-100"
+                    : "pointer-events-none -translate-y-1 scale-95 opacity-0",
+                )}
+              >
                 {PRODUCT_ITEMS.map(
-                  ({ label, description, href, icon: Icon, iconClass }) => (
+                  ({ label, description, href, icon: Icon, iconClass }, index) => (
                     <Link
                       key={label}
                       href={href}
                       onClick={() => setProductOpen(false)}
-                      className="flex items-start gap-3 rounded-lg p-2.5 transition-colors hover:bg-neutral-50"
+                      style={{
+                        transitionProperty: "opacity, transform, background-color",
+                        transitionDuration: "300ms",
+                        transitionTimingFunction: "ease-out",
+                        // Stagger only the reveal; keep hover highlight instant.
+                        transitionDelay: productOpen
+                          ? `${index * 40}ms, ${index * 40}ms, 0ms`
+                          : "0ms",
+                      }}
+                      className={cn(
+                        "group/item flex items-start gap-3 rounded-lg p-2.5 hover:bg-neutral-50",
+                        productOpen
+                          ? "translate-y-0 opacity-100"
+                          : "-translate-y-1 opacity-0",
+                      )}
                     >
                       <div
                         className={cn(
-                          "flex size-9 flex-none items-center justify-center rounded-lg text-white",
+                          "flex size-9 flex-none items-center justify-center rounded-lg text-white transition-transform duration-300 group-hover/item:scale-110",
                           iconClass,
                         )}
                       >
@@ -125,7 +155,7 @@ export function Nav() {
                   ),
                 )}
               </div>
-            )}
+            </div>
           </div>
 
           {NAV_LINKS.map(({ label, href }) => (
@@ -164,8 +194,13 @@ export function Nav() {
         </div>
       </div>
 
-      {open && (
-        <nav className="flex flex-col border-t border-neutral-100 bg-white px-6 py-4 md:hidden">
+      <div
+        className={cn(
+          "grid overflow-hidden transition-all duration-300 ease-out md:hidden",
+          open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0",
+        )}
+      >
+        <nav className="flex min-h-0 flex-col overflow-hidden border-t border-neutral-100 bg-white px-6 py-4">
           <p className="py-2 text-xs font-medium uppercase tracking-wide text-neutral-400">
             Product
           </p>
@@ -199,7 +234,7 @@ export function Nav() {
             </Link>
           ))}
         </nav>
-      )}
+      </div>
     </header>
   );
 }
