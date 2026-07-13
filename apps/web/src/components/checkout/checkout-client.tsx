@@ -62,6 +62,7 @@ type CheckoutData = {
     source_type: string | null;
     receiving_address: string;
     memo: string | null;
+    payment_flow: "direct" | "soroban";
   };
   items: CheckoutLineItem[];
   merchant: {
@@ -385,16 +386,32 @@ export function CheckoutClient({ paymentId }: { paymentId: string }) {
     "XLM";
 
   async function confirmPayment(txHash: string) {
+    const isSoroban = data?.payment.payment_flow === "soroban";
     const confirmResponse = await fetch(`/api/checkout/${paymentId}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ txHash }),
+      body: JSON.stringify(
+        isSoroban
+          ? { action: "confirm_soroban", txHash, payerAddress: address }
+          : { txHash },
+      ),
     });
 
-    const confirmData = (await confirmResponse.json()) as {
+    const confirmData = (await confirmResponse.json().catch(() => ({}))) as {
       status?: string;
       error?: string;
     };
+
+    if (confirmResponse.status === 202) {
+      setPendingTxHash(txHash);
+      sessionStorage.setItem(`payoes:checkout-tx:${paymentId}`, txHash);
+      setData((current) =>
+        current
+          ? { ...current, payment: { ...current.payment, status: "processing" } }
+          : current,
+      );
+      return false;
+    }
 
     if (!confirmResponse.ok) {
       setPendingTxHash(txHash);
@@ -467,12 +484,33 @@ export function CheckoutClient({ paymentId }: { paymentId: string }) {
         },
       );
 
-      const server = new Horizon.Server(getHorizonUrl(data.payment.environment));
-      const transaction = TransactionBuilder.fromXDR(
-        signedTxXdr,
-        getNetworkPassphrase(data.payment.environment),
-      );
-      const submitResult = await server.submitTransaction(transaction);
+      const submitResult =
+        data.payment.payment_flow === "soroban"
+          ? await (async () => {
+              const response = await fetch(`/api/checkout/${paymentId}`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  action: "submit_soroban",
+                  signedXdr: signedTxXdr,
+                }),
+              });
+              const payload = (await response.json()) as { tx_hash?: string; error?: string };
+
+              if (!response.ok || !payload.tx_hash) {
+                throw new Error(payload.error ?? "Unable to submit Soroban payment");
+              }
+
+              return { hash: payload.tx_hash };
+            })()
+          : await (async () => {
+              const server = new Horizon.Server(getHorizonUrl(data.payment.environment));
+              const transaction = TransactionBuilder.fromXDR(
+                signedTxXdr,
+                getNetworkPassphrase(data.payment.environment),
+              );
+              return server.submitTransaction(transaction);
+            })();
 
       const confirmed = await confirmPayment(submitResult.hash);
       if (!confirmed) {

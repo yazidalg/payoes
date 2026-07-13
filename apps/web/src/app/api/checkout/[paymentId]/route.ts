@@ -20,6 +20,11 @@ import {
   buildPathPaymentStrictReceiveXdr,
   buildPaymentTransactionXdr,
 } from "@/lib/stellar/payments";
+import {
+  buildSorobanPaymentTransaction,
+  confirmSorobanPayment,
+  submitSorobanPaymentTransaction,
+} from "@/lib/soroban/payment-router";
 
 const confirmSchema = z.object({
   txHash: z.string().min(1),
@@ -33,6 +38,17 @@ const paidAssetSchema = z.object({
 const buildTxSchema = z.object({
   sourcePublicKey: z.string().min(1),
   paid_asset: paidAssetSchema,
+});
+
+const submitSorobanSchema = z.object({
+  action: z.literal("submit_soroban"),
+  signedXdr: z.string().min(1),
+});
+
+const confirmSorobanSchema = z.object({
+  action: z.literal("confirm_soroban"),
+  txHash: z.string().min(1),
+  payerAddress: z.string().min(1),
 });
 
 export async function GET(
@@ -82,6 +98,7 @@ export async function GET(
       quote_rate: payment.quoteRate,
       settlement_quote_rate: payment.settlementQuoteRate,
       source_type: payment.sourceType,
+      payment_flow: payment.paymentFlow,
       receiving_address: payment.receivingAddress,
       memo: payment.memo,
     },
@@ -135,6 +152,62 @@ export async function POST(
 
   const { payment } = { payment: payable.payment };
 
+  if (body.action === "submit_soroban") {
+    const parsed = submitSorobanSchema.safeParse(body);
+
+    if (!parsed.success || payment.paymentFlow !== "soroban") {
+      return NextResponse.json({ error: "Invalid request" }, { status: 400 });
+    }
+
+    const result = await submitSorobanPaymentTransaction({
+      payment,
+      signedXdr: parsed.data.signedXdr,
+    });
+
+    if (result.status === "ERROR") {
+      return NextResponse.json({ error: "Soroban transaction was rejected" }, { status: 400 });
+    }
+
+    return NextResponse.json({ tx_hash: result.hash, status: "processing" });
+  }
+
+  if (body.action === "confirm_soroban") {
+    const parsed = confirmSorobanSchema.safeParse(body);
+
+    if (!parsed.success || payment.paymentFlow !== "soroban") {
+      return NextResponse.json({ error: "Invalid request" }, { status: 400 });
+    }
+
+    let result;
+
+    try {
+      result = await confirmSorobanPayment({
+        payment,
+        txHash: parsed.data.txHash,
+        payerAddress: parsed.data.payerAddress,
+      });
+    } catch (error) {
+      return NextResponse.json(
+        {
+          error:
+            error instanceof Error
+              ? error.message
+              : "Unable to confirm Soroban transaction",
+        },
+        { status: 502 }
+      );
+    }
+
+    if (!result.completed) {
+      return NextResponse.json({ status: "processing" }, { status: 202 });
+    }
+
+    return NextResponse.json({
+      status: result.payment.status,
+      tx_hash: result.payment.txHash,
+    });
+  }
+
   if (body.action === "build_transaction") {
     const parsed = buildTxSchema.safeParse(body);
 
@@ -179,6 +252,28 @@ export async function POST(
       }
 
       const paymentWithPaidAsset = activePayment;
+
+      if (paymentWithPaidAsset.paymentFlow === "soroban") {
+        if (
+          paymentWithPaidAsset.paidAsset !== paymentWithPaidAsset.settlementAsset ||
+          paymentWithPaidAsset.paidAssetIssuer !== paymentWithPaidAsset.settlementAssetIssuer
+        ) {
+          return NextResponse.json(
+            { error: "Soroban payments currently require the settlement asset" },
+            { status: 400 }
+          );
+        }
+
+        const soroban = await buildSorobanPaymentTransaction({
+          payment: paymentWithPaidAsset,
+          payerAddress: parsed.data.sourcePublicKey,
+        });
+
+        return NextResponse.json({
+          ...soroban,
+          payment_type: "soroban_payment",
+        });
+      }
 
       const settlementAsset = {
         asset_code: payment.settlementAsset,
