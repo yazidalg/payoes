@@ -18,39 +18,39 @@ const PRODUCT_ITEMS = [
   {
     label: "Crypto payments",
     description: "Accept USDC, XLM, and any Stellar asset",
-    href: "#payments",
+    href: "/features/payments",
     icon: ArrowLeftRight,
   },
   {
     label: "Checkout & payment links",
     description: "Hosted checkout pages and shareable links",
-    href: "#checkout",
+    href: "/features/checkout",
     icon: Link2,
   },
   {
     label: "Invoicing",
     description: "Bill customers with hosted invoices",
-    href: "#invoicing",
+    href: "/features/invoicing",
     icon: Receipt,
   },
   {
     label: "QR code checkout",
     description: "Free QR codes for every payment link",
-    href: "#qr-checkout",
+    href: "/features/qr-checkout",
     icon: QrCode,
   },
   {
     label: "Webhooks",
     description: "HMAC-signed events with automatic retries",
-    href: "#webhooks",
+    href: "/features/webhooks",
     icon: Webhook,
   },
 ];
 
 const NAV_LINKS: { label: string; href: string }[] = [
-  { label: "Developers", href: "#developers" },
-  { label: "Ecosystem", href: "#logos" },
-  { label: "Pricing", href: "#cta" },
+  { label: "Developers", href: "/#developers" },
+  { label: "Ecosystem", href: "/#logos" },
+  { label: "Pricing", href: "/#cta" },
 ];
 
 export function Nav() {

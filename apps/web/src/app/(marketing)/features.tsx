@@ -32,7 +32,7 @@ export function Features() {
             title="Checkout & payment links"
             description="Every payment gets a hosted checkout page with your branding. Need something reusable? Share payment links anywhere you can paste a URL: email, WhatsApp, Telegram, or your site."
             linkText="Learn more"
-            href="#developers"
+            href="/features/checkout"
           >
             <PaymentLinksGraphic />
           </FeatureCard>
@@ -41,7 +41,7 @@ export function Features() {
             title="Invoicing"
             description="Create a draft invoice, finalize it, and Payoes generates a hosted payment page for your customer. The invoice flips to paid the moment the transaction confirms on-chain."
             linkText="Learn more"
-            href="#developers"
+            href="/features/invoicing"
           >
             <InvoiceGraphic />
           </FeatureCard>
@@ -54,7 +54,7 @@ export function Features() {
           title="Crypto payment processing"
           description="Accept USDC, XLM, and any Stellar asset with a single API call. Payoes handles wallet connections, on-chain verification, and settlement to your wallet, so a payment feels like a charge, not a blockchain project."
           linkText="Explore payments"
-          href="#developers"
+          href="/features/payments"
         >
           <PaymentsGraphic />
         </FeatureCard>
@@ -65,7 +65,7 @@ export function Features() {
             title="QR code checkout"
             description="QR codes and payment links are like peas in a pod. Payoes offers free QR codes for every link. Feeling artsy? Customize them with your own logo."
             linkText="Learn more"
-            href="#developers"
+            href="/features/qr-checkout"
           >
             <QRGraphic />
           </FeatureCard>
@@ -74,7 +74,7 @@ export function Features() {
             title="Webhooks & real-time events"
             description="React to payment created, completed, failed, and expired events with HMAC-signed webhooks. Automatic retries with exponential backoff, plus delivery logs in the dashboard."
             linkText="Learn more"
-            href="#developers"
+            href="/features/webhooks"
           >
             <WebhooksGraphic />
           </FeatureCard>

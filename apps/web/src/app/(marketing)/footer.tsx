@@ -4,19 +4,19 @@ const FOOTER_COLUMNS: { title: string; links: { label: string; href: string }[] 
   {
     title: "Product",
     links: [
-      { label: "Payments", href: "#payments" },
-      { label: "Payment Links", href: "#checkout" },
-      { label: "Invoices", href: "#invoicing" },
-      { label: "Subscriptions", href: "#features" },
-      { label: "Checkout", href: "#checkout" },
+      { label: "Payments", href: "/features/payments" },
+      { label: "Payment Links", href: "/features/checkout" },
+      { label: "Invoices", href: "/features/invoicing" },
+      { label: "Subscriptions", href: "/#features" },
+      { label: "Checkout", href: "/features/checkout" },
     ],
   },
   {
     title: "Developers",
     links: [
-      { label: "API Reference", href: "#developers" },
-      { label: "SDKs", href: "#developers" },
-      { label: "Webhooks", href: "#developers" },
+      { label: "API Reference", href: "/#developers" },
+      { label: "SDKs", href: "/#developers" },
+      { label: "Webhooks", href: "/#developers" },
       { label: "Changelog", href: "#" },
       { label: "Status", href: "#" },
     ],
@@ -24,9 +24,9 @@ const FOOTER_COLUMNS: { title: string; links: { label: string; href: string }[] 
   {
     title: "Resources",
     links: [
-      { label: "Docs", href: "#developers" },
+      { label: "Docs", href: "/#developers" },
       { label: "Help Center", href: "#" },
-      { label: "Pricing", href: "#cta" },
+      { label: "Pricing", href: "/#cta" },
       { label: "Guides", href: "#" },
     ],
   },
@@ -36,7 +36,7 @@ const FOOTER_COLUMNS: { title: string; links: { label: string; href: string }[] 
       { label: "About", href: "#" },
       { label: "Blog", href: "#" },
       { label: "Careers", href: "#" },
-      { label: "Ecosystem", href: "#logos" },
+      { label: "Ecosystem", href: "/#logos" },
       { label: "Contact", href: "#" },
     ],
   },
