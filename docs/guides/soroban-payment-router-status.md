@@ -18,17 +18,17 @@ The payment quote repair migration is `0027_repair_payment_quote_columns.sql`. I
 
 ### Smart Contract
 
-The `PayoesPaymentRouter` contract is located at `contracts/contracts/payoes-payment-router`.
+The unified `Payoes` contract is located at `contracts/src`.
 
 The contract:
 
-- Requires payer authorization and Payoes authorization-signer authorization.
+- Supports legacy direct `pay` with payer and authorization-signer authorization.
+- Supports escrow `register_payment`, wallet `deposit`, and worker `record_settlement` / `record_refund`.
 - Rejects expired payments, invalid fee amounts, paused execution, and duplicate payment IDs.
-- Transfers the merchant settlement amount and the platform fee atomically.
-- Persists the settled payment ID.
-- Emits a `PaymentSettled` event.
+- Transfers the merchant settlement amount and the platform fee atomically on direct pay.
+- Persists payment records and emits settlement/refund events.
 
-The contract unit test verifies a 1,000-unit payment split into 970 units for the merchant and 30 units for the platform fee recipient. The WASM build also succeeds.
+Unit tests cover legacy pay, same-asset deposit settlement, and underpayment refund.
 
 ### Testnet Deployment
 
@@ -73,16 +73,18 @@ The browser never receives the Payoes authorization signer secret.
 ## Required Environment Variables
 
 ```env
+STELLAR_TESTNET_OPERATOR_SECRET=
 SOROBAN_TESTNET_RPC_URL=
-SOROBAN_TESTNET_PAYMENT_ROUTER_CONTRACT_ID=
-SOROBAN_TESTNET_AUTHORIZATION_SIGNER_SECRET=
+SOROBAN_TESTNET_CONTRACT_ID=
 
+STELLAR_MAINNET_OPERATOR_SECRET=
 SOROBAN_MAINNET_RPC_URL=
-SOROBAN_MAINNET_PAYMENT_ROUTER_CONTRACT_ID=
-SOROBAN_MAINNET_AUTHORIZATION_SIGNER_SECRET=
+SOROBAN_MAINNET_CONTRACT_ID=
 ```
 
-The authorization signer secret must only be available to the server runtime or a secrets manager. It must not be committed, exposed to browser code, or stored in application tables.
+One operator secret is enough for sandbox development: Soroban authorization, classic escrow deposits, and sandbox payment simulation all read from `STELLAR_*_OPERATOR_SECRET`.
+
+The operator secret must only be available to the server runtime or a secrets manager. It must not be committed, exposed to browser code, or stored in application tables.
 
 ## Current Limitations
 

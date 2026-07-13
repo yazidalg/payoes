@@ -6,7 +6,6 @@ import {
   findUserByEmail,
   findUserById,
   upsertOAuthUser,
-  verifyDemoUserPassword,
   verifyUserPassword,
 } from "@/lib/auth/users";
 import { verifyPostVerifyLoginToken } from "@/lib/auth/verification-token";
@@ -50,12 +49,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         if (!email || !password) {
           return null;
-        }
-
-        const demoUser = await verifyDemoUserPassword(email, password);
-
-        if (demoUser) {
-          return demoUser;
         }
 
         return verifyUserPassword(email, password);

@@ -14,7 +14,7 @@ import {
 } from "@stellar/stellar-sdk";
 import type { Payment } from "@/lib/db/schema";
 import { getNetworkPassphrase, getHorizonUrl } from "@/lib/stellar/network";
-import { getSorobanPaymentRouterConfig } from "@/lib/soroban/config";
+import { getSorobanConfig } from "@/lib/soroban/config";
 import { updatePaymentStatus } from "@/lib/payments/service";
 
 function paymentIdHash(payment: Payment) {
@@ -34,7 +34,7 @@ export async function buildSorobanPaymentTransaction(input: {
   payerAddress: string;
 }) {
   const { payment, payerAddress } = input;
-  const config = getSorobanPaymentRouterConfig(payment.environment);
+  const config = getSorobanConfig(payment.environment);
   const horizon = new Horizon.Server(getHorizonUrl(payment.environment));
   const account = await horizon.loadAccount(payerAddress);
   const grossAmount = payment.quotedPaidAmount ?? payment.amount;
@@ -103,7 +103,7 @@ export async function submitSorobanPaymentTransaction(input: {
   payment: Payment;
   signedXdr: string;
 }) {
-  const config = getSorobanPaymentRouterConfig(input.payment.environment);
+  const config = getSorobanConfig(input.payment.environment);
   const transaction = TransactionBuilder.fromXDR(
     input.signedXdr,
     getNetworkPassphrase(input.payment.environment)
@@ -117,7 +117,7 @@ export async function confirmSorobanPayment(input: {
   txHash: string;
   payerAddress: string;
 }) {
-  const config = getSorobanPaymentRouterConfig(input.payment.environment);
+  const config = getSorobanConfig(input.payment.environment);
   const response = await fetch(config.rpcUrl, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

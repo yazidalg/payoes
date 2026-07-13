@@ -119,7 +119,7 @@ npm run db:migrate
 npm run dev              # http://localhost:3000
 ```
 
-For the full local setup (environment variables, demo login, docs server), see the [Getting started](docs/local-setup/getting-started.mdx) guide in `docs/`.
+For the full local setup (environment variables, docs server), see the [Getting started](docs/local-setup/getting-started.mdx) guide in `docs/`.
 
 ### Scripts
 

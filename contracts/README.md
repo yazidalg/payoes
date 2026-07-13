@@ -1,14 +1,14 @@
-# Payoes Soroban Contracts
+# Payoes Soroban Contract
 
-`payoes-payment-router` settles a Payoes payment atomically. A valid invocation requires authorization from both the payer and the Payoes authorization signer. The contract transfers the merchant amount and platform fee directly from the payer, records the payment ID, and emits a `PaymentSettled` event.
+Single on-chain contract for Payoes checkout: legacy direct `pay`, escrow `register_payment`, wallet `deposit`, and worker `record_settlement` / `record_refund`.
 
 ## Commands
 
-Run commands from this directory:
+Run from this directory:
 
 ```sh
-cargo test -p payoes-payment-router
-stellar contract build --package payoes-payment-router
+cargo test -p payoes
+stellar contract build --package payoes
 ```
 
-Deployments and the active contract IDs are recorded by the web application in `soroban_contract_deployments`.
+Deployments are tracked in the web app `soroban_contract_deployments` table.

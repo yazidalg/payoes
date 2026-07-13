@@ -9,6 +9,8 @@ const EVENT_LABELS: Record<(typeof WEBHOOK_EVENTS)[number], string> = {
   "payment.completed": "Payment completed",
   "payment.failed": "Payment failed",
   "payment.expired": "Payment expired",
+  "payment.refunded": "Payment refunded",
+  "payment.settlement_failed": "Payment settlement failed",
 };
 
 export function WebhookEventsPicker({

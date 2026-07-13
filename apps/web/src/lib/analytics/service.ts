@@ -33,9 +33,30 @@ const SOURCE_TYPE_LABELS: Record<string, string> = {
 const STATUS_LABELS: Record<string, string> = {
   completed: "Succeeded",
   pending: "Pending",
+  deposit_received: "Processing",
+  settling: "Processing",
+  settlement_failed: "Settlement failed",
+  refunding: "Refunding",
+  refunded: "Refunded",
   failed: "Failed",
   expired: "Expired",
 };
+
+function aggregatePaymentStatus(status: PaymentAnalyticsRow["status"]) {
+  if (
+    status === "deposit_received" ||
+    status === "settling" ||
+    status === "refunding"
+  ) {
+    return "pending";
+  }
+
+  if (status === "settlement_failed" || status === "refunded") {
+    return "failed";
+  }
+
+  return status;
+}
 
 const SOURCE_TYPE_ORDER = [
   "checkout_session",
@@ -272,7 +293,8 @@ export async function getOrganizationAnalytics(
   let totalVolume = 0;
 
   for (const payment of rows) {
-    statusCounts[payment.status] += 1;
+    const aggregateStatus = aggregatePaymentStatus(payment.status);
+    statusCounts[aggregateStatus] += 1;
 
     const sourceKey = payment.sourceType;
     const sourceEntry = paymentMethods.get(sourceKey) ?? {

@@ -20,12 +20,17 @@ export const environmentModeEnum = pgEnum("environment_mode", [
 
 export const paymentStatusEnum = pgEnum("payment_status", [
   "pending",
+  "deposit_received",
+  "settling",
+  "settlement_failed",
+  "refunding",
+  "refunded",
   "completed",
   "failed",
   "expired",
 ]);
 
-export const paymentFlowEnum = pgEnum("payment_flow", ["direct", "soroban"]);
+export const paymentFlowEnum = pgEnum("payment_flow", ["direct", "soroban", "escrow"]);
 
 export const blockchainStatusEnum = pgEnum("blockchain_status", [
   "not_started",
@@ -97,6 +102,8 @@ export const webhookEventEnum = pgEnum("webhook_event", [
   "payment.completed",
   "payment.failed",
   "payment.expired",
+  "payment.refunded",
+  "payment.settlement_failed",
   "webhook.test",
 ]);
 
@@ -506,12 +513,18 @@ export const payments = pgTable(
     merchantSettlementAmount: text("merchant_settlement_amount"),
     paymentAuthorizationHash: text("payment_authorization_hash"),
     receivingAddress: text("receiving_address").notNull(),
+    depositAddress: text("deposit_address"),
     payerAddress: text("payer_address"),
     description: text("description"),
     metadata: jsonb("metadata").$type<Record<string, string>>(),
     memo: text("memo"),
     expiresAt: timestamp("expires_at", { withTimezone: true }),
     txHash: text("tx_hash"),
+    depositTxHash: text("deposit_tx_hash"),
+    settlementTxHash: text("settlement_tx_hash"),
+    refundTxHash: text("refund_tx_hash"),
+    receivedAmount: text("received_amount"),
+    refundReason: text("refund_reason"),
     confirmedAt: timestamp("confirmed_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),

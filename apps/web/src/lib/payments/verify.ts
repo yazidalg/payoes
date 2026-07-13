@@ -9,6 +9,7 @@ import {
   updatePaymentStatus,
 } from "@/lib/payments/service";
 import { ensurePayablePayment } from "@/lib/payments/quote-service";
+import { confirmEscrowDepositWithTxHash } from "@/lib/payments/settlement/escrow";
 import { isQuoteExpired } from "@/lib/pricing/quotes";
 import {
   verifyPathPaymentStrictReceiveOnHorizon,
@@ -66,6 +67,10 @@ export async function confirmPaymentWithTxHash(
   }
 
   payment = payable.payment;
+
+  if (payment.paymentFlow === "escrow") {
+    return confirmEscrowDepositWithTxHash(publicId, txHash);
+  }
 
   if (payment.quoteExpiresAt && isQuoteExpired(payment.quoteExpiresAt)) {
     return {
@@ -134,6 +139,7 @@ export async function confirmPaymentWithTxHash(
       environment: payment.environment,
       memo: payment.memo,
       slippageBps: payment.quotedPaidAmount ? 50 : undefined,
+      requireMemoMatch: true,
     });
 
     if (!verification.valid) {

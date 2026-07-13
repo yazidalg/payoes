@@ -15,13 +15,11 @@ All configuration for the web app lives in `apps/web/.env.local`. Copy from `app
 |----------|----------|-------------|
 | `AUTH_SECRET` | Yes | Session encryption secret. Generate with `openssl rand -base64 32` |
 | `AUTH_URL` | Yes | Public app URL. Local: `http://localhost:3000` |
-| `AUTH_GOOGLE_ID` | No | Google OAuth client ID |
-| `AUTH_GOOGLE_SECRET` | No | Google OAuth client secret |
-| `AUTH_DEMO_EMAIL` | Recommended | Email for password-based demo login |
-| `AUTH_DEMO_PASSWORD` | Recommended | Password for demo login |
+| `AUTH_GOOGLE_ID` | For Google sign-in | Google OAuth client ID |
+| `AUTH_GOOGLE_SECRET` | For Google sign-in | Google OAuth client secret |
 
 <Tip>
-  For local development, demo login is the fastest path. Add Google OAuth only when you need to test the Google sign-in flow.
+  Users can register with email and password, or sign in with Google when OAuth is configured.
 </Tip>
 
 ## Database
@@ -85,9 +83,20 @@ Self-hosted deployments only.
 
 | Variable | When to set | Description |
 |----------|-------------|-------------|
-| `CRON_SECRET` | Running the retry worker | Bearer token for `POST /api/cron/webhook-retries` |
+| `CRON_SECRET` | Running cron workers | Bearer token for protected cron endpoints |
 
 See [Webhook retry worker](/local-setup/webhook-retry-worker) for scheduling setup.
+
+## Soroban and escrow
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `STELLAR_TESTNET_OPERATOR_SECRET` | For escrow / Soroban sandbox | Funded testnet account for auth, deposits, and sandbox simulation |
+| `SOROBAN_TESTNET_RPC_URL` | For Soroban sandbox | Soroban RPC URL. Default: `https://soroban-testnet.stellar.org` |
+| `SOROBAN_TESTNET_CONTRACT_ID` | For Soroban sandbox | Deployed Payoes contract ID |
+| `STELLAR_MAINNET_OPERATOR_SECRET` | Production only | Mainnet operator account |
+| `SOROBAN_MAINNET_RPC_URL` | Production only | Mainnet Soroban RPC URL |
+| `SOROBAN_MAINNET_CONTRACT_ID` | Production only | Mainnet Payoes contract ID |
 
 ## Docs
 
@@ -100,8 +109,8 @@ See [Webhook retry worker](/local-setup/webhook-retry-worker) for scheduling set
 ```bash
 AUTH_SECRET=<openssl rand -base64 32>
 AUTH_URL=http://localhost:3000
-AUTH_DEMO_EMAIL=demo@payoes.dev
-AUTH_DEMO_PASSWORD=demo1234
+AUTH_GOOGLE_ID=your-client-id.apps.googleusercontent.com
+AUTH_GOOGLE_SECRET=your-client-secret
 
 DATABASE_URL=postgresql://payoes:payoes@localhost:5432/payoes
 
@@ -117,14 +126,7 @@ NEXT_PUBLIC_DOCS_URL=http://localhost:3001
 
 ## Example: with Google OAuth
 
-Add to the minimal file:
-
-```bash
-AUTH_GOOGLE_ID=your-client-id.apps.googleusercontent.com
-AUTH_GOOGLE_SECRET=your-client-secret
-```
-
-In [Google Cloud Console](https://console.cloud.google.com/), set the authorized redirect URI to:
+Set `AUTH_GOOGLE_ID` and `AUTH_GOOGLE_SECRET` in `.env.local`. In [Google Cloud Console](https://console.cloud.google.com/), set the authorized redirect URI to:
 
 ```
 http://localhost:3000/api/auth/callback/google

@@ -190,6 +190,13 @@
       "when": 1784020000000,
       "tag": "0027_repair_payment_quote_columns",
       "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1784100000000,
+      "tag": "0028_escrow_payment_flow",
+      "breakpoints": true
     }
   ]
 }

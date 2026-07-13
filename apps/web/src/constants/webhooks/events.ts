@@ -3,6 +3,8 @@ export const WEBHOOK_EVENTS = [
   "payment.completed",
   "payment.failed",
   "payment.expired",
+  "payment.refunded",
+  "payment.settlement_failed",
 ] as const;
 
 export const WEBHOOK_TEST_EVENT = "webhook.test" as const;

@@ -61,8 +61,9 @@ type CheckoutData = {
     settlement_quote_rate: string | null;
     source_type: string | null;
     receiving_address: string;
+    deposit_address: string | null;
     memo: string | null;
-    payment_flow: "direct" | "soroban";
+    payment_flow: "direct" | "soroban" | "escrow";
   };
   items: CheckoutLineItem[];
   merchant: {
@@ -329,9 +330,12 @@ export function CheckoutClient({ paymentId }: { paymentId: string }) {
 
   useEffect(() => {
     const isPayCompleted = data?.payment.status === "completed";
+    const isPayRefunded = data?.payment.status === "refunded";
     const isPayExpired = data?.payment.status === "expired" || Boolean(data?.payment.session_error);
+    const pollAddress =
+      data?.payment.deposit_address ?? data?.payment.receiving_address;
 
-    if (isPayCompleted || isPayExpired || !data?.payment.receiving_address || !data?.payment.memo) {
+    if (isPayCompleted || isPayRefunded || isPayExpired || !pollAddress || !data?.payment.memo) {
       return;
     }
 
@@ -340,7 +344,10 @@ export function CheckoutClient({ paymentId }: { paymentId: string }) {
         const statusResponse = await fetch(`/api/checkout/${paymentId}`);
         if (statusResponse.ok) {
           const statusData = await statusResponse.json() as CheckoutData;
-          if (statusData.payment.status === "completed") {
+          if (
+            statusData.payment.status === "completed" ||
+            statusData.payment.status === "refunded"
+          ) {
             setData(statusData);
             clearInterval(interval);
             return;
@@ -351,7 +358,7 @@ export function CheckoutClient({ paymentId }: { paymentId: string }) {
         const server = new Horizon.Server(horizonUrl);
         const response = await server
           .transactions()
-          .forAccount(data.payment.receiving_address)
+          .forAccount(pollAddress)
           .order("desc")
           .limit(10)
           .call();
@@ -371,7 +378,15 @@ export function CheckoutClient({ paymentId }: { paymentId: string }) {
     }, 5000);
 
     return () => clearInterval(interval);
-  }, [data?.payment.receiving_address, data?.payment.memo, data?.payment.status, data?.payment.session_error, paymentId]);
+  }, [
+    data?.payment.deposit_address,
+    data?.payment.receiving_address,
+    data?.payment.memo,
+    data?.payment.status,
+    data?.payment.session_error,
+    data?.payment.environment,
+    paymentId,
+  ]);
 
   const displayAmount = hasPricing
     ? (quote?.paid_amount ??
@@ -385,15 +400,19 @@ export function CheckoutClient({ paymentId }: { paymentId: string }) {
     data?.payment.settlement_asset.asset_code ??
     "XLM";
 
-  async function confirmPayment(txHash: string) {
+  async function confirmPayment(txHash: string, paymentType?: string) {
     const isSoroban = data?.payment.payment_flow === "soroban";
+    const isEscrowContractDeposit = paymentType === "escrow_contract_deposit";
+
     const confirmResponse = await fetch(`/api/checkout/${paymentId}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(
         isSoroban
           ? { action: "confirm_soroban", txHash, payerAddress: address }
-          : { txHash },
+          : isEscrowContractDeposit
+            ? { action: "confirm_escrow_contract", txHash, payerAddress: address }
+            : { txHash },
       ),
     });
 
@@ -467,6 +486,7 @@ export function CheckoutClient({ paymentId }: { paymentId: string }) {
 
       const buildData = (await buildResponse.json()) as {
         xdr?: string;
+        payment_type?: string;
         error?: string;
       };
 
@@ -484,8 +504,11 @@ export function CheckoutClient({ paymentId }: { paymentId: string }) {
         },
       );
 
-      const submitResult =
-        data.payment.payment_flow === "soroban"
+      const usesSorobanSubmit =
+        data.payment.payment_flow === "soroban" ||
+        buildData.payment_type === "escrow_contract_deposit";
+
+      const submitResult = usesSorobanSubmit
           ? await (async () => {
               const response = await fetch(`/api/checkout/${paymentId}`, {
                 method: "POST",
@@ -512,7 +535,10 @@ export function CheckoutClient({ paymentId }: { paymentId: string }) {
               return server.submitTransaction(transaction);
             })();
 
-      const confirmed = await confirmPayment(submitResult.hash);
+      const confirmed = await confirmPayment(
+        submitResult.hash,
+        buildData.payment_type,
+      );
       if (!confirmed) {
         setIsPaying(false);
         return;
@@ -585,8 +611,11 @@ export function CheckoutClient({ paymentId }: { paymentId: string }) {
   }
 
   const isCompleted = data.payment.status === "completed";
+  const isRefunded = data.payment.status === "refunded";
   const isSessionExpired =
     data.payment.status === "expired" || Boolean(data.payment.session_error);
+  const qrDestination =
+    data.payment.deposit_address ?? data.payment.receiving_address;
   const settlementLabel = data.payment.settlement_asset.asset_code;
   const isSandbox = data.payment.environment === "sandbox";
   const sourceLabel = getSourceLabel(data.payment.source_type);
@@ -809,6 +838,11 @@ export function CheckoutClient({ paymentId }: { paymentId: string }) {
                   </p>
                 </div>
               </div>
+            ) : isRefunded ? (
+              <AlertBlock type="info">
+                This payment was refunded to your wallet. If you paid the wrong amount or
+                settlement could not be completed, funds were returned automatically.
+              </AlertBlock>
             ) : isSessionExpired ? (
               <AlertBlock type="error">
                 {data.payment.session_error ??
@@ -953,70 +987,68 @@ export function CheckoutClient({ paymentId }: { paymentId: string }) {
                       transition={{ duration: 0.2 }}
                       className="space-y-6"
                     >
-                      {selectedPaidAsset && selectedPaidAsset.asset_code !== settlementLabel ? (
+                      <>
+                        {selectedPaidAsset &&
+                        selectedPaidAsset.asset_code !== settlementLabel ? (
+                          <AlertBlock type="info">
+                            Pay {formatTokenWithAsset(displayAmount, displayAsset)}. The merchant
+                            receives {settlementLabel} after settlement.
+                          </AlertBlock>
+                        ) : null}
                         <div className="flex flex-col items-center justify-center">
-                          <div className="w-full">
-                            <AlertBlock type="warning">
-                              QR Code payments are not supported for cross-asset payments. Please use the Connect Wallet tab to pay with {selectedPaidAsset.asset_code}, or select {settlementLabel} to pay via QR.
-                            </AlertBlock>
+                          <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white p-4">
+                            {isLoadingQuote ? (
+                              <div className="flex size-[200px] items-center justify-center rounded-xl bg-neutral-50 animate-pulse">
+                                <p className="text-sm font-medium text-neutral-400">Loading...</p>
+                              </div>
+                            ) : (
+                              <img
+                                src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(
+                                  `web+stellar:pay?destination=${encodeURIComponent(
+                                    qrDestination
+                                  )}&amount=${encodeURIComponent(
+                                    displayAmount
+                                  )}&memo=${encodeURIComponent(
+                                    data.payment.memo ?? ""
+                                  )}&memo_type=MEMO_TEXT` +
+                                    (selectedPaidAsset &&
+                                    selectedPaidAsset.asset_code !== "XLM" &&
+                                    selectedPaidAsset.issuer_address
+                                      ? `&asset_code=${encodeURIComponent(
+                                          selectedPaidAsset.asset_code
+                                        )}&asset_issuer=${encodeURIComponent(
+                                          selectedPaidAsset.issuer_address
+                                        )}`
+                                      : "")
+                                )}`}
+                                alt="Stellar QR Code"
+                                className="size-[200px]"
+                              />
+                            )}
+                          </div>
+                          <div className="mt-5 text-center text-sm font-medium text-neutral-500">
+                            <span>Waiting for payment...</span>
                           </div>
                         </div>
-                      ) : (
-                        <>
-                          <div className="flex flex-col items-center justify-center">
-                            <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white p-4">
-                              {isLoadingQuote ? (
-                                <div className="flex size-[200px] items-center justify-center rounded-xl bg-neutral-50 animate-pulse">
-                                  <p className="text-sm font-medium text-neutral-400">Loading...</p>
-                                </div>
-                              ) : (
-                                <img
-                                  src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(
-                                    `web+stellar:pay?destination=${encodeURIComponent(
-                                      data.payment.receiving_address
-                                    )}&amount=${encodeURIComponent(
-                                      displayAmount
-                                    )}&memo=${encodeURIComponent(
-                                      data.payment.memo ?? ""
-                                    )}&memo_type=MEMO_TEXT` +
-                                      (selectedPaidAsset &&
-                                      selectedPaidAsset.asset_code !== "XLM" &&
-                                      selectedPaidAsset.issuer_address
-                                        ? `&asset_code=${encodeURIComponent(
-                                            selectedPaidAsset.asset_code
-                                          )}&asset_issuer=${encodeURIComponent(
-                                            selectedPaidAsset.issuer_address
-                                          )}`
-                                        : "")
-                                  )}`}
-                                  alt="Stellar QR Code"
-                                  className="size-[200px]"
-                                />
-                              )}
+
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between gap-4">
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium text-neutral-900">Address</p>
+                              <p className="truncate font-mono text-sm text-neutral-500">{qrDestination}</p>
                             </div>
-                            <div className="mt-5 text-center text-sm font-medium text-neutral-500">
-                              <span>Waiting for payment...</span>
-                            </div>
+                            <CopyButton value={qrDestination} className="shrink-0" />
                           </div>
 
-                          <div className="space-y-4">
-                            <div className="flex items-center justify-between gap-4">
-                              <div className="min-w-0">
-                                <p className="text-sm font-medium text-neutral-900">Address</p>
-                                <p className="truncate font-mono text-sm text-neutral-500">{data.payment.receiving_address}</p>
-                              </div>
-                              <CopyButton value={data.payment.receiving_address} className="shrink-0" />
+                          <div className="flex items-center justify-between gap-4 border-t border-neutral-100 pt-4">
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium text-neutral-900">Memo <span className="text-neutral-500 font-normal">(Required)</span></p>
+                              <p className="truncate font-mono text-sm text-neutral-500">{data.payment.memo}</p>
                             </div>
+                            <CopyButton value={data.payment.memo ?? ""} className="shrink-0" />
+                          </div>
 
-                            <div className="flex items-center justify-between gap-4 border-t border-neutral-100 pt-4">
-                              <div className="min-w-0">
-                                <p className="text-sm font-medium text-neutral-900">Memo <span className="text-neutral-500 font-normal">(Required)</span></p>
-                                <p className="truncate font-mono text-sm text-neutral-500">{data.payment.memo}</p>
-                              </div>
-                              <CopyButton value={data.payment.memo ?? ""} className="shrink-0" />
-                            </div>
-
-                            <div className="flex items-center justify-between gap-4 border-t border-neutral-100 pt-4">
+                          <div className="flex items-center justify-between gap-4 border-t border-neutral-100 pt-4">
                               <div className="min-w-0">
                                 <p className="text-sm font-medium text-neutral-900">Amount</p>
                                 <p className="truncate font-mono text-sm text-neutral-500">{formatTokenWithAsset(displayAmount, displayAsset)}</p>
@@ -1025,7 +1057,6 @@ export function CheckoutClient({ paymentId }: { paymentId: string }) {
                             </div>
                           </div>
                         </>
-                      )}
                     </motion.div>
                   ) : (
                     <motion.div

@@ -6,11 +6,8 @@ import { invoices, payments, type Payment } from "@/lib/db/schema";
 import { isInvoiceCurrencyCode } from "@/lib/invoices/currencies";
 import { DEFAULT_PAYMENT_SESSION_HOURS } from "@/constants/payments/defaults";
 import { buildPaymentQuote, isQuoteExpired } from "@/lib/pricing/quotes";
-import {
-  applyPaymentQuote,
-  setPaymentPaidAsset,
-  updatePaymentStatus,
-} from "@/lib/payments/service";
+import { applyPaymentQuote, setPaymentPaidAsset, updatePaymentStatus } from "@/lib/payments/service";
+import { ensureEscrowPaymentRegistered } from "@/lib/soroban/escrow-contract";
 
 export function isPaymentSessionExpired(payment: Payment) {
   return Boolean(payment.expiresAt && payment.expiresAt.getTime() <= Date.now());
@@ -142,6 +139,10 @@ export async function refreshPaymentQuote(
     expiresAt: quote.expires_at,
     settlementAmount: quote.settlement_amount,
     settlementQuoteRate: quote.settlement_quote_rate,
+  });
+
+  await ensureEscrowPaymentRegistered(updated).catch((error) => {
+    console.error("Failed to register escrow payment on contract:", error);
   });
 
   return { quote, payment: updated };

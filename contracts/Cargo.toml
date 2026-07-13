@@ -1,11 +1,18 @@
-[workspace]
-resolver = "2"
-members = [
-  "contracts/*",
-]
+[package]
+name = "payoes"
+version = "0.1.0"
+edition = "2021"
+publish = false
 
-[workspace.dependencies]
+[lib]
+crate-type = ["lib", "cdylib"]
+doctest = false
+
+[dependencies]
 soroban-sdk = "25"
+
+[dev-dependencies]
+soroban-sdk = { version = "25", features = ["testutils"] }
 
 [profile.release]
 opt-level = "z"
@@ -17,7 +24,6 @@ panic = "abort"
 codegen-units = 1
 lto = true
 
-# For more information about this profile see https://soroban.stellar.org/docs/basic-tutorials/logging#cargotoml-profile
 [profile.release-with-logs]
 inherits = "release"
 debug-assertions = true

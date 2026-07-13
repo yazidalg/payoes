@@ -1,6 +1,5 @@
 import {
   Horizon,
-  Keypair,
   Networks,
   TransactionBuilder,
 } from "@stellar/stellar-sdk";
@@ -8,6 +7,7 @@ import type { Payment } from "@/lib/db/schema";
 import type { AllowedAsset } from "@/lib/assets/types";
 import { applySendMaxBuffer, assetsMatch } from "@/lib/pricing/quotes";
 import { getHorizonUrl } from "@/lib/stellar/network";
+import { getStellarOperatorKeypair } from "@/lib/stellar/operator";
 import {
   buildPathPaymentStrictReceiveXdr,
   buildPaymentTransactionXdr,
@@ -42,22 +42,6 @@ async function ensureTestnetAccountFunded(publicKey: string) {
   }
 }
 
-function resolveSimulationKeypair(paidAsset: AllowedAsset) {
-  const configuredSecret = process.env.SANDBOX_SIMULATION_SECRET_KEY?.trim();
-
-  if (configuredSecret) {
-    return Keypair.fromSecret(configuredSecret);
-  }
-
-  if (paidAsset.asset_code === "XLM" && !paidAsset.issuer_address) {
-    return Keypair.random();
-  }
-
-  throw new Error(
-    "Sandbox payment simulation requires SANDBOX_SIMULATION_SECRET_KEY for non-XLM assets",
-  );
-}
-
 export async function submitSandboxPaymentTransaction(payment: Payment) {
   if (payment.environment !== "sandbox") {
     throw new Error("Sandbox simulation is only available in sandbox mode");
@@ -78,18 +62,23 @@ export async function submitSandboxPaymentTransaction(payment: Payment) {
     issuer_address: payment.settlementAssetIssuer,
   };
 
-  const keypair = resolveSimulationKeypair(paidAsset);
+  const keypair = getStellarOperatorKeypair("sandbox");
   await ensureTestnetAccountFunded(keypair.publicKey());
 
   const amount = payment.quotedPaidAmount ?? payment.amount;
+  const destinationPublicKey =
+    payment.paymentFlow === "escrow" && payment.depositAddress
+      ? payment.depositAddress
+      : payment.receivingAddress;
   const requiresPathPayment =
+    payment.paymentFlow !== "escrow" &&
     Boolean(payment.quotedSettlementAmount) &&
     !assetsMatch(paidAsset, settlementAsset);
 
   const xdr = requiresPathPayment
     ? await buildPathPaymentStrictReceiveXdr({
         sourcePublicKey: keypair.publicKey(),
-        destinationPublicKey: payment.receivingAddress,
+        destinationPublicKey,
         sendAsset: {
           assetCode: paidAsset.asset_code,
           issuerAddress: paidAsset.issuer_address,
@@ -105,7 +94,7 @@ export async function submitSandboxPaymentTransaction(payment: Payment) {
       })
     : await buildPaymentTransactionXdr({
         sourcePublicKey: keypair.publicKey(),
-        destinationPublicKey: payment.receivingAddress,
+        destinationPublicKey,
         amount,
         asset: {
           assetCode: paidAsset.asset_code,

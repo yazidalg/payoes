@@ -193,6 +193,7 @@ export async function verifyPaymentOnHorizon(input: {
   environment: Organization["environment"];
   memo?: string | null;
   slippageBps?: number;
+  requireMemoMatch?: boolean;
 }) {
   const server = new Horizon.Server(getHorizonUrl(input.environment));
   const transaction = await server
@@ -265,7 +266,177 @@ export async function verifyPaymentOnHorizon(input: {
     };
   }
 
-  return { valid: true as const, transaction, payerAddress };
+  if (input.requireMemoMatch && input.memo) {
+    const txMemo = transaction.memo ?? "";
+    if (txMemo !== input.memo) {
+      return {
+        valid: false as const,
+        reason: "Payment memo does not match",
+      };
+    }
+  }
+
+  return {
+    valid: true as const,
+    transaction,
+    payerAddress,
+    receivedAmount: payment.amount,
+  };
+}
+
+export async function verifyEscrowInboundPayment(input: {
+  txHash: string;
+  destination: string;
+  asset: PaymentAssetInput;
+  environment: Organization["environment"];
+  memo?: string | null;
+  requireMemoMatch?: boolean;
+}) {
+  const server = new Horizon.Server(getHorizonUrl(input.environment));
+  const transaction = await server
+    .transactions()
+    .transaction(input.txHash)
+    .call();
+  const operations = await server
+    .operations()
+    .forTransaction(input.txHash)
+    .limit(10)
+    .call();
+
+  const expectedAsset = getAssetIdentifier(input.asset, input.environment);
+
+  if (transaction.successful !== true) {
+    return { valid: false as const, reason: "Transaction was not successful" };
+  }
+
+  const paymentOp = operations.records.find((record) => record.type === "payment");
+
+  if (!paymentOp) {
+    return { valid: false as const, reason: "Payment operation not found" };
+  }
+
+  const payment = paymentOp as {
+    from: string;
+    from_muxed?: string;
+    to: string;
+    to_muxed?: string;
+    amount: string;
+    asset_type: string;
+    asset_code?: string;
+    asset_issuer?: string;
+  };
+
+  const payerAddress = payment.from_muxed ?? payment.from;
+  const actualAsset =
+    payment.asset_type === "native"
+      ? "native"
+      : `${payment.asset_code}:${payment.asset_issuer}`;
+
+  const destinationMatches =
+    payment.to === input.destination ||
+    payment.to_muxed === input.destination;
+
+  if (!destinationMatches) {
+    return {
+      valid: false as const,
+      reason: "Payment was sent to a different address than the escrow wallet",
+    };
+  }
+
+  if (actualAsset !== expectedAsset) {
+    return {
+      valid: false as const,
+      reason: "Payment asset does not match",
+    };
+  }
+
+  if (input.requireMemoMatch && input.memo) {
+    const txMemo = transaction.memo ?? "";
+    if (txMemo !== input.memo) {
+      return {
+        valid: false as const,
+        reason: "Payment memo does not match",
+      };
+    }
+  }
+
+  return {
+    valid: true as const,
+    transaction,
+    payerAddress,
+    receivedAmount: payment.amount,
+  };
+}
+
+export async function verifyEscrowDepositByMemo(input: {
+  txHash: string;
+  destination: string;
+  environment: Organization["environment"];
+  memo: string;
+}) {
+  const server = new Horizon.Server(getHorizonUrl(input.environment));
+  const transaction = await server
+    .transactions()
+    .transaction(input.txHash)
+    .call();
+  const operations = await server
+    .operations()
+    .forTransaction(input.txHash)
+    .limit(10)
+    .call();
+
+  if (transaction.successful !== true) {
+    return { valid: false as const, reason: "Transaction was not successful" };
+  }
+
+  const txMemo = transaction.memo ?? "";
+  if (txMemo !== input.memo) {
+    return {
+      valid: false as const,
+      reason: "Payment memo does not match",
+    };
+  }
+
+  const paymentOp = operations.records.find((record) => record.type === "payment");
+
+  if (!paymentOp) {
+    return { valid: false as const, reason: "Payment operation not found" };
+  }
+
+  const payment = paymentOp as {
+    from: string;
+    from_muxed?: string;
+    to: string;
+    to_muxed?: string;
+    amount: string;
+    asset_type: string;
+    asset_code?: string;
+    asset_issuer?: string;
+  };
+
+  const destinationMatches =
+    payment.to === input.destination ||
+    payment.to_muxed === input.destination;
+
+  if (!destinationMatches) {
+    return {
+      valid: false as const,
+      reason: "Payment was sent to a different address than the escrow wallet",
+    };
+  }
+
+  return {
+    valid: true as const,
+    transaction,
+    payerAddress: payment.from_muxed ?? payment.from,
+    receivedAmount: payment.amount,
+    paidAsset: {
+      asset_code:
+        payment.asset_type === "native" ? "XLM" : payment.asset_code ?? "XLM",
+      issuer_address:
+        payment.asset_type === "native" ? null : payment.asset_issuer ?? null,
+    },
+  };
 }
 
 export async function verifyPathPaymentStrictReceiveOnHorizon(input: {
