@@ -22,7 +22,7 @@ const FOOTER_COLUMNS: { title: string; links: { label: string; href: string }[] 
   {
     title: "Resources",
     links: [
-      { label: "Docs", href: "/developers" },
+      { label: "Docs", href: "/docs" },
       { label: "Pricing", href: "/#cta" },
       { label: "Ecosystem", href: "/#logos" },
     ],

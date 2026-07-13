@@ -166,7 +166,7 @@ export default async function FeaturePage({
           className="text-neutral-800 [mask-image:linear-gradient(black,transparent_70%)]"
         />
 
-        <div className="absolute left-1/2 top-0 h-14 w-92 -translate-x-1/2 rounded-b-[1.75rem] bg-white sm:w-[38rem]">
+        <div className="absolute left-1/2 top-0 h-14 w-[23rem] max-w-[80vw] -translate-x-1/2 rounded-b-[1.75rem] bg-white sm:w-[38rem]">
           <span
             aria-hidden
             className="absolute left-0 top-0 size-8 -translate-x-full"

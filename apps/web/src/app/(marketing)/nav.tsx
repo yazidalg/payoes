@@ -54,6 +54,7 @@ const PRODUCT_ITEMS = [
 
 const NAV_LINKS: { label: string; href: string }[] = [
   { label: "Developers", href: "/developers" },
+  { label: "Docs", href: "/docs" },
   { label: "Ecosystem", href: "/#logos" },
   { label: "Pricing", href: "/#cta" },
 ];
