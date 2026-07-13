@@ -7,6 +7,7 @@ import { InvoiceCurrencyPicker } from "@/components/invoices/invoice-currency-pi
 import { InvoiceDueDatePicker } from "@/components/invoices/invoice-due-date-picker";
 import { InvoicePreviewPanel } from "@/components/invoices/invoice-preview-panel";
 import { InvoiceReviewDialog } from "@/components/invoices/invoice-review-dialog";
+import { CreateCustomerSheet } from "@/components/customers/create-customer-sheet";
 import {
   calculateInvoiceTotal,
   calculateTotalQuantity,
@@ -150,9 +151,10 @@ export function CreateInvoicePage({
     return data.customers ?? [];
   }, [organizationId]);
 
-  const { data: customers } = useAsyncData(fetchCustomers, [organizationId]);
+  const { data: customers, reload: reloadCustomers } = useAsyncData(fetchCustomers, [organizationId]);
 
   const [customerId, setCustomerId] = useState("");
+  const [createCustomerOpen, setCreateCustomerOpen] = useState(false);
   const [currencyCode, setCurrencyCode] = useState(DEFAULT_INVOICE_CURRENCY_CODE);
   const [description, setDescription] = useState("");
   const [dueAt, setDueAt] = useState<Date>(defaultDueDate);
@@ -369,6 +371,10 @@ export function CreateInvoicePage({
                     onChange={setCustomerId}
                     error={customerError}
                     onTouch={() => touch("customerId")}
+                    onCreate={async () => {
+                      setCreateCustomerOpen(true);
+                      return true;
+                    }}
                   />
 
                   <InvoiceCurrencyPicker
@@ -438,7 +444,7 @@ export function CreateInvoicePage({
           </div>
 
           <div className="bg-bg-preview flex min-h-[420px] flex-col border-t border-neutral-200 px-6 py-6 lg:border-t-0 lg:border-l">
-            <div className="mx-auto flex h-full min-h-0 w-full max-w-xl flex-col">
+            <div className="flex h-full min-h-0 w-full flex-col">
               <InvoicePreviewPanel
                 organizationId={organizationId}
                 presentation={presentation}
@@ -456,6 +462,16 @@ export function CreateInvoicePage({
         customer={selectedCustomer}
         isSending={isSending}
         onSend={() => void handleSend()}
+      />
+
+      <CreateCustomerSheet
+        organizationId={organizationId}
+        open={createCustomerOpen}
+        onOpenChange={setCreateCustomerOpen}
+        onCreated={(newCustomerId) => {
+          void reloadCustomers();
+          setCustomerId(newCustomerId);
+        }}
       />
     </InvoiceCreateShell>
   );

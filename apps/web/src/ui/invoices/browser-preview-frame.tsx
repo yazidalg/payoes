@@ -32,7 +32,7 @@ export function BrowserPreviewFrame({
           <span className="block truncate">{displayUrl}</span>
         </div>
       </div>
-      <div className="min-h-0 flex-1 overflow-auto bg-white">{children}</div>
+      <div className="min-h-0 flex-1 overflow-auto bg-white flex flex-col">{children}</div>
     </div>
   );
 }

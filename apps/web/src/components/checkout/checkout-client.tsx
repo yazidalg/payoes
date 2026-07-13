@@ -4,7 +4,6 @@ import { StellarWalletsKit } from "@creit.tech/stellar-wallets-kit/sdk";
 import { Horizon, TransactionBuilder } from "@stellar/stellar-sdk";
 import { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { CheckoutPageBackground } from "@/components/checkout/checkout-page-background";
 import { CheckoutSandboxBanner } from "@/components/checkout/checkout-sandbox-banner";
 import { OrganizationMark } from "@/components/organizations/organization-mark";
 import { AlertBlock } from "@/components/shared/alert-block";
@@ -22,57 +21,8 @@ import { Check2 } from "@dub/ui/icons";
 import { getAssetIconUrl } from "@/lib/assets/icons";
 import { getOfficialAsset } from "@/lib/payment-methods/official-assets";
 
-type AllowedAsset = {
-  asset_code: string;
-  issuer_address: string | null;
-};
-
-type PaymentQuote = {
-  pricing_amount: string;
-  pricing_currency: string;
-  paid_asset: AllowedAsset;
-  paid_amount: string;
-  settlement_asset?: AllowedAsset;
-  settlement_amount?: string;
-  rate: string;
-  settlement_quote_rate?: string;
-  requires_path_payment?: boolean;
-  expires_at: string;
-};
-
-type CheckoutData = {
-  payment: {
-    id: string;
-    amount: string;
-    settlement_asset: AllowedAsset;
-    allowed_assets: AllowedAsset[];
-    paid_asset: AllowedAsset | null;
-    status: string;
-    session_error?: string | null;
-    last_attempt_error?: string | null;
-    description: string | null;
-    environment: Organization["environment"];
-    expires_at: string | null;
-    quote_expires_at: string | null;
-    pricing_currency: string | null;
-    pricing_amount: string | null;
-    quoted_paid_amount: string | null;
-    quoted_settlement_amount: string | null;
-    quote_rate: string | null;
-    settlement_quote_rate: string | null;
-    source_type: string | null;
-    receiving_address: string;
-    deposit_address: string | null;
-    memo: string | null;
-    payment_flow: "direct" | "soroban" | "escrow";
-  };
-  items: CheckoutLineItem[];
-  merchant: {
-    name: string;
-    logoUrl: string | null;
-    logoInitials: string;
-  } | null;
-};
+import type { AllowedAsset, PaymentQuote, CheckoutData } from "./checkout-types";
+import { CheckoutView } from "./checkout-view";
 
 function assetKey(asset: AllowedAsset) {
   return `${asset.asset_code}:${asset.issuer_address ?? ""}`;
@@ -137,8 +87,7 @@ function CheckoutLoadingState() {
               <div className="h-32 animate-pulse rounded-md bg-neutral-200/50" />
             </div>
           </div>
-          <div className="relative w-full lg:w-[480px] lg:shrink-0">
-            <CheckoutPageBackground />
+          <div className="relative w-full bg-white lg:w-[480px] lg:shrink-0">
             <div className="relative z-10 px-6 py-10 lg:px-10 lg:py-16">
               <div className="mx-auto max-w-sm space-y-4">
                 <div className="h-10 animate-pulse rounded-md bg-neutral-100/80" />
@@ -153,46 +102,6 @@ function CheckoutLoadingState() {
   );
 }
 
-function AssetIcon({ code, className }: { code: string; className?: string }) {
-  const iconUrl = getAssetIconUrl(code);
-
-  if (iconUrl) {
-    return (
-      <div className={cn("flex size-10 shrink-0 items-center justify-center rounded-full bg-neutral-50 border border-neutral-200/50 p-1.5 overflow-hidden", className)}>
-        <img
-          src={iconUrl}
-          alt={code}
-          className="size-full object-contain"
-        />
-      </div>
-    );
-  }
-
-  return (
-    <div className={cn("flex size-10 shrink-0 items-center justify-center rounded-full bg-neutral-100 text-neutral-600 font-bold text-xs uppercase", className)}>
-      {code.slice(0, 3)}
-    </div>
-  );
-}
-
-function getAssetDetails(asset: AllowedAsset) {
-  const code = asset.asset_code;
-  const official = getOfficialAsset(code);
-
-  if (official) {
-    return {
-      name: official.displayName,
-      description: official.description,
-    };
-  }
-
-  return {
-    name: code,
-    description: asset.issuer_address
-      ? `Issued by ${asset.issuer_address.slice(0, 4)}...${asset.issuer_address.slice(-4)}`
-      : "Custom token",
-  };
-}
 
 import { ConnectedWallet } from "@/ui/wallet/connected-wallet";
 
@@ -265,6 +174,22 @@ export function CheckoutClient({ paymentId }: { paymentId: string }) {
       return;
     }
 
+    const cacheKey = `payoes:quote:${paymentId}:${selectedPaidAsset.asset_code}:${selectedPaidAsset.issuer_address ?? ""}`;
+
+    try {
+      const cached = localStorage.getItem(cacheKey);
+      if (cached) {
+        const parsed = JSON.parse(cached) as PaymentQuote;
+        const expiresAtMs = new Date(parsed.expires_at).getTime();
+        if (expiresAtMs > Date.now() + 1500) {
+          setQuote(parsed);
+          return;
+        }
+      }
+    } catch (e) {
+      // ignore
+    }
+
     if (loadQuoteInFlightRef.current) {
       return;
     }
@@ -296,13 +221,18 @@ export function CheckoutClient({ paymentId }: { paymentId: string }) {
       }
 
       setQuote(quoteData);
+      try {
+        localStorage.setItem(cacheKey, JSON.stringify(quoteData));
+      } catch (e) {
+        // ignore
+      }
     } finally {
       loadQuoteInFlightRef.current = false;
       setIsLoadingQuote(false);
     }
   }, [hasPricing, paymentId, selectedPaidAsset]);
 
-  const { quoteExpired, isRefreshingRate, rateLockLabel } =
+  const { countdown, quoteExpired, isRefreshingRate, rateLockLabel } =
     usePaymentQuoteCountdown({
       expiresAt: hasPricing ? quote?.expires_at : null,
       isLoadingQuote,
@@ -664,530 +594,55 @@ export function CheckoutClient({ paymentId }: { paymentId: string }) {
   }
 
   return (
-    <div className="relative min-h-svh bg-white">
-      <div className="relative z-10 flex min-h-svh flex-col">
-        {isSandbox ? (
-          <CheckoutSandboxBanner
-            onSimulate={() => void handleSimulatePayment()}
-            isSimulating={isSimulating}
-            simulateDisabled={isCompleted || isRefreshingRate}
-          />
-        ) : null}
-
-        <div className="flex flex-1 flex-col lg:flex-row">
-          <div className="flex-none lg:flex-1 border-b border-neutral-200/60 bg-neutral-50 px-4 py-4 lg:border-b-0 lg:border-r lg:px-12 lg:py-12">
-          <div className="mx-auto max-w-md space-y-4 lg:space-y-8">
-            <div className="flex items-center justify-between lg:block lg:space-y-0">
-              <div className="flex items-center gap-3">
-                {data.merchant ? (
-                  <div className="flex size-8 lg:size-10 shrink-0 overflow-hidden rounded-full">
-                    <OrganizationMark
-                      organization={{
-                        name: data.merchant.name,
-                        logoUrl: data.merchant.logoUrl,
-                        logoInitials: data.merchant.logoInitials,
-                      }}
-                      className="size-full"
-                    />
-                  </div>
-                ) : null}
-                <div className="min-w-0">
-                  <p className="hidden lg:block truncate text-sm text-neutral-500">{sourceLabel}</p>
-                  <p className="truncate text-sm lg:text-base font-medium text-neutral-900">
-                    {data.merchant?.name ?? "Merchant"}
-                  </p>
-                </div>
-              </div>
-              
-              {/* Mobile Total (Inline) */}
-              <div className="lg:hidden text-right">
-                <p className="text-xs text-neutral-500">Total</p>
-                <p className="text-sm font-semibold text-neutral-900">
-                  {hasPricing ? (
-                    showQuoteAmountLoading ? (
-                      <span className="inline-block h-4 w-16 animate-pulse rounded bg-neutral-200" />
-                    ) : (
-                      formatTokenWithAsset(displayAmount, displayAsset)
-                    )
-                  ) : (
-                    formatTokenWithAsset(data.payment.amount, settlementLabel)
-                  )}
-                </p>
-              </div>
-            </div>
-
-            {/* Mobile Compact Line Items */}
-            <div className="lg:hidden">
-              {lineItems.length > 0 && (
-                <div className="border-t border-neutral-200/60 pt-3 mt-3">
-                  <button
-                    onClick={() => setIsMobileItemsOpen(!isMobileItemsOpen)}
-                    className="flex w-full cursor-pointer list-none items-center justify-between text-xs font-medium text-neutral-500 hover:text-neutral-700"
-                  >
-                    <span>Show order details</span>
-                    <svg className={cn("size-4 transition-transform", isMobileItemsOpen && "rotate-180")} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </button>
-                  <AnimatePresence initial={false}>
-                    {isMobileItemsOpen && (
-                      <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: "auto", opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.2, ease: "easeInOut" }}
-                        className="overflow-hidden"
-                      >
-                        <div className="mt-3 space-y-1.5 pb-1">
-                          {lineItems.map((item, index) => (
-                            <div key={index} className="flex justify-between text-xs text-neutral-600">
-                              <span className="truncate pr-2">{item.quantity} × {item.description}</span>
-                              <span className="shrink-0">{formatLineAmount(item.line_amount)}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-              )}
-            </div>
-
-            <div className="hidden lg:block space-y-4">
-              {lineItems.length > 0 ? (
-                <div className="space-y-3 border-b border-neutral-200 pb-4">
-                  {lineItems.map((item, index) => (
-                    <div
-                      key={`${item.description}-${index}`}
-                      className="flex items-start justify-between gap-4"
-                    >
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium text-neutral-900">
-                          {item.description}
-                        </p>
-                        <p className="mt-0.5 text-xs text-neutral-500">
-                          {item.quantity} × {formatLineAmount(item.unit_amount)}
-                        </p>
-                      </div>
-                      <p className="shrink-0 text-sm font-medium text-neutral-900">
-                        {formatLineAmount(item.line_amount)}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="border-b border-neutral-200 pb-4">
-                  <p className="text-sm text-neutral-500">
-                    {data.payment.description ?? "No line items for this payment."}
-                  </p>
-                </div>
-              )}
-
-              <div className="space-y-2 border-b border-neutral-200 pb-4">
-                <div className="flex items-center justify-between gap-4 text-sm">
-                  <span className="text-neutral-500">Subtotal</span>
-                  <span className="font-medium text-neutral-900">
-                    {hasPricing
-                      ? formatInvoiceAmount(
-                          data.payment.pricing_amount!,
-                          data.payment.pricing_currency!,
-                        )
-                      : formatTokenWithAsset(data.payment.amount, settlementLabel)}
-                  </span>
-                </div>
-                {hasPricing ? (
-                  <div className="flex items-center justify-between gap-4 text-sm">
-                    <span className="text-neutral-500">You pay</span>
-                    <span className="font-medium text-neutral-900">
-                      {showQuoteAmountLoading ? (
-                        <div className="h-4 w-20 animate-pulse rounded bg-neutral-200" />
-                      ) : (
-                        formatTokenWithAsset(displayAmount, displayAsset)
-                      )}
-                    </span>
-                  </div>
-                ) : null}
-              </div>
-
-              <div className="flex items-center justify-between gap-4">
-                <span className="text-sm font-medium text-neutral-900">Total due</span>
-                <div className="text-right">
-                  {hasPricing ? (
-                    <>
-                      <p className="text-lg font-semibold text-neutral-900">
-                        {formatInvoiceAmount(
-                          data.payment.pricing_amount!,
-                          data.payment.pricing_currency!,
-                        )}
-                      </p>
-                      <div className="text-sm text-neutral-500 flex justify-end">
-                        {showQuoteAmountLoading ? (
-                          <div className="h-4 w-16 animate-pulse rounded bg-neutral-200" />
-                        ) : (
-                          formatTokenWithAsset(displayAmount, displayAsset)
-                        )}
-                      </div>
-                    </>
-                  ) : (
-                    <p className="text-lg font-semibold text-neutral-900">
-                      {formatTokenWithAsset(data.payment.amount, settlementLabel)}
-                    </p>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {quote && hasPricing ? (
-              <p
-                className={cn(
-                  "text-xs text-neutral-500",
-                  isRefreshingRate && "animate-pulse",
-                )}
-              >
-                {rateLockLabel}
-              </p>
-            ) : null}
-          </div>
-          </div>
-
-          <div className="relative flex-none lg:flex-1">
-            <CheckoutPageBackground />
-            <div className="relative z-10 px-6 py-8 lg:px-12 lg:py-12">
-          <div className="mx-auto max-w-md space-y-6">
-            <div>
-              <h2 className="text-base font-semibold text-neutral-900">Payment</h2>
-              <p className="mt-1 text-sm text-neutral-500">
-                Connect your Stellar wallet and complete the payment.
-              </p>
-            </div>
-
-            {isCompleted ? (
-              <div className="flex items-start gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-4 text-sm text-emerald-800">
-                <Check2 className="mt-0.5 size-4 shrink-0" />
-                <div>
-                  <p className="font-medium">Payment completed</p>
-                  <p className="mt-1 text-emerald-700">
-                    Your payment was submitted successfully.
-                  </p>
-                </div>
-              </div>
-            ) : isSessionExpired ? (
-              <AlertBlock type="error">
-                {data.payment.session_error ??
-                  "This payment has expired. Ask the merchant to send a new invoice link."}
-              </AlertBlock>
-            ) : (
-              <div className="space-y-5">
-                {lastAttemptError ? (
-                  <AlertBlock type="info">
-                    {lastAttemptError} You can try again below using the same payment
-                    link and memo.
-                  </AlertBlock>
-                ) : null}
-                {allowedAssets.length > 1 ? (
-                  <div ref={dropdownRef} className="relative space-y-2.5">
-                    <label className="text-sm font-medium text-neutral-900">
-                      Pay with
-                    </label>
-                    <button
-                      type="button"
-                      disabled={isRefreshingRate}
-                      onClick={() => setIsAssetDropdownOpen(!isAssetDropdownOpen)}
-                      className={cn(
-                        "flex w-full items-center justify-between rounded-xl border border-neutral-200 bg-white p-3.5 text-left shadow-sm transition-all hover:bg-neutral-50 active:scale-[0.99]",
-                        isRefreshingRate && "cursor-not-allowed opacity-60",
-                      )}
-                    >
-                      {selectedPaidAsset && (
-                        <div className="flex items-center gap-3">
-                          <AssetIcon code={selectedPaidAsset.asset_code} />
-                          <div>
-                            <p className="font-semibold text-neutral-900 text-sm">
-                              {getAssetDetails(selectedPaidAsset).name}
-                            </p>
-                            <p className="text-xs text-neutral-500">
-                              {getAssetDetails(selectedPaidAsset).description}
-                            </p>
-                          </div>
-                        </div>
-                      )}
-                      <div className="flex items-center gap-2">
-                        {hasPricing && (
-                          showQuoteAmountLoading ? (
-                            <div className="h-4 w-16 animate-pulse rounded bg-neutral-200 mr-1" />
-                          ) : quote ? (
-                            <span className="text-xs font-medium text-neutral-600 mr-1">
-                              {formatTokenWithAsset(displayAmount, displayAsset)}
-                            </span>
-                          ) : null
-                        )}
-                        <svg className={cn("size-5 text-neutral-400 transition-transform", isAssetDropdownOpen && "rotate-180")} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                        </svg>
-                      </div>
-                    </button>
-
-                    <AnimatePresence>
-                      {isAssetDropdownOpen && (
-                        <motion.div
-                          initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                          animate={{ opacity: 1, y: 0, scale: 1 }}
-                          exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                          transition={{ duration: 0.15, ease: "easeOut" }}
-                          className="absolute left-0 top-full z-50 mt-2 w-full rounded-xl border border-neutral-200 bg-white shadow-lg overflow-hidden"
-                        >
-                          <div className="grid max-h-[240px] overflow-y-auto p-1.5 gap-0.5">
-                            {allowedAssets.map((asset) => {
-                              const key = assetKey(asset);
-                              const isSelected = selectedPaidAssetKey === key;
-                              const details = getAssetDetails(asset);
-
-                              return (
-                                <button
-                                  key={key}
-                                  type="button"
-                                  disabled={isRefreshingRate}
-                                  onClick={() => {
-                                    setSelectedPaidAssetKey(key);
-                                    setQuote(null);
-                                    setIsLoadingQuote(true);
-                                    setIsAssetDropdownOpen(false);
-                                  }}
-                                  className={cn(
-                                    "flex w-full items-center justify-between rounded-lg p-2.5 text-left transition-all hover:bg-neutral-100",
-                                    isSelected ? "bg-neutral-50/80" : "bg-transparent"
-                                  )}
-                                >
-                                  <div className="flex items-center gap-3">
-                                    <AssetIcon code={asset.asset_code} className="size-8 p-1" />
-                                    <div>
-                                      <p className="font-medium text-neutral-900 text-sm">
-                                        {details.name}
-                                      </p>
-                                    </div>
-                                  </div>
-                                  {isSelected && (
-                                    <Check2 className="size-4 text-neutral-900" />
-                                  )}
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
-                ) : null}
-
-                <div className="space-y-3">
-                  {isRefreshingRate ? (
-                    <AlertBlock type="info">
-                      Rate lock is refreshing. Payment actions are paused until the
-                      new rate is ready.
-                    </AlertBlock>
-                  ) : null}
-                  {quoteError && !isRefreshingRate ? (
-                    <AlertBlock type="error">{quoteError}</AlertBlock>
-                  ) : null}
-                  {error ? <AlertBlock type="error">{error}</AlertBlock> : null}
-                  {networkError ? <AlertBlock type="error">{networkError}</AlertBlock> : null}
-                  {connectError ? <AlertBlock type="error">{connectError}</AlertBlock> : null}
-                </div>
-
-                {/* Payment Method Selector Tabs */}
-                <div
-                  className={cn(
-                    "flex rounded-xl bg-neutral-100 p-1",
-                    isRefreshingRate && "opacity-60",
-                  )}
-                >
-                  <button
-                    type="button"
-                    disabled={isRefreshingRate}
-                    onClick={() => setPaymentMode("wallet")}
-                    className={cn(
-                      "flex-1 rounded-lg py-2 text-center text-sm font-semibold transition-all",
-                      paymentMode === "wallet"
-                        ? "bg-white text-neutral-900 shadow-sm"
-                        : "text-neutral-500 hover:text-neutral-950",
-                      isRefreshingRate && "cursor-not-allowed",
-                    )}
-                  >
-                    Connect Wallet
-                  </button>
-                  <button
-                    type="button"
-                    disabled={isRefreshingRate}
-                    onClick={() => setPaymentMode("qr")}
-                    className={cn(
-                      "flex-1 rounded-lg py-2 text-center text-sm font-semibold transition-all",
-                      paymentMode === "qr"
-                        ? "bg-white text-neutral-900 shadow-sm"
-                        : "text-neutral-500 hover:text-neutral-950",
-                      isRefreshingRate && "cursor-not-allowed",
-                    )}
-                  >
-                    QR Code
-                  </button>
-                </div>
-
-                <AnimatePresence mode="wait">
-                  {paymentMode === "qr" ? (
-                    <motion.div
-                      key="qr"
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      transition={{ duration: 0.2 }}
-                      className="space-y-6"
-                    >
-                      <>
-                        {selectedPaidAsset &&
-                        selectedPaidAsset.asset_code !== settlementLabel ? (
-                          <AlertBlock type="info">
-                            Pay {formatTokenWithAsset(displayAmount, displayAsset)}. The merchant
-                            receives {settlementLabel} after settlement.
-                          </AlertBlock>
-                        ) : null}
-                        <div className="flex flex-col items-center justify-center">
-                          <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white p-4">
-                            {showQrLoading ? (
-                              <div className="flex size-[200px] items-center justify-center rounded-xl bg-neutral-50 animate-pulse">
-                                <p className="text-sm font-medium text-neutral-400">
-                                  {isRefreshingRate ? "Refreshing rate..." : "Loading..."}
-                                </p>
-                              </div>
-                            ) : (
-                              <img
-                                src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(
-                                  `web+stellar:pay?destination=${encodeURIComponent(
-                                    qrDestination
-                                  )}&amount=${encodeURIComponent(
-                                    displayAmount
-                                  )}&memo=${encodeURIComponent(
-                                    data.payment.memo ?? ""
-                                  )}&memo_type=MEMO_TEXT` +
-                                    (selectedPaidAsset &&
-                                    selectedPaidAsset.asset_code !== "XLM" &&
-                                    selectedPaidAsset.issuer_address
-                                      ? `&asset_code=${encodeURIComponent(
-                                          selectedPaidAsset.asset_code
-                                        )}&asset_issuer=${encodeURIComponent(
-                                          selectedPaidAsset.issuer_address
-                                        )}`
-                                      : "")
-                                )}`}
-                                alt="Stellar QR Code"
-                                className="size-[200px]"
-                              />
-                            )}
-                          </div>
-                          <div className="mt-5 text-center text-sm font-medium text-neutral-500">
-                            <span>Waiting for payment...</span>
-                          </div>
-                        </div>
-
-                        <div className="space-y-4">
-                          <div className="flex items-center justify-between gap-4">
-                            <div className="min-w-0">
-                              <p className="text-sm font-medium text-neutral-900">Address</p>
-                              <p className="truncate font-mono text-sm text-neutral-500">{qrDestination}</p>
-                            </div>
-                            <CopyButton
-                              value={qrDestination}
-                              className={cn("shrink-0", isRefreshingRate && "pointer-events-none opacity-50")}
-                            />
-                          </div>
-
-                          <div className="flex items-center justify-between gap-4 border-t border-neutral-100 pt-4">
-                            <div className="min-w-0">
-                              <p className="text-sm font-medium text-neutral-900">Memo <span className="text-neutral-500 font-normal">(Required)</span></p>
-                              <p className="truncate font-mono text-sm text-neutral-500">{data.payment.memo}</p>
-                            </div>
-                            <CopyButton
-                              value={data.payment.memo ?? ""}
-                              className={cn("shrink-0", isRefreshingRate && "pointer-events-none opacity-50")}
-                            />
-                          </div>
-
-                          <div className="flex items-center justify-between gap-4 border-t border-neutral-100 pt-4">
-                              <div className="min-w-0">
-                                <p className="text-sm font-medium text-neutral-900">Amount</p>
-                                <p className="truncate font-mono text-sm text-neutral-500">{formatTokenWithAsset(displayAmount, displayAsset)}</p>
-                              </div>
-                              <CopyButton
-                                value={displayAmount}
-                                className={cn("shrink-0", isRefreshingRate && "pointer-events-none opacity-50")}
-                              />
-                            </div>
-                          </div>
-                        </>
-                    </motion.div>
-                  ) : (
-                    <motion.div
-                      key="wallet"
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      transition={{ duration: 0.2 }}
-                      className="space-y-5"
-                    >
-                      {address ? (
-                        <ConnectedWallet
-                          address={address}
-                          networkLabel={
-                            environment === "production" ? "Public" : "Testnet"
-                          }
-                          className="border-neutral-200 bg-neutral-50 px-3 py-3"
-                        />
-                      ) : null}
-
-                      {pendingTxHash ? (
-                        <Button
-                          type="button"
-                          variant="secondary"
-                          className="h-10 w-full"
-                          text="Retry payment confirmation"
-                          loading={isPaying}
-                          disabled={isRefreshingRate}
-                          onClick={() => {
-                            setIsPaying(true);
-                            void confirmPayment(pendingTxHash).finally(() => {
-                              setIsPaying(false);
-                            });
-                          }}
-                        />
-                      ) : null}
-
-                      {!address ? (
-                        <Button
-                          type="button"
-                          className="h-10 w-full"
-                          text="Connect wallet"
-                          loading={isConnecting}
-                          disabled={paymentBlocked || isRefreshingRate}
-                          onClick={() => void connect()}
-                        />
-                      ) : (
-                        <Button
-                          type="button"
-                          className="h-10 w-full"
-                          text={`Pay ${formatTokenWithAsset(displayAmount, displayAsset)}`}
-                          loading={isPaying || isRefreshingRate}
-                          disabled={paymentBlocked || isRefreshingRate}
-                          onClick={() => void handlePay()}
-                        />
-                      )}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            )}
-          </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+    <CheckoutView
+      data={data}
+      isCompleted={isCompleted}
+      isSessionExpired={isSessionExpired}
+      lastAttemptError={lastAttemptError}
+      qrDestination={qrDestination}
+      settlementLabel={settlementLabel}
+      isSandbox={isSandbox}
+      sourceLabel={sourceLabel}
+      currencyCode={currencyCode}
+      hasPricing={hasPricing}
+      showQuoteAmountLoading={showQuoteAmountLoading}
+      displayAmount={displayAmount}
+      displayAsset={displayAsset}
+      quote={quote}
+      rateLockLabel={rateLockLabel}
+      countdown={countdown}
+      isRefreshingRate={isRefreshingRate}
+      isSimulating={isSimulating}
+      allowedAssets={allowedAssets}
+      selectedPaidAsset={selectedPaidAsset}
+      selectedPaidAssetKey={selectedPaidAssetKey}
+      setSelectedPaidAssetKey={setSelectedPaidAssetKey}
+      isAssetDropdownOpen={isAssetDropdownOpen}
+      setIsAssetDropdownOpen={setIsAssetDropdownOpen}
+      isMobileItemsOpen={isMobileItemsOpen}
+      setIsMobileItemsOpen={setIsMobileItemsOpen}
+      paymentMode={paymentMode}
+      setPaymentMode={setPaymentMode}
+      address={address}
+      pendingTxHash={pendingTxHash}
+      isPaying={isPaying}
+      isConnecting={isConnecting}
+      paymentBlocked={paymentBlocked}
+      quoteError={quoteError}
+      error={error}
+      networkError={networkError}
+      connectError={connectError}
+      showQrLoading={showQrLoading}
+      dropdownRef={dropdownRef}
+      onSimulatePayment={() => void handleSimulatePayment()}
+      onConnectWallet={() => void connect()}
+      onPay={() => void handlePay()}
+      onRetryConfirm={() => {
+        setIsPaying(true);
+        void confirmPayment(pendingTxHash!).finally(() => {
+          setIsPaying(false);
+        });
+      }}
+    />
   );
 }

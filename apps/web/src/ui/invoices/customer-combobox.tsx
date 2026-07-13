@@ -17,6 +17,7 @@ export function CustomerCombobox({
   label = "Customer",
   required = true,
   placeholder = "Select a customer",
+  onCreate,
 }: {
   customers: CustomerOption[];
   value: string;
@@ -27,6 +28,7 @@ export function CustomerCombobox({
   label?: string;
   required?: boolean;
   placeholder?: string;
+  onCreate?: (search: string) => Promise<boolean>;
 }) {
   const options = useMemo<ComboboxOption[]>(
     () =>
@@ -74,6 +76,10 @@ export function CustomerCombobox({
           <p className="px-2 py-4 text-center text-sm text-neutral-500">
             No customers found.
           </p>
+        }
+        onCreate={onCreate}
+        createLabel={(search) =>
+          search ? `Add customer "${search}"` : "Add customer..."
         }
         buttonProps={{
           id,
