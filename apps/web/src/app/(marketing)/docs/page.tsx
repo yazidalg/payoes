@@ -1,8 +1,10 @@
 import { ArrowUpRight, BookOpen, Rocket, Server, Wallet } from "lucide-react";
 import type { Metadata } from "next";
-import Link from "next/link";
 import { ButtonLink } from "../button-link";
+import { DarkCta } from "../dark-cta";
 import { Grid } from "../grid";
+
+const ACCENT = "bg-gradient-to-b from-amber-500 to-amber-600";
 
 export const metadata: Metadata = {
   title: "Documentation - Payoes",
@@ -171,6 +173,7 @@ export default function DocsPage() {
     <>
       {/* Hero */}
       <section className="relative overflow-hidden px-6 pb-16 pt-24 text-center">
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-amber-100/50 to-amber-200/80" />
         <Grid
           id="docs-hero"
           cellSize={80}
@@ -179,7 +182,8 @@ export default function DocsPage() {
         />
 
         <div className="relative mx-auto flex w-full max-w-3xl flex-col items-center">
-          <div className="mx-auto flex h-7 w-fit items-center rounded-full border border-neutral-200 bg-white px-4 text-xs font-medium text-neutral-800 shadow-sm">
+          <div className="mx-auto flex h-7 w-fit items-center gap-2 rounded-full border border-neutral-200 bg-white px-4 text-xs font-medium text-neutral-800 shadow-sm">
+            <span className={`size-2 rounded-full ${ACCENT}`} />
             Documentation
           </div>
           <h1 className="font-display mt-6 text-balance text-4xl font-medium text-neutral-900 sm:text-5xl sm:leading-[1.1]">
@@ -214,7 +218,9 @@ export default function DocsPage() {
             <ol className="mt-8 flex flex-col gap-5">
               {QUICKSTART_STEPS.map(({ title, description }, idx) => (
                 <li key={title} className="flex items-start gap-3">
-                  <div className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-[11px] font-semibold text-white">
+                  <div
+                    className={`mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold text-white ${ACCENT}`}
+                  >
                     {idx + 1}
                   </div>
                   <div>
@@ -342,31 +348,13 @@ export default function DocsPage() {
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="px-4 pb-24 pt-4 text-center">
-        <h2 className="font-display text-balance text-3xl font-medium text-neutral-900">
-          Ready to build?
-        </h2>
-        <p className="mt-4 text-neutral-500">
-          Grab a sandbox key and make your first request in minutes.
-        </p>
-        <div className="xs:flex-row mx-auto mt-8 flex max-w-fit flex-col items-center gap-4">
-          <ButtonLink variant="primary" href="/register">
-            Get your API keys
-          </ButtonLink>
-          <ButtonLink variant="secondary" href="/developers">
-            Explore the API
-          </ButtonLink>
-        </div>
-        <div className="mt-10">
-          <Link
-            href="/"
-            className="text-sm text-neutral-500 transition-colors hover:text-neutral-900"
-          >
-            &larr; Back to home
-          </Link>
-        </div>
-      </section>
+      <DarkCta
+        id="docs-cta"
+        badge="Documentation"
+        accentClassName={ACCENT}
+        title="Ready to build?"
+        description="Grab a sandbox key and make your first request in minutes."
+      />
     </>
   );
 }

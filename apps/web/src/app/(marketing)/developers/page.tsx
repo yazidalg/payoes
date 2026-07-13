@@ -3,7 +3,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ButtonLink } from "../button-link";
 import { CodeTabs } from "../code-tabs";
+import { DarkCta } from "../dark-cta";
 import { Grid } from "../grid";
+
+const ACCENT = "bg-gradient-to-b from-indigo-500 to-indigo-600";
 
 export const metadata: Metadata = {
   title: "Developers - Payoes",
@@ -87,6 +90,7 @@ export default function DevelopersPage() {
     <>
       {/* Hero */}
       <section className="relative overflow-hidden px-6 pb-16 pt-24 text-center">
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-indigo-100/50 to-indigo-200/80" />
         <Grid
           id="developers-hero"
           cellSize={80}
@@ -95,7 +99,8 @@ export default function DevelopersPage() {
         />
 
         <div className="relative mx-auto flex w-full max-w-3xl flex-col items-center">
-          <div className="mx-auto flex h-7 w-fit items-center rounded-full border border-neutral-200 bg-white px-4 text-xs font-medium text-neutral-800 shadow-sm">
+          <div className="mx-auto flex h-7 w-fit items-center gap-2 rounded-full border border-neutral-200 bg-white px-4 text-xs font-medium text-neutral-800 shadow-sm">
+            <span className={`size-2 rounded-full ${ACCENT}`} />
             Payoes API
           </div>
           <h1 className="font-display mt-6 text-balance text-4xl font-medium text-neutral-900 sm:text-5xl sm:leading-[1.1]">
@@ -205,31 +210,12 @@ export default function DevelopersPage() {
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="px-4 pb-24 pt-20 text-center">
-        <h2 className="font-display text-balance text-3xl font-medium text-neutral-900">
-          Ship your integration this afternoon
-        </h2>
-        <p className="mt-4 text-neutral-500">
-          Free sandbox on Stellar Testnet. No credit card required.
-        </p>
-        <div className="xs:flex-row mx-auto mt-8 flex max-w-fit flex-col items-center gap-4">
-          <ButtonLink variant="primary" href="/register">
-            Start for free
-          </ButtonLink>
-          <ButtonLink variant="secondary" href="/#features">
-            See all features
-          </ButtonLink>
-        </div>
-        <div className="mt-10">
-          <Link
-            href="/"
-            className="text-sm text-neutral-500 transition-colors hover:text-neutral-900"
-          >
-            &larr; Back to home
-          </Link>
-        </div>
-      </section>
+      <DarkCta
+        id="developers-cta"
+        badge="Payoes API"
+        accentClassName={ACCENT}
+        title="Ship your integration this afternoon"
+      />
     </>
   );
 }
