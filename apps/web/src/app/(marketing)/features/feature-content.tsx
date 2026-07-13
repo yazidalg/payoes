@@ -12,6 +12,10 @@ export type Feature = {
   badge: string;
   title: string;
   tagline: string;
+  /* Full-hero gradient wash, transparent at the top and tinted at the bottom. */
+  washClassName: string;
+  /* Solid accent gradient for small chips (badge dot, step numbers). */
+  accentClassName: string;
   graphic: ComponentType;
   steps: { title: string; description: string }[];
   benefits: { title: string; description: string }[];
@@ -21,6 +25,9 @@ export type Feature = {
 export const FEATURES: Record<string, Feature> = {
   payments: {
     slug: "payments",
+    washClassName:
+      "bg-gradient-to-b from-transparent via-violet-100/50 to-violet-200/80",
+    accentClassName: "bg-gradient-to-b from-violet-500 to-violet-600",
     badge: "Payments",
     title: "Crypto payment processing",
     tagline:
@@ -92,6 +99,9 @@ export const FEATURES: Record<string, Feature> = {
 
   checkout: {
     slug: "checkout",
+    washClassName:
+      "bg-gradient-to-b from-transparent via-emerald-100/50 to-emerald-200/80",
+    accentClassName: "bg-gradient-to-b from-emerald-500 to-emerald-600",
     badge: "Checkout",
     title: "Checkout & payment links",
     tagline:
@@ -168,6 +178,9 @@ export const FEATURES: Record<string, Feature> = {
 
   invoicing: {
     slug: "invoicing",
+    washClassName:
+      "bg-gradient-to-b from-transparent via-orange-100/50 to-orange-200/80",
+    accentClassName: "bg-gradient-to-b from-orange-500 to-orange-600",
     badge: "Invoicing",
     title: "Invoicing",
     tagline:
@@ -238,6 +251,9 @@ curl -X POST https://payoes.com/api/v1/invoices/inv_.../finalize \\
 
   "qr-checkout": {
     slug: "qr-checkout",
+    washClassName:
+      "bg-gradient-to-b from-transparent via-blue-100/50 to-blue-200/80",
+    accentClassName: "bg-gradient-to-b from-blue-500 to-blue-600",
     badge: "QR checkout",
     title: "QR code checkout",
     tagline:
@@ -286,6 +302,9 @@ curl -X POST https://payoes.com/api/v1/invoices/inv_.../finalize \\
 
   webhooks: {
     slug: "webhooks",
+    washClassName:
+      "bg-gradient-to-b from-transparent via-rose-100/50 to-rose-200/80",
+    accentClassName: "bg-gradient-to-b from-rose-500 to-rose-600",
     badge: "Webhooks",
     title: "Webhooks & real-time events",
     tagline:

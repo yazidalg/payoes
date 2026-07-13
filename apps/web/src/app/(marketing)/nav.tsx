@@ -19,30 +19,35 @@ const PRODUCT_ITEMS = [
     label: "Crypto payments",
     description: "Accept USDC, XLM, and any Stellar asset",
     href: "/features/payments",
+    iconClass: "bg-gradient-to-b from-violet-500 to-violet-600",
     icon: ArrowLeftRight,
   },
   {
     label: "Checkout & payment links",
     description: "Hosted checkout pages and shareable links",
     href: "/features/checkout",
+    iconClass: "bg-gradient-to-b from-emerald-500 to-emerald-600",
     icon: Link2,
   },
   {
     label: "Invoicing",
     description: "Bill customers with hosted invoices",
     href: "/features/invoicing",
+    iconClass: "bg-gradient-to-b from-orange-500 to-orange-600",
     icon: Receipt,
   },
   {
     label: "QR code checkout",
     description: "Free QR codes for every payment link",
     href: "/features/qr-checkout",
+    iconClass: "bg-gradient-to-b from-blue-500 to-blue-600",
     icon: QrCode,
   },
   {
     label: "Webhooks",
     description: "HMAC-signed events with automatic retries",
     href: "/features/webhooks",
+    iconClass: "bg-gradient-to-b from-rose-500 to-rose-600",
     icon: Webhook,
   },
 ];
@@ -92,18 +97,20 @@ export function Nav() {
             {productOpen && (
               <div className="absolute left-1/2 top-full w-80 -translate-x-1/2 rounded-xl border border-neutral-200 bg-white p-2 shadow-lg">
                 {PRODUCT_ITEMS.map(
-                  ({ label, description, href, icon: Icon }) => (
+                  ({ label, description, href, icon: Icon, iconClass }) => (
                     <Link
                       key={label}
                       href={href}
                       onClick={() => setProductOpen(false)}
                       className="flex items-start gap-3 rounded-lg p-2.5 transition-colors hover:bg-neutral-50"
                     >
-                      <div className="flex size-9 flex-none items-center justify-center rounded-lg border border-neutral-200 bg-gradient-to-t from-neutral-100">
-                        <Icon
-                          className="size-4 text-neutral-700"
-                          strokeWidth={1.75}
-                        />
+                      <div
+                        className={cn(
+                          "flex size-9 flex-none items-center justify-center rounded-lg text-white",
+                          iconClass,
+                        )}
+                      >
+                        <Icon className="size-4" strokeWidth={1.75} />
                       </div>
                       <div>
                         <p className="text-sm font-medium text-neutral-900">
@@ -161,13 +168,21 @@ export function Nav() {
           <p className="py-2 text-xs font-medium uppercase tracking-wide text-neutral-400">
             Product
           </p>
-          {PRODUCT_ITEMS.map(({ label, href }) => (
+          {PRODUCT_ITEMS.map(({ label, href, icon: Icon, iconClass }) => (
             <Link
               key={label}
               href={href}
               onClick={() => setOpen(false)}
-              className="py-2.5 pl-3 text-[15px] font-medium text-neutral-800 transition-colors hover:text-neutral-500"
+              className="flex items-center gap-2.5 py-2.5 pl-3 text-[15px] font-medium text-neutral-800 transition-colors hover:text-neutral-500"
             >
+              <span
+                className={cn(
+                  "flex size-5 items-center justify-center rounded text-white",
+                  iconClass,
+                )}
+              >
+                <Icon className="size-3.5" strokeWidth={2} />
+              </span>
               {label}
             </Link>
           ))}

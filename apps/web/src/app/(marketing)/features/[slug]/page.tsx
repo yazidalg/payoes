@@ -2,6 +2,7 @@ import { Check } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { cn } from "@/lib/utils";
 import { ButtonLink } from "../../button-link";
 import { Grid } from "../../grid";
 import { FEATURES } from "../feature-content";
@@ -38,8 +39,10 @@ export default async function FeaturePage({
 
   return (
     <>
-      {/* Hero */}
+      {/* Hero: full-width wash rising from the bottom, grid lines over it,
+          and the feature graphic inside so the wash flows behind it. */}
       <section className="relative overflow-hidden px-6 pb-16 pt-24 text-center">
+        <div className={cn("absolute inset-0", feature.washClassName)} />
         <Grid
           id={`feature-${feature.slug}`}
           cellSize={80}
@@ -48,7 +51,13 @@ export default async function FeaturePage({
         />
 
         <div className="relative mx-auto flex w-full max-w-3xl flex-col items-center">
-          <div className="mx-auto flex h-7 w-fit items-center rounded-full border border-neutral-200 bg-white px-4 text-xs font-medium text-neutral-800 shadow-sm">
+          <div className="mx-auto flex h-7 w-fit items-center gap-2 rounded-full border border-neutral-200 bg-white px-4 text-xs font-medium text-neutral-800 shadow-sm">
+            <span
+              className={cn(
+                "size-2 rounded-full",
+                feature.accentClassName,
+              )}
+            />
             {feature.badge}
           </div>
           <h1 className="font-display mt-6 text-balance text-4xl font-medium text-neutral-900 sm:text-5xl sm:leading-[1.1]">
@@ -66,11 +75,8 @@ export default async function FeaturePage({
             </ButtonLink>
           </div>
         </div>
-      </section>
 
-      {/* Graphic */}
-      <section className="px-4">
-        <div className="mx-auto w-full max-w-screen-md rounded-2xl border border-neutral-200 bg-neutral-50 px-4 pt-10 sm:px-10">
+        <div className="relative mx-auto mt-14 w-full max-w-screen-md rounded-2xl border border-neutral-200 bg-white/70 px-4 pt-10 shadow-sm backdrop-blur-sm sm:px-10">
           <div className="relative h-64 overflow-hidden sm:h-[302px]">
             <Graphic />
           </div>
@@ -86,7 +92,12 @@ export default async function FeaturePage({
           <div className="mt-12 grid gap-10 sm:grid-cols-3">
             {feature.steps.map(({ title, description }, idx) => (
               <div key={title} className="flex flex-col items-center text-center">
-                <div className="flex size-8 items-center justify-center rounded-full bg-neutral-900 text-sm font-semibold text-white">
+                <div
+                  className={cn(
+                    "flex size-8 items-center justify-center rounded-full text-sm font-semibold text-white",
+                    feature.accentClassName,
+                  )}
+                >
                   {idx + 1}
                 </div>
                 <h3 className="mt-4 text-base font-medium text-neutral-900">

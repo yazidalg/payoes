@@ -29,6 +29,7 @@ export function Features() {
         <div className="contents divide-neutral-200 max-sm:divide-y sm:divide-x">
           <FeatureCard
             id="checkout"
+            gradientClassName="bg-[conic-gradient(from_270deg,#10B981,#059669,transparent,transparent)]"
             title="Checkout & payment links"
             description="Every payment gets a hosted checkout page with your branding. Need something reusable? Share payment links anywhere you can paste a URL: email, WhatsApp, Telegram, or your site."
             linkText="Learn more"
@@ -38,6 +39,7 @@ export function Features() {
           </FeatureCard>
           <FeatureCard
             id="invoicing"
+            gradientClassName="bg-[conic-gradient(from_270deg,#F4950C,#EB5C0C,transparent,transparent)]"
             title="Invoicing"
             description="Create a draft invoice, finalize it, and Payoes generates a hosted payment page for your customer. The invoice flips to paid the moment the transaction confirms on-chain."
             linkText="Learn more"
@@ -49,6 +51,7 @@ export function Features() {
 
         <FeatureCard
           id="payments"
+          gradientClassName="bg-[conic-gradient(from_270deg,#8B5CF6,#6366F1,transparent,transparent)]"
           className="border-y border-neutral-200 pt-12 sm:col-span-2"
           graphicClassName="sm:h-96"
           title="Crypto payment processing"
@@ -62,6 +65,7 @@ export function Features() {
         <div className="contents divide-neutral-200 max-sm:divide-y sm:divide-x [&>*]:border-t [&>*]:border-neutral-200">
           <FeatureCard
             id="qr-checkout"
+            gradientClassName="bg-[conic-gradient(from_270deg,#3B82F6,#06B6D4,transparent,transparent)]"
             title="QR code checkout"
             description="QR codes and payment links are like peas in a pod. Payoes offers free QR codes for every link. Feeling artsy? Customize them with your own logo."
             linkText="Learn more"
@@ -71,6 +75,7 @@ export function Features() {
           </FeatureCard>
           <FeatureCard
             id="webhooks"
+            gradientClassName="bg-[conic-gradient(from_270deg,#F43F5E,#EC4899,transparent,transparent)]"
             title="Webhooks & real-time events"
             description="React to payment created, completed, failed, and expired events with HMAC-signed webhooks. Automatic retries with exponential backoff, plus delivery logs in the dashboard."
             linkText="Learn more"
@@ -93,6 +98,7 @@ function FeatureCard({
   children,
   className,
   graphicClassName,
+  gradientClassName,
 }: PropsWithChildren<{
   id?: string;
   title: string;
@@ -101,6 +107,7 @@ function FeatureCard({
   href: string;
   className?: string;
   graphicClassName?: string;
+  gradientClassName?: string;
 }>) {
   return (
     <div
@@ -114,7 +121,8 @@ function FeatureCard({
       <div
         className={cn(
           "absolute left-1/2 top-1/3 h-1/2 w-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full opacity-10 blur-[50px]",
-          "bg-[conic-gradient(from_270deg,#F4950C,#EB5C0C,transparent,transparent)]",
+          gradientClassName ??
+            "bg-[conic-gradient(from_270deg,#F4950C,#EB5C0C,transparent,transparent)]",
         )}
       />
       <div
