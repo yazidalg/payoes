@@ -14,10 +14,10 @@ import {
   formatPaidAmount,
   getPaymentStatusVariant,
 } from "@/ui/payments/payment-formatters";
+import { ShareLinkSection } from "@/ui/payments/share-link-section";
 import { useSetDashboardPageHeader } from "@/ui/layout/dashboard-page-header-context";
 import {
   Button,
-  CopyText,
   MenuItem,
   Popover,
   StatusBadge,
@@ -117,63 +117,18 @@ export function PaymentDetailPanel({
           <PaymentAmountsSection payment={payment} />
 
           {payment.checkout_url && payment.status === "pending" ? (
-            <div className="border-border-subtle overflow-hidden rounded-xl border bg-neutral-100">
-              <div className="border-border-subtle border-b px-4 py-3">
-                <h2 className="text-content-emphasis text-sm font-semibold">Checkout</h2>
-                <p className="mt-0.5 text-xs text-neutral-500">
-                  Share this link with your customer.
-                </p>
-              </div>
-              <div className="border-border-subtle -mx-px -mb-px space-y-4 rounded-xl border bg-white p-4">
-                <CopyTextCheckoutUrl url={payment.checkout_url} />
-                <div className="flex flex-wrap gap-2">
-                  <CopyCheckoutLinkButton url={payment.checkout_url} />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    text="Open checkout"
-                    className="h-9"
-                    render={
-                      <a
-                        href={payment.checkout_url}
-                        target="_blank"
-                        rel="noreferrer"
-                      />
-                    }
-                  />
-                </div>
-              </div>
-            </div>
+            <ShareLinkSection
+              title="Checkout"
+              description="Share this link with your customer."
+              url={payment.checkout_url}
+              copyLabel="Copy checkout link"
+              copySuccessMessage="Checkout link copied"
+              openLabel="Open checkout"
+            />
           ) : null}
         </div>
       </div>
     </div>
-  );
-}
-
-function CopyTextCheckoutUrl({ url }: { url: string }) {
-  return (
-    <CopyText value={url} className="break-all font-mono text-xs">
-      {url}
-    </CopyText>
-  );
-}
-
-function CopyCheckoutLinkButton({ url }: { url: string }) {
-  const [, copyToClipboard] = useCopyToClipboard();
-
-  return (
-    <Button
-      type="button"
-      variant="outline"
-      text="Copy checkout link"
-      className="h-9"
-      onClick={() => {
-        toast.promise(copyToClipboard(url), {
-          success: "Checkout link copied",
-        });
-      }}
-    />
   );
 }
 

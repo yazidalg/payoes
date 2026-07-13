@@ -31,32 +31,44 @@ export function usePaymentQuoteCountdown({
   loadQuote,
 }: UsePaymentQuoteCountdownOptions) {
   const [countdown, setCountdown] = useState("");
+  const [lockedExpiresAt, setLockedExpiresAt] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!expiresAt || disabled) {
+    if (!expiresAt) {
+      setLockedExpiresAt(null);
       return;
     }
 
-    const expiresAtMs = new Date(expiresAt).getTime();
+    if (!isLoadingQuote) {
+      setLockedExpiresAt(expiresAt);
+    }
+  }, [expiresAt, isLoadingQuote]);
+
+  useEffect(() => {
+    if (!lockedExpiresAt || disabled) {
+      return;
+    }
+
+    const expiresAtMs = new Date(lockedExpiresAt).getTime();
 
     const refreshTimer = window.setTimeout(
       () => {
         void loadQuote();
       },
-      Math.max(expiresAtMs - Date.now(), 0) + 50
+      Math.max(expiresAtMs - Date.now(), 0) + 50,
     );
 
     const countdownTimer = window.setInterval(() => {
-      setCountdown(formatCountdown(expiresAt));
+      setCountdown(formatCountdown(lockedExpiresAt));
     }, 1000);
 
-    setCountdown(formatCountdown(expiresAt));
+    setCountdown(formatCountdown(lockedExpiresAt));
 
     return () => {
       window.clearTimeout(refreshTimer);
       window.clearInterval(countdownTimer);
     };
-  }, [disabled, expiresAt, loadQuote]);
+  }, [disabled, lockedExpiresAt, loadQuote]);
 
   useEffect(() => {
     if (!quoteError || disabled || isLoadingQuote) {
@@ -70,13 +82,14 @@ export function usePaymentQuoteCountdown({
     return () => window.clearTimeout(retryTimer);
   }, [disabled, isLoadingQuote, loadQuote, quoteError]);
 
-  const quoteExpired = expiresAt ? countdown === "Expired" : false;
-  const isRefreshingRate = isLoadingQuote && (quoteExpired || Boolean(quoteError));
+  const quoteExpired = lockedExpiresAt ? countdown === "Expired" : false;
+  const isRefreshingRate =
+    isLoadingQuote && Boolean(lockedExpiresAt) && (quoteExpired || Boolean(quoteError));
 
   const rateLockLabel = isRefreshingRate
-    ? "Refreshing rate..."
+    ? "Refreshing rate lock..."
     : quoteExpired
-      ? "Updating rate..."
+      ? "Rate lock expired"
       : `Rate locked for ${countdown}`;
 
   return {

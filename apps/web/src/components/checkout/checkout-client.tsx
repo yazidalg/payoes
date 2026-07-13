@@ -49,6 +49,7 @@ type CheckoutData = {
     paid_asset: AllowedAsset | null;
     status: string;
     session_error?: string | null;
+    last_attempt_error?: string | null;
     description: string | null;
     environment: Organization["environment"];
     expires_at: string | null;
@@ -211,6 +212,7 @@ export function CheckoutClient({ paymentId }: { paymentId: string }) {
   );
   const [restoredPaymentId, setRestoredPaymentId] = useState(paymentId);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const loadQuoteInFlightRef = useRef(false);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -261,33 +263,41 @@ export function CheckoutClient({ paymentId }: { paymentId: string }) {
       return;
     }
 
-    setIsLoadingQuote(true);
-    setQuoteError(null);
-
-    const params = new URLSearchParams({
-      paid_asset_code: selectedPaidAsset.asset_code,
-    });
-
-    if (selectedPaidAsset.issuer_address) {
-      params.set("paid_asset_issuer", selectedPaidAsset.issuer_address);
-    }
-
-    const response = await fetch(
-      `/api/checkout/${paymentId}/quote?${params.toString()}`,
-    );
-    const quoteData = (await response.json()) as PaymentQuote & {
-      error?: string;
-    };
-
-    setIsLoadingQuote(false);
-
-    if (!response.ok) {
-      setQuote(null);
-      setQuoteError(quoteData.error ?? "Unable to load payment quote");
+    if (loadQuoteInFlightRef.current) {
       return;
     }
 
-    setQuote(quoteData);
+    loadQuoteInFlightRef.current = true;
+    setIsLoadingQuote(true);
+    setQuoteError(null);
+
+    try {
+      const params = new URLSearchParams({
+        paid_asset_code: selectedPaidAsset.asset_code,
+      });
+
+      if (selectedPaidAsset.issuer_address) {
+        params.set("paid_asset_issuer", selectedPaidAsset.issuer_address);
+      }
+
+      const response = await fetch(
+        `/api/checkout/${paymentId}/quote?${params.toString()}`,
+      );
+      const quoteData = (await response.json()) as PaymentQuote & {
+        error?: string;
+      };
+
+      if (!response.ok) {
+        setQuote(null);
+        setQuoteError(quoteData.error ?? "Unable to load payment quote");
+        return;
+      }
+
+      setQuote(quoteData);
+    } finally {
+      loadQuoteInFlightRef.current = false;
+      setIsLoadingQuote(false);
+    }
   }, [hasPricing, paymentId, selectedPaidAsset]);
 
   const { quoteExpired, isRefreshingRate, rateLockLabel } =
@@ -303,8 +313,10 @@ export function CheckoutClient({ paymentId }: { paymentId: string }) {
   }, [loadQuote]);
 
   const paymentBlocked =
-    hasPricing &&
-    (isLoadingQuote || !quote || (quoteExpired && !isRefreshingRate));
+    hasPricing && (!quote || isLoadingQuote || quoteExpired || isRefreshingRate);
+
+  const showQuoteAmountLoading = isLoadingQuote && !quote;
+  const showQrLoading = isLoadingQuote && (isRefreshingRate || !quote);
 
   useEffect(() => {
     async function load() {
@@ -330,12 +342,11 @@ export function CheckoutClient({ paymentId }: { paymentId: string }) {
 
   useEffect(() => {
     const isPayCompleted = data?.payment.status === "completed";
-    const isPayRefunded = data?.payment.status === "refunded";
     const isPayExpired = data?.payment.status === "expired" || Boolean(data?.payment.session_error);
     const pollAddress =
       data?.payment.deposit_address ?? data?.payment.receiving_address;
 
-    if (isPayCompleted || isPayRefunded || isPayExpired || !pollAddress || !data?.payment.memo) {
+    if (isPayCompleted || isPayExpired || !pollAddress || !data?.payment.memo) {
       return;
     }
 
@@ -344,13 +355,21 @@ export function CheckoutClient({ paymentId }: { paymentId: string }) {
         const statusResponse = await fetch(`/api/checkout/${paymentId}`);
         if (statusResponse.ok) {
           const statusData = await statusResponse.json() as CheckoutData;
-          if (
-            statusData.payment.status === "completed" ||
-            statusData.payment.status === "refunded"
-          ) {
+          if (statusData.payment.status === "completed") {
             setData(statusData);
             clearInterval(interval);
             return;
+          }
+
+          if (statusData.payment.status === "refunded") {
+            setPendingTxHash(null);
+            sessionStorage.removeItem(`payoes:checkout-tx:${paymentId}`);
+            setData(statusData);
+            return;
+          }
+
+          if (statusData.payment.status === "pending") {
+            setData(statusData);
           }
         }
 
@@ -400,6 +419,17 @@ export function CheckoutClient({ paymentId }: { paymentId: string }) {
     data?.payment.settlement_asset.asset_code ??
     "XLM";
 
+  async function reloadCheckoutData() {
+    const response = await fetch(`/api/checkout/${paymentId}`);
+    const json = (await response.json()) as CheckoutData & { error?: string };
+
+    if (response.ok) {
+      setData(json);
+    }
+
+    return json;
+  }
+
   async function confirmPayment(txHash: string, paymentType?: string) {
     const isSoroban = data?.payment.payment_flow === "soroban";
     const isEscrowContractDeposit = paymentType === "escrow_contract_deposit";
@@ -433,9 +463,10 @@ export function CheckoutClient({ paymentId }: { paymentId: string }) {
     }
 
     if (!confirmResponse.ok) {
-      setPendingTxHash(txHash);
-      sessionStorage.setItem(`payoes:checkout-tx:${paymentId}`, txHash);
+      setPendingTxHash(null);
+      sessionStorage.removeItem(`payoes:checkout-tx:${paymentId}`);
       setError(confirmData.error ?? "Payment verification failed");
+      await reloadCheckoutData();
       return false;
     }
 
@@ -551,7 +582,7 @@ export function CheckoutClient({ paymentId }: { paymentId: string }) {
   }
 
   async function handleSimulatePayment() {
-    if (!data || !selectedPaidAsset) {
+    if (!data || !selectedPaidAsset || isRefreshingRate) {
       return;
     }
 
@@ -611,9 +642,9 @@ export function CheckoutClient({ paymentId }: { paymentId: string }) {
   }
 
   const isCompleted = data.payment.status === "completed";
-  const isRefunded = data.payment.status === "refunded";
   const isSessionExpired =
     data.payment.status === "expired" || Boolean(data.payment.session_error);
+  const lastAttemptError = data.payment.last_attempt_error;
   const qrDestination =
     data.payment.deposit_address ?? data.payment.receiving_address;
   const settlementLabel = data.payment.settlement_asset.asset_code;
@@ -637,7 +668,7 @@ export function CheckoutClient({ paymentId }: { paymentId: string }) {
           <CheckoutSandboxBanner
             onSimulate={() => void handleSimulatePayment()}
             isSimulating={isSimulating}
-            simulateDisabled={isCompleted}
+            simulateDisabled={isCompleted || isRefreshingRate}
           />
         ) : null}
 
@@ -671,7 +702,7 @@ export function CheckoutClient({ paymentId }: { paymentId: string }) {
                 <p className="text-xs text-neutral-500">Total</p>
                 <p className="text-sm font-semibold text-neutral-900">
                   {hasPricing ? (
-                    isLoadingQuote ? (
+                    showQuoteAmountLoading ? (
                       <span className="inline-block h-4 w-16 animate-pulse rounded bg-neutral-200" />
                     ) : (
                       formatTokenWithAsset(displayAmount, displayAsset)
@@ -766,7 +797,7 @@ export function CheckoutClient({ paymentId }: { paymentId: string }) {
                   <div className="flex items-center justify-between gap-4 text-sm">
                     <span className="text-neutral-500">You pay</span>
                     <span className="font-medium text-neutral-900">
-                      {isLoadingQuote ? (
+                      {showQuoteAmountLoading ? (
                         <div className="h-4 w-20 animate-pulse rounded bg-neutral-200" />
                       ) : (
                         formatTokenWithAsset(displayAmount, displayAsset)
@@ -788,7 +819,7 @@ export function CheckoutClient({ paymentId }: { paymentId: string }) {
                         )}
                       </p>
                       <div className="text-sm text-neutral-500 flex justify-end">
-                        {isLoadingQuote ? (
+                        {showQuoteAmountLoading ? (
                           <div className="h-4 w-16 animate-pulse rounded bg-neutral-200" />
                         ) : (
                           formatTokenWithAsset(displayAmount, displayAsset)
@@ -838,11 +869,6 @@ export function CheckoutClient({ paymentId }: { paymentId: string }) {
                   </p>
                 </div>
               </div>
-            ) : isRefunded ? (
-              <AlertBlock type="info">
-                This payment was refunded to your wallet. If you paid the wrong amount or
-                settlement could not be completed, funds were returned automatically.
-              </AlertBlock>
             ) : isSessionExpired ? (
               <AlertBlock type="error">
                 {data.payment.session_error ??
@@ -850,6 +876,12 @@ export function CheckoutClient({ paymentId }: { paymentId: string }) {
               </AlertBlock>
             ) : (
               <div className="space-y-5">
+                {lastAttemptError ? (
+                  <AlertBlock type="info">
+                    {lastAttemptError} You can try again below using the same payment
+                    link and memo.
+                  </AlertBlock>
+                ) : null}
                 {allowedAssets.length > 1 ? (
                   <div ref={dropdownRef} className="relative space-y-2.5">
                     <label className="text-sm font-medium text-neutral-900">
@@ -857,8 +889,12 @@ export function CheckoutClient({ paymentId }: { paymentId: string }) {
                     </label>
                     <button
                       type="button"
+                      disabled={isRefreshingRate}
                       onClick={() => setIsAssetDropdownOpen(!isAssetDropdownOpen)}
-                      className="flex w-full items-center justify-between rounded-xl border border-neutral-200 bg-white p-3.5 text-left shadow-sm transition-all hover:bg-neutral-50 active:scale-[0.99]"
+                      className={cn(
+                        "flex w-full items-center justify-between rounded-xl border border-neutral-200 bg-white p-3.5 text-left shadow-sm transition-all hover:bg-neutral-50 active:scale-[0.99]",
+                        isRefreshingRate && "cursor-not-allowed opacity-60",
+                      )}
                     >
                       {selectedPaidAsset && (
                         <div className="flex items-center gap-3">
@@ -875,7 +911,7 @@ export function CheckoutClient({ paymentId }: { paymentId: string }) {
                       )}
                       <div className="flex items-center gap-2">
                         {hasPricing && (
-                          isLoadingQuote ? (
+                          showQuoteAmountLoading ? (
                             <div className="h-4 w-16 animate-pulse rounded bg-neutral-200 mr-1" />
                           ) : quote ? (
                             <span className="text-xs font-medium text-neutral-600 mr-1">
@@ -908,6 +944,7 @@ export function CheckoutClient({ paymentId }: { paymentId: string }) {
                                 <button
                                   key={key}
                                   type="button"
+                                  disabled={isRefreshingRate}
                                   onClick={() => {
                                     setSelectedPaidAssetKey(key);
                                     setQuote(null);
@@ -941,6 +978,12 @@ export function CheckoutClient({ paymentId }: { paymentId: string }) {
                 ) : null}
 
                 <div className="space-y-3">
+                  {isRefreshingRate ? (
+                    <AlertBlock type="info">
+                      Rate lock is refreshing. Payment actions are paused until the
+                      new rate is ready.
+                    </AlertBlock>
+                  ) : null}
                   {quoteError && !isRefreshingRate ? (
                     <AlertBlock type="error">{quoteError}</AlertBlock>
                   ) : null}
@@ -950,27 +993,36 @@ export function CheckoutClient({ paymentId }: { paymentId: string }) {
                 </div>
 
                 {/* Payment Method Selector Tabs */}
-                <div className="flex rounded-xl bg-neutral-100 p-1">
+                <div
+                  className={cn(
+                    "flex rounded-xl bg-neutral-100 p-1",
+                    isRefreshingRate && "opacity-60",
+                  )}
+                >
                   <button
                     type="button"
+                    disabled={isRefreshingRate}
                     onClick={() => setPaymentMode("wallet")}
                     className={cn(
                       "flex-1 rounded-lg py-2 text-center text-sm font-semibold transition-all",
                       paymentMode === "wallet"
                         ? "bg-white text-neutral-900 shadow-sm"
-                        : "text-neutral-500 hover:text-neutral-950"
+                        : "text-neutral-500 hover:text-neutral-950",
+                      isRefreshingRate && "cursor-not-allowed",
                     )}
                   >
                     Connect Wallet
                   </button>
                   <button
                     type="button"
+                    disabled={isRefreshingRate}
                     onClick={() => setPaymentMode("qr")}
                     className={cn(
                       "flex-1 rounded-lg py-2 text-center text-sm font-semibold transition-all",
                       paymentMode === "qr"
                         ? "bg-white text-neutral-900 shadow-sm"
-                        : "text-neutral-500 hover:text-neutral-950"
+                        : "text-neutral-500 hover:text-neutral-950",
+                      isRefreshingRate && "cursor-not-allowed",
                     )}
                   >
                     QR Code
@@ -997,9 +1049,11 @@ export function CheckoutClient({ paymentId }: { paymentId: string }) {
                         ) : null}
                         <div className="flex flex-col items-center justify-center">
                           <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white p-4">
-                            {isLoadingQuote ? (
+                            {showQrLoading ? (
                               <div className="flex size-[200px] items-center justify-center rounded-xl bg-neutral-50 animate-pulse">
-                                <p className="text-sm font-medium text-neutral-400">Loading...</p>
+                                <p className="text-sm font-medium text-neutral-400">
+                                  {isRefreshingRate ? "Refreshing rate..." : "Loading..."}
+                                </p>
                               </div>
                             ) : (
                               <img
@@ -1037,7 +1091,10 @@ export function CheckoutClient({ paymentId }: { paymentId: string }) {
                               <p className="text-sm font-medium text-neutral-900">Address</p>
                               <p className="truncate font-mono text-sm text-neutral-500">{qrDestination}</p>
                             </div>
-                            <CopyButton value={qrDestination} className="shrink-0" />
+                            <CopyButton
+                              value={qrDestination}
+                              className={cn("shrink-0", isRefreshingRate && "pointer-events-none opacity-50")}
+                            />
                           </div>
 
                           <div className="flex items-center justify-between gap-4 border-t border-neutral-100 pt-4">
@@ -1045,7 +1102,10 @@ export function CheckoutClient({ paymentId }: { paymentId: string }) {
                               <p className="text-sm font-medium text-neutral-900">Memo <span className="text-neutral-500 font-normal">(Required)</span></p>
                               <p className="truncate font-mono text-sm text-neutral-500">{data.payment.memo}</p>
                             </div>
-                            <CopyButton value={data.payment.memo ?? ""} className="shrink-0" />
+                            <CopyButton
+                              value={data.payment.memo ?? ""}
+                              className={cn("shrink-0", isRefreshingRate && "pointer-events-none opacity-50")}
+                            />
                           </div>
 
                           <div className="flex items-center justify-between gap-4 border-t border-neutral-100 pt-4">
@@ -1053,7 +1113,10 @@ export function CheckoutClient({ paymentId }: { paymentId: string }) {
                                 <p className="text-sm font-medium text-neutral-900">Amount</p>
                                 <p className="truncate font-mono text-sm text-neutral-500">{formatTokenWithAsset(displayAmount, displayAsset)}</p>
                               </div>
-                              <CopyButton value={displayAmount} className="shrink-0" />
+                              <CopyButton
+                                value={displayAmount}
+                                className={cn("shrink-0", isRefreshingRate && "pointer-events-none opacity-50")}
+                              />
                             </div>
                           </div>
                         </>
@@ -1085,6 +1148,7 @@ export function CheckoutClient({ paymentId }: { paymentId: string }) {
                           className="h-10 w-full"
                           text="Retry payment confirmation"
                           loading={isPaying}
+                          disabled={isRefreshingRate}
                           onClick={() => {
                             setIsPaying(true);
                             void confirmPayment(pendingTxHash).finally(() => {
@@ -1100,7 +1164,7 @@ export function CheckoutClient({ paymentId }: { paymentId: string }) {
                           className="h-10 w-full"
                           text="Connect wallet"
                           loading={isConnecting}
-                          disabled={paymentBlocked}
+                          disabled={paymentBlocked || isRefreshingRate}
                           onClick={() => void connect()}
                         />
                       ) : (
@@ -1109,7 +1173,7 @@ export function CheckoutClient({ paymentId }: { paymentId: string }) {
                           className="h-10 w-full"
                           text={`Pay ${formatTokenWithAsset(displayAmount, displayAsset)}`}
                           loading={isPaying || isRefreshingRate}
-                          disabled={paymentBlocked}
+                          disabled={paymentBlocked || isRefreshingRate}
                           onClick={() => void handlePay()}
                         />
                       )}

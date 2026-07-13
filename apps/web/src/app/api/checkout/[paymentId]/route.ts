@@ -13,6 +13,10 @@ import {
   needsPaymentQuoteRefresh,
   refreshPaymentQuote,
 } from "@/lib/payments/quote-service";
+import {
+  formatRefundReasonForCheckout,
+  isRetryableFailedPayment,
+} from "@/lib/payments/retry";
 import { setPaymentPaidAsset } from "@/lib/payments/service";
 import { simulateSandboxPayment } from "@/lib/payments/simulate-sandbox-payment";
 import { applySendMaxBuffer, assetsMatch } from "@/lib/pricing/quotes";
@@ -74,6 +78,10 @@ export async function GET(
     return NextResponse.json({ error: "Payment not found" }, { status: 404 });
   }
 
+  const lastAttemptError = isRetryableFailedPayment(resolved.payment)
+    ? formatRefundReasonForCheckout(resolved.payment.refundReason)
+    : null;
+
   const payable = await ensurePayablePayment(resolved.payment);
   const payment = payable.payment;
   const assets = serializePaymentAssets(payment);
@@ -99,6 +107,7 @@ export async function GET(
       ...assets,
       status: payment.status,
       session_error: payable.error ?? null,
+      last_attempt_error: lastAttemptError,
       description: payment.description,
       environment: payment.environment,
       expires_at: payment.expiresAt,

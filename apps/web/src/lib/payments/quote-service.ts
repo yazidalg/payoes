@@ -7,6 +7,10 @@ import { isInvoiceCurrencyCode } from "@/lib/invoices/currencies";
 import { DEFAULT_PAYMENT_SESSION_HOURS } from "@/constants/payments/defaults";
 import { buildPaymentQuote, isQuoteExpired } from "@/lib/pricing/quotes";
 import { applyPaymentQuote, setPaymentPaidAsset, updatePaymentStatus } from "@/lib/payments/service";
+import {
+  isRetryableFailedPayment,
+  resetPaymentForRetry,
+} from "@/lib/payments/retry";
 import { ensureEscrowPaymentRegistered } from "@/lib/soroban/escrow-contract";
 
 export function isPaymentSessionExpired(payment: Payment) {
@@ -79,6 +83,20 @@ export async function ensurePayablePayment(
 
       return { payment: reopened ?? payment };
     }
+  }
+
+  if (isRetryableFailedPayment(payment)) {
+    if (isPaymentSessionExpired(payment)) {
+      await updatePaymentStatus(payment, "expired");
+      return {
+        payment,
+        error:
+          "This payment session has expired. Ask the merchant to send a new invoice link.",
+      };
+    }
+
+    const reopened = await resetPaymentForRetry(payment);
+    return { payment: reopened };
   }
 
   if (payment.status !== "pending" && payment.status !== "failed") {

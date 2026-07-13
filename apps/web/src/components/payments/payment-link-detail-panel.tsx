@@ -127,15 +127,8 @@ export function PaymentLinkDetailPanel({
             url={link.url}
             copyLabel="Copy payment link"
             copySuccessMessage="Payment link copied"
-          >
-            <Button
-              type="button"
-              variant="outline"
-              text="Open payment link"
-              className="h-9"
-              render={<a href={link.url} target="_blank" rel="noreferrer" />}
-            />
-          </ShareLinkSection>
+            openLabel="Open payment link"
+          />
         </div>
       </div>
     </div>

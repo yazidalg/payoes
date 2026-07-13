@@ -32,6 +32,10 @@ import {
 } from "@/lib/soroban/escrow-contract";
 import { dispatchWebhookEvent } from "@/lib/webhooks/delivery";
 import { isPaymentSessionExpired } from "@/lib/payments/quote-service";
+import {
+  isRetryableFailedPayment,
+  resetPaymentForRetry,
+} from "@/lib/payments/retry";
 
 function settlementAsset(payment: Payment): AllowedAsset {
   return {
@@ -383,7 +387,7 @@ export async function confirmEscrowDepositWithTxHash(
   publicId: string,
   txHash: string
 ) {
-  const payment = await getPaymentByPublicId(publicId);
+  let payment = await getPaymentByPublicId(publicId);
 
   if (!payment) {
     return { ok: false as const, error: "Payment not found" };
@@ -393,11 +397,20 @@ export async function confirmEscrowDepositWithTxHash(
     return { ok: false as const, error: "Payment is not an escrow payment" };
   }
 
-  if (
-    payment.status === "completed" ||
-    payment.status === "refunded"
-  ) {
+  if (payment.status === "completed") {
     return { ok: true as const, payment };
+  }
+
+  if (isRetryableFailedPayment(payment)) {
+    if (isPaymentSessionExpired(payment)) {
+      return {
+        ok: false as const,
+        error:
+          "This payment session has expired. Ask the merchant to send a new invoice link.",
+      };
+    }
+
+    payment = await resetPaymentForRetry(payment);
   }
 
   const depositAddress = payment.depositAddress;
@@ -515,13 +528,22 @@ export async function detectEscrowDepositsFromHorizon(
       continue;
     }
 
-    const payment = await getPaymentByPublicId(tx.memo);
+    let payment = await getPaymentByPublicId(tx.memo);
     if (
       !payment ||
       payment.paymentFlow !== "escrow" ||
-      payment.environment !== environment ||
-      payment.depositTxHash
+      payment.environment !== environment
     ) {
+      continue;
+    }
+
+    if (isRetryableFailedPayment(payment)) {
+      if (isPaymentSessionExpired(payment)) {
+        continue;
+      }
+
+      payment = await resetPaymentForRetry(payment);
+    } else if (payment.depositTxHash) {
       continue;
     }
 

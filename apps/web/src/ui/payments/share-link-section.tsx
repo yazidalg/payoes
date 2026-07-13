@@ -1,5 +1,6 @@
 import { Button, CopyText, useCopyToClipboard } from "@dub/ui";
 import { toast } from "sonner";
+import { OpenExternalLinkButton } from "@/ui/payments/open-external-link-button";
 import { DetailSection } from "@/ui/shared/detail-section";
 
 export function ShareLinkSection({
@@ -8,6 +9,7 @@ export function ShareLinkSection({
   url,
   copyLabel,
   copySuccessMessage,
+  openLabel,
   children,
 }: {
   title: string;
@@ -15,6 +17,7 @@ export function ShareLinkSection({
   url: string;
   copyLabel: string;
   copySuccessMessage: string;
+  openLabel?: string;
   children?: React.ReactNode;
 }) {
   const [, copyToClipboard] = useCopyToClipboard();
@@ -29,13 +32,14 @@ export function ShareLinkSection({
           type="button"
           variant="outline"
           text={copyLabel}
-          className="h-9"
+          className="h-9 w-auto"
           onClick={() => {
             toast.promise(copyToClipboard(url), {
               success: copySuccessMessage,
             });
           }}
         />
+        {openLabel ? <OpenExternalLinkButton href={url} text={openLabel} /> : null}
         {children}
       </div>
     </DetailSection>

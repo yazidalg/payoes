@@ -122,17 +122,8 @@ export function CheckoutSessionDetailPanel({
             url={session.checkout_url}
             copyLabel="Copy checkout link"
             copySuccessMessage="Checkout link copied"
-          >
-            <Button
-              type="button"
-              variant="outline"
-              text="Open checkout"
-              className="h-9"
-              render={
-                <a href={session.checkout_url} target="_blank" rel="noreferrer" />
-              }
-            />
-          </ShareLinkSection>
+            openLabel="Open checkout"
+          />
         </div>
       </div>
     </div>

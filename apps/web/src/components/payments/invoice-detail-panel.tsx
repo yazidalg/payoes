@@ -27,6 +27,7 @@ import {
 } from "@/ui/payments/invoice-sections";
 import { getInvoiceStatusVariant } from "@/ui/payments/payment-formatters";
 import { ShareLinkSection } from "@/ui/payments/share-link-section";
+import { OpenExternalLinkButton } from "@/ui/payments/open-external-link-button";
 import { useSetDashboardPageHeader } from "@/ui/layout/dashboard-page-header-context";
 import {
   Button,
@@ -256,13 +257,14 @@ export function InvoiceDetailPanel({
                 url={invoice.checkout_url}
                 copyLabel="Copy checkout link"
                 copySuccessMessage="Checkout link copied"
+                openLabel="Open checkout"
               >
                 {invoice.checkout_session_id ? (
                   <Button
                     type="button"
-                    variant="outline"
+                    variant="secondary"
                     text="View checkout session"
-                    className="h-9"
+                    className="h-9 w-auto"
                     onClick={() =>
                       router.push(
                         `/dashboard/payments/checkout-sessions/${invoice.checkout_session_id}`,
@@ -271,18 +273,9 @@ export function InvoiceDetailPanel({
                   />
                 ) : null}
                 {invoice.hosted_invoice_url ? (
-                  <Button
-                    type="button"
-                    variant="outline"
+                  <OpenExternalLinkButton
+                    href={invoice.hosted_invoice_url}
                     text="Open hosted invoice"
-                    className="h-9"
-                    render={
-                      <a
-                        href={invoice.hosted_invoice_url}
-                        target="_blank"
-                        rel="noreferrer"
-                      />
-                    }
                   />
                 ) : null}
               </ShareLinkSection>
