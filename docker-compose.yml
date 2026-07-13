@@ -1,25 +1,5 @@
-# Host ports are configurable via .env (see docker-compose.env.example).
-# Defaults avoid common conflicts when 5432 and 8080 are already in use.
-# S3/R2 credentials are configured in apps/api/.env (not bundled here).
+# API only. PostgreSQL and S3/R2 are configured in apps/api/.env.
 services:
-  postgres:
-    image: postgres:16-alpine
-    container_name: payoes-postgres
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: payoes
-      POSTGRES_PASSWORD: payoes
-      POSTGRES_DB: payoes
-    ports:
-      - "${PAYOES_POSTGRES_PORT:-5433}:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U payoes -d payoes"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-
   api:
     build:
       context: ./apps/api
@@ -33,19 +13,9 @@ services:
         required: false
     environment:
       PORT: "8080"
-      DATABASE_URL: postgresql://payoes:payoes@postgres:5432/payoes
-      WEB_URL: http://localhost:3000
-      API_URL: http://localhost:8080
-      AUTH_URL: http://localhost:8080
-    depends_on:
-      postgres:
-        condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://localhost:8080/healthz || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 10
       start_period: 20s
-
-volumes:
-  postgres_data:
