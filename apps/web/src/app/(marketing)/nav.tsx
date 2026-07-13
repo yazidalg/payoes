@@ -48,7 +48,7 @@ const PRODUCT_ITEMS = [
 ];
 
 const NAV_LINKS: { label: string; href: string }[] = [
-  { label: "Developers", href: "/#developers" },
+  { label: "Developers", href: "/developers" },
   { label: "Ecosystem", href: "/#logos" },
   { label: "Pricing", href: "/#cta" },
 ];

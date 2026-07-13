@@ -61,7 +61,7 @@ export default async function FeaturePage({
             <ButtonLink variant="primary" href="/register">
               Start for free
             </ButtonLink>
-            <ButtonLink variant="secondary" href="/#developers">
+            <ButtonLink variant="secondary" href="/developers">
               Explore the API
             </ButtonLink>
           </div>

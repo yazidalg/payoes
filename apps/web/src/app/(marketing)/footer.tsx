@@ -14,7 +14,7 @@ const FOOTER_COLUMNS: { title: string; links: { label: string; href: string }[] 
   {
     title: "Developers",
     links: [
-      { label: "API Reference", href: "/#developers" },
+      { label: "API Reference", href: "/developers" },
       { label: "Webhooks", href: "/features/webhooks" },
       { label: "GitHub", href: "https://github.com/payoes/payoes" },
     ],
@@ -22,7 +22,7 @@ const FOOTER_COLUMNS: { title: string; links: { label: string; href: string }[] 
   {
     title: "Resources",
     links: [
-      { label: "Docs", href: "/#developers" },
+      { label: "Docs", href: "/developers" },
       { label: "Pricing", href: "/#cta" },
       { label: "Ecosystem", href: "/#logos" },
     ],
