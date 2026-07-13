@@ -4,8 +4,6 @@ import {
   isNavItemActive,
   isPaymentsRoute,
 } from "@/lib/navigation/dashboard-nav";
-import type { Organization } from "@/lib/db/schema";
-import { useDashboardShell } from "@/ui/layout/dashboard-shell-context";
 import {
   ArrowsOppositeDirectionX,
   BookOpen,
@@ -24,186 +22,157 @@ import {
   Webhook,
 } from "./icons";
 import { usePathname } from "next/navigation";
-import { ReactNode, useMemo } from "react";
-import { SidebarNav, SidebarNavAreas, SidebarNavGroups } from "./sidebar-nav";
+import { useMemo } from "react";
+import { NavItemType, SidebarNav, SidebarSubmenu } from "./sidebar-nav";
 
-type SidebarNavData = {
-  pathname: string;
-  environment: Organization["environment"];
-  showConversionGuides?: boolean;
-  slug?: string;
-};
+const DEVELOPERS_SUBMENU_ID = "developers";
+const SETTINGS_SUBMENU_ID = "settings";
 
-const NAV_GROUPS: SidebarNavGroups<SidebarNavData> = ({ pathname }) => [
-  {
-    name: "Platform",
-    description: "Manage payments, transactions, settlements, and customers.",
-    icon: Gauge6,
-    href: "/dashboard",
-    active:
-      !pathname.startsWith("/dashboard/settings") &&
-      !pathname.startsWith("/dashboard/developers"),
-  },
-  {
-    name: "Developers",
-    description: "API keys, webhooks, logs, and documentation.",
-    icon: Code,
-    href: "/dashboard/developers/api-keys",
-    active: pathname.startsWith("/dashboard/developers"),
-  },
-  {
-    name: "Settings",
-    description: "Organization, wallet, payment methods, and team settings.",
-    icon: Gear2,
-    href: "/dashboard/settings/organization",
-    active: pathname.startsWith("/dashboard/settings"),
-  },
-];
-
-const NAV_AREAS: SidebarNavAreas<SidebarNavData> = {
-  platform: () => ({
-    title: "Platform",
-    direction: "left",
-    content: [
-      {
-        items: [
-          {
-            name: "Home",
-            icon: Gauge6,
-            href: "/dashboard",
-            isActive: (p, h) => isNavItemActive(p, h),
-          },
-          {
-            name: "Payments",
-            icon: InvoiceDollar,
-            href: "/dashboard/payments",
-            isActive: (p) => isPaymentsRoute(p),
-          },
-          {
-            name: "Transactions",
-            icon: ArrowsOppositeDirectionX,
-            href: "/dashboard/transactions",
-            isActive: (p, h) => isNavItemActive(p, h),
-          },
-          {
-            name: "Settlements",
-            icon: Refresh2,
-            href: "/dashboard/settlements",
-            isActive: (p, h) => isNavItemActive(p, h),
-          },
-          {
-            name: "Customers",
-            icon: User,
-            href: "/dashboard/customers",
-            isActive: (p, h) => isNavItemActive(p, h),
-          },
-        ],
-      },
-    ],
-  }),
-  developers: () => ({
+function getDevelopersSubmenu(): SidebarSubmenu {
+  return {
+    id: DEVELOPERS_SUBMENU_ID,
     title: "Developers",
-    direction: "left",
-    content: [
+    backHref: "/dashboard",
+    items: [
       {
-        items: [
-          {
-            name: "API Keys",
-            icon: Key,
-            href: "/dashboard/developers/api-keys",
-            isActive: (p, h) => isNavItemActive(p, h),
-          },
-          {
-            name: "Webhooks",
-            icon: Webhook,
-            href: "/dashboard/developers/webhooks",
-            isActive: (p, h) => isNavItemActive(p, h),
-          },
-          {
-            name: "API Logs",
-            icon: StackY3,
-            href: "/dashboard/developers/api-logs",
-            isActive: (p, h) => isNavItemActive(p, h),
-          },
-          {
-            name: "Documentation",
-            icon: BookOpen,
-            href: "/dashboard/developers/documentation",
-            isActive: (p, h) => isNavItemActive(p, h),
-          },
-        ],
+        name: "API Keys",
+        icon: Key,
+        href: "/dashboard/developers/api-keys",
+        isActive: (p, h) => isNavItemActive(p, h),
+      },
+      {
+        name: "Webhooks",
+        icon: Webhook,
+        href: "/dashboard/developers/webhooks",
+        isActive: (p, h) => isNavItemActive(p, h),
+      },
+      {
+        name: "API Logs",
+        icon: StackY3,
+        href: "/dashboard/developers/api-logs",
+        isActive: (p, h) => isNavItemActive(p, h),
+      },
+      {
+        name: "Documentation",
+        icon: BookOpen,
+        href: "/dashboard/developers/documentation",
+        isActive: (p, h) => isNavItemActive(p, h),
       },
     ],
-  }),
-  settings: () => ({
+  };
+}
+
+function getSettingsSubmenu(): SidebarSubmenu {
+  return {
+    id: SETTINGS_SUBMENU_ID,
     title: "Settings",
-    direction: "left",
-    content: [
+    backHref: "/dashboard",
+    items: [
       {
-        items: [
-          {
-            name: "Organization",
-            icon: Globe2,
-            href: "/dashboard/settings/organization",
-            isActive: (p, h) => isNavItemActive(p, h),
-          },
-          {
-            name: "Settlement Wallet",
-            icon: MoneyBill2,
-            href: "/dashboard/settings/settlement-wallet",
-            isActive: (p, h) => isNavItemActive(p, h),
-          },
-          {
-            name: "Payment Methods",
-            icon: Cube,
-            href: "/dashboard/settings/payment-methods",
-            isActive: (p, h) => isNavItemActive(p, h),
-          },
-          {
-            name: "Team Members",
-            icon: Users6,
-            href: "/dashboard/settings/team",
-            isActive: (p, h) => isNavItemActive(p, h),
-          },
-        ],
+        name: "Organization",
+        icon: Globe2,
+        href: "/dashboard/settings/organization",
+        isActive: (p, h) => isNavItemActive(p, h),
+      },
+      {
+        name: "Settlement Wallet",
+        icon: MoneyBill2,
+        href: "/dashboard/settings/settlement-wallet",
+        isActive: (p, h) => isNavItemActive(p, h),
+      },
+      {
+        name: "Payment Methods",
+        icon: Cube,
+        href: "/dashboard/settings/payment-methods",
+        isActive: (p, h) => isNavItemActive(p, h),
+      },
+      {
+        name: "Team Members",
+        icon: Users6,
+        href: "/dashboard/settings/team",
+        isActive: (p, h) => isNavItemActive(p, h),
       },
     ],
-  }),
-};
+  };
+}
 
-export function PayoesSidebarNav({
-  toolContent,
-  newsContent,
-}: {
-  toolContent?: ReactNode;
-  newsContent?: ReactNode;
-}) {
+function getMainNavItems(): NavItemType[] {
+  return [
+    {
+      name: "Home",
+      icon: Gauge6,
+      href: "/dashboard",
+      isActive: (p, h) => isNavItemActive(p, h),
+    },
+    {
+      name: "Payments",
+      icon: InvoiceDollar,
+      href: "/dashboard/payments",
+      isActive: (p) => isPaymentsRoute(p),
+    },
+    {
+      name: "Transactions",
+      icon: ArrowsOppositeDirectionX,
+      href: "/dashboard/transactions",
+      isActive: (p, h) => isNavItemActive(p, h),
+    },
+    {
+      name: "Settlements",
+      icon: Refresh2,
+      href: "/dashboard/settlements",
+      isActive: (p, h) => isNavItemActive(p, h),
+    },
+    {
+      name: "Customers",
+      icon: User,
+      href: "/dashboard/customers",
+      isActive: (p, h) => isNavItemActive(p, h),
+    },
+    {
+      name: "Developers",
+      icon: Code,
+      href: "/dashboard/developers/api-keys",
+      submenuId: DEVELOPERS_SUBMENU_ID,
+      isActive: (p) => p.startsWith("/dashboard/developers"),
+    },
+    {
+      name: "Settings",
+      icon: Gear2,
+      href: "/dashboard/settings/organization",
+      submenuId: SETTINGS_SUBMENU_ID,
+      isActive: (p) => p.startsWith("/dashboard/settings"),
+    },
+  ];
+}
+
+export function PayoesSidebarNav() {
   const pathname = usePathname();
-  const { activeOrganization } = useDashboardShell();
 
-  const currentArea = useMemo(() => {
+  const activeSubmenu = useMemo(() => {
     if (pathname.startsWith("/dashboard/settings")) {
-      return "settings";
+      return SETTINGS_SUBMENU_ID;
     }
 
     if (pathname.startsWith("/dashboard/developers")) {
-      return "developers";
+      return DEVELOPERS_SUBMENU_ID;
     }
 
-    return "platform";
+    return null;
   }, [pathname]);
+
+  const submenus = useMemo(
+    () => ({
+      [DEVELOPERS_SUBMENU_ID]: getDevelopersSubmenu(),
+      [SETTINGS_SUBMENU_ID]: getSettingsSubmenu(),
+    }),
+    [],
+  );
 
   return (
     <SidebarNav
-      groups={NAV_GROUPS}
-      areas={NAV_AREAS}
-      currentArea={currentArea}
-      data={{
-        pathname,
-        environment: activeOrganization.environment,
-      }}
-      toolContent={toolContent}
-      newsContent={newsContent}
+      mainItems={getMainNavItems()}
+      submenus={submenus}
+      activeSubmenu={activeSubmenu}
     />
   );
 }

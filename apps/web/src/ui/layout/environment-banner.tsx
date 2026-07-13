@@ -52,7 +52,7 @@ export function EnvironmentBanner() {
         role="status"
         style={{ top: environmentBannerOffset }}
         className={cn(
-          "fixed left-0 right-0 z-30 flex h-12 items-center justify-center border-b border-blue-800 bg-blue-700 px-4 text-white sm:px-6",
+          "fixed left-0 right-0 z-30 flex h-12 items-center justify-center border-b border-primary-foreground/10 bg-primary px-4 text-primary-foreground sm:px-6",
         )}
       >
         <div className="flex w-full max-w-screen-xl items-center justify-between gap-4">

@@ -2,7 +2,9 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { StellarWalletsKit } from "@creit.tech/stellar-wallets-kit/sdk";
-import { defaultModules } from "@creit.tech/stellar-wallets-kit/modules/utils";
+import { FreighterModule } from "@creit.tech/stellar-wallets-kit/modules/freighter";
+import { AlbedoModule } from "@creit.tech/stellar-wallets-kit/modules/albedo";
+import { xBullModule } from "@creit.tech/stellar-wallets-kit/modules/xbull";
 import {
   KitEventType,
   Networks,
@@ -22,12 +24,13 @@ export function useStellarWallet(environment: Organization["environment"]) {
 
   useEffect(() => {
     StellarWalletsKit.init({
-      modules: defaultModules(),
+      modules: [new FreighterModule(), new AlbedoModule(), new xBullModule()],
       network:
         environment === "production" ? Networks.PUBLIC : Networks.TESTNET,
     });
 
-    void Promise.resolve().then(() => {
+    // Pre-populate wallet list so modal shows immediately on first open.
+    void StellarWalletsKit.refreshSupportedWallets().then(() => {
       setIsReady(true);
     });
 

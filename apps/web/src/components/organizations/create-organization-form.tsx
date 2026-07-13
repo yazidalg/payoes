@@ -15,8 +15,9 @@ import { FormFieldLabel } from "@/ui/forms/form-field-label";
 import { FormInput } from "@/ui/forms/form-input";
 import { FormTextarea } from "@/ui/forms/form-textarea";
 import { ValidatedSubmitButton } from "@/ui/forms/validated-submit-button";
-import { FileUpload, Avatar, buttonVariants } from "@dub/ui";
+import { FileUpload, buttonVariants } from "@dub/ui";
 import { cn } from "@dub/utils";
+import { Building2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
@@ -244,10 +245,9 @@ export function CreateOrganizationForm({
             variant="plain"
             imageSrc={logoPreview}
             placeholder={
-              <Avatar
-                identifier={name.trim() || "Organization"}
-                className="h-full w-full"
-              />
+              <div className="flex h-full w-full items-center justify-center rounded-full bg-neutral-100 text-neutral-500">
+                <Building2 className="size-6" />
+              </div>
             }
             readFile
             onChange={({ file, src }) => {

@@ -194,6 +194,8 @@ function getAssetDetails(asset: AllowedAsset) {
   };
 }
 
+import { ConnectedWallet } from "@/ui/wallet/connected-wallet";
+
 export function CheckoutClient({ paymentId }: { paymentId: string }) {
   const [data, setData] = useState<CheckoutData | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -1131,14 +1133,13 @@ export function CheckoutClient({ paymentId }: { paymentId: string }) {
                       className="space-y-5"
                     >
                       {address ? (
-                        <div className="space-y-1 rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-3">
-                          <p className="text-xs font-medium uppercase tracking-wide text-neutral-500">
-                            Connected wallet
-                          </p>
-                          <p className="break-all font-mono text-xs text-neutral-700">
-                            {address}
-                          </p>
-                        </div>
+                        <ConnectedWallet
+                          address={address}
+                          networkLabel={
+                            environment === "production" ? "Public" : "Testnet"
+                          }
+                          className="border-neutral-200 bg-neutral-50 px-3 py-3"
+                        />
                       ) : null}
 
                       {pendingTxHash ? (

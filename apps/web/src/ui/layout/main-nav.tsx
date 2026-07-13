@@ -13,7 +13,6 @@ import {
   CSSProperties,
   Dispatch,
   PropsWithChildren,
-  ReactNode,
   SetStateAction,
   useEffect,
   useLayoutEffect,
@@ -34,15 +33,8 @@ export const SideNavContext = createContext<SideNavContext>({
 export function MainNav({
   children,
   sidebar: Sidebar,
-  toolContent,
-  newsContent,
 }: PropsWithChildren<{
-  sidebar: ComponentType<{
-    toolContent?: ReactNode;
-    newsContent?: ReactNode;
-  }>;
-  toolContent?: ReactNode;
-  newsContent?: ReactNode;
+  sidebar: ComponentType;
 }>) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -113,7 +105,7 @@ export function MainNav({
             !isOpen && "-translate-x-full",
           )}
         >
-          <Sidebar toolContent={toolContent} newsContent={newsContent} />
+          <Sidebar />
         </div>
       </div>
       <div

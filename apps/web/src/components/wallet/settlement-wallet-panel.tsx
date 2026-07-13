@@ -8,6 +8,7 @@ import { useSettlementWalletConnection } from "@/hooks/use-settlement-wallet-con
 import { useTrustlineSetup } from "@/hooks/use-trustline-setup";
 import type { Organization } from "@/lib/db/schema";
 import { Button } from "@dub/ui";
+import { ConnectedWallet } from "@/ui/wallet/connected-wallet";
 
 export function SettlementWalletPanel({
   organizationId,
@@ -161,17 +162,7 @@ export function SettlementWalletPanel({
 
       {isConfigured ? (
         <div className="space-y-4">
-          <div className="space-y-1">
-            <p className="text-content-subtle text-sm">Connected address</p>
-            <p className="text-content-default break-all font-mono text-sm">
-              {savedAddress}
-            </p>
-            {savedWalletProvider ? (
-              <p className="text-content-subtle text-xs">
-                Wallet provider saved for this connection.
-              </p>
-            ) : null}
-          </div>
+          <ConnectedWallet address={savedAddress!} networkLabel={networkLabel} />
 
           {hasMissingTrustlines ? (
             <div className="space-y-2">

@@ -84,7 +84,7 @@ export function SettlementWalletStep({
   return (
     <KycStepPage
       title="Settlement wallet"
-      description="Connect the Mainnet wallet that receives live payments."
+      description="Connect a Mainnet wallet. Live payments are sent to this address."
     >
       <div className="space-y-6">
         {error ? <p className="text-sm text-red-600">{error}</p> : null}

@@ -145,7 +145,7 @@ export function CreateOrganizationWizard({
       ) : (
         <KycStepPage
           title="Settlement wallet"
-          description="Connect the Testnet wallet that receives sandbox payments."
+          description="Connect a Testnet wallet. Sandbox payments are sent to this address."
         >
           <div className="space-y-6">
             {submitError ? (

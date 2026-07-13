@@ -46,9 +46,9 @@ body {
     --sidebar-accent-foreground: oklch(0.205 0 0);
     --sidebar-border: oklch(0.922 0 0);
     --sidebar-ring: oklch(0.708 0 0);
-    --sandbox-banner: oklch(0.79 0.16 75);
-    --sandbox-banner-border: oklch(0.68 0.18 72);
-    --sandbox-banner-foreground: oklch(0.28 0.06 70);
+    --sandbox-banner: var(--primary);
+    --sandbox-banner-border: oklch(0.17 0 0);
+    --sandbox-banner-foreground: var(--primary-foreground);
   }
 
   .dark {
@@ -110,4 +110,16 @@ body {
 
 [data-sonner-toast] {
   border-radius: 10px !important;
+}
+
+/* Stellar Wallets Kit Modal Overrides */
+.stellar-wallets-kit {
+  --swk-background: #ffffff !important;
+  --swk-background-secondary: #f8f8f8 !important;
+  --swk-foreground-strong: #000000 !important;
+  --swk-foreground: #161619 !important;
+  --swk-foreground-secondary: #2d2d31 !important;
+  --swk-primary: #3b82f6 !important;
+  --swk-primary-foreground: #ffffff !important;
+  --swk-border: rgba(0, 0, 0, 0.15) !important;
 }

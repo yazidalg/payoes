@@ -2,10 +2,18 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { StellarWalletsKit } from "@creit.tech/stellar-wallets-kit/sdk";
-import { defaultModules } from "@creit.tech/stellar-wallets-kit/modules/utils";
+import { FreighterModule } from "@creit.tech/stellar-wallets-kit/modules/freighter";
+import { AlbedoModule } from "@creit.tech/stellar-wallets-kit/modules/albedo";
+import { xBullModule } from "@creit.tech/stellar-wallets-kit/modules/xbull";
 import { Networks } from "@creit.tech/stellar-wallets-kit/types";
 import type { Organization } from "@/lib/db/schema";
 import { getNetworkLabel, getNetworkPassphrase } from "@/lib/stellar/network";
+
+const WALLET_MODULES = () => [
+  new FreighterModule(),
+  new AlbedoModule(),
+  new xBullModule(),
+];
 
 async function clearWalletSession() {
   try {
@@ -34,10 +42,14 @@ export function useSettlementWalletConnection(
       await clearWalletSession();
 
       StellarWalletsKit.init({
-        modules: defaultModules(),
+        modules: WALLET_MODULES(),
         network:
           environment === "production" ? Networks.PUBLIC : Networks.TESTNET,
       });
+
+      // Pre-populate the wallet list so the modal shows wallets immediately
+      // on first open instead of loading for 3+ seconds.
+      await StellarWalletsKit.refreshSupportedWallets();
 
       if (!cancelled) {
         setIsReady(true);

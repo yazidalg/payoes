@@ -13,12 +13,14 @@ import {
   Receipt2,
 } from "@dub/ui/icons";
 import { ChevronDown } from "lucide-react";
-import type { ComponentType, SVGProps } from "react";
+import type { ComponentType, ReactNode, SVGProps } from "react";
 
 type CreatePaymentMenuProps = {
   organizationId: string;
   onCreated?: () => void;
   includeCheckoutSession?: boolean;
+  buttonText?: string;
+  buttonIcon?: ReactNode;
 };
 
 type CreateOption = {
@@ -68,6 +70,8 @@ export function CreatePaymentMenu({
   organizationId,
   onCreated,
   includeCheckoutSession = false,
+  buttonText = "Create payment",
+  buttonIcon = <Plus2 className="size-4" />,
 }: CreatePaymentMenuProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -134,8 +138,8 @@ export function CreatePaymentMenu({
         <Button
           type="button"
           variant="primary"
-          text="Create payment"
-          icon={<Plus2 className="size-4" />}
+          text={buttonText}
+          icon={buttonIcon}
           right={<ChevronDown className="size-4 opacity-70" />}
           className="h-9 w-fit"
         />

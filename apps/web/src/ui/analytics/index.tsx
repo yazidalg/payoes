@@ -5,7 +5,6 @@ import { endOfDay, startOfDay, subDays } from "date-fns";
 import { useState } from "react";
 import { useDashboardShell } from "@/ui/layout/dashboard-shell-context";
 import { ChartSection } from "./chart-section";
-import { DashboardQuickActions } from "./dashboard-quick-actions";
 import type { MetricTab } from "@/lib/analytics/types";
 import { StatsGrid } from "./stats-sections";
 import { useDashboardAnalytics } from "./use-dashboard-analytics";
@@ -71,7 +70,7 @@ export function DashboardHomeAnalytics({
 
   return (
     <div className="space-y-5">
-      <div className="flex w-full flex-col items-stretch gap-2 min-[550px]:flex-row min-[550px]:items-center min-[550px]:justify-between">
+      <div className="flex w-full items-center">
         <DateRangePicker
           className="w-full min-[550px]:w-fit"
           align="start"
@@ -91,7 +90,6 @@ export function DashboardHomeAnalytics({
             setDateRange({ from: range.from, to: range.to });
           }}
         />
-        <DashboardQuickActions organizationId={organizationId} />
       </div>
 
       {error ? (
