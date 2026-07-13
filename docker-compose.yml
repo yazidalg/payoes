@@ -1,3 +1,5 @@
+# Host ports are configurable via .env (see docker-compose.env.example).
+# Defaults avoid common conflicts when 5432, 9000, and 8080 are already in use.
 services:
   postgres:
     image: postgres:16-alpine
@@ -8,7 +10,7 @@ services:
       POSTGRES_PASSWORD: payoes
       POSTGRES_DB: payoes
     ports:
-      - "5432:5432"
+      - "${PAYOES_POSTGRES_PORT:-5433}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -26,8 +28,8 @@ services:
       MINIO_ROOT_USER: payoes
       MINIO_ROOT_PASSWORD: payoessecret
     ports:
-      - "9000:9000"
-      - "9001:9001"
+      - "${PAYOES_MINIO_PORT:-9100}:9000"
+      - "${PAYOES_MINIO_CONSOLE_PORT:-9101}:9001"
     volumes:
       - minio_data:/data
     healthcheck:
@@ -58,7 +60,7 @@ services:
     container_name: payoes-api
     restart: unless-stopped
     ports:
-      - "8080:8080"
+      - "${PAYOES_API_PORT:-8088}:8080"
     env_file:
       - path: ./apps/api/.env
         required: false
