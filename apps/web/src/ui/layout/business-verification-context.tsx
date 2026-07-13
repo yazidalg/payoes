@@ -1,5 +1,6 @@
 "use client";
 
+import { apiFetch } from "@/lib/api-client";
 import type { Organization, OrganizationVerificationApplication } from "@/lib/db/schema";
 import {
   createContext,
@@ -32,7 +33,7 @@ const BusinessVerificationContext =
   createContext<BusinessVerificationContextValue | null>(null);
 
 async function fetchVerificationSummary(organizationId: string) {
-  const response = await fetch(`/api/organizations/${organizationId}/verification`);
+  const response = await apiFetch(`/api/organizations/${organizationId}/verification`);
   const data = (await response.json()) as BusinessVerificationSummary & {
     error?: string;
   };

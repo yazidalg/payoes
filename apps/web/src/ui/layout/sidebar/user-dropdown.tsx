@@ -5,7 +5,7 @@ import { Icon, Popover } from "@dub/ui";
 import { Gear } from "@dub/ui/icons";
 import { cn } from "@dub/utils";
 import { LogOut } from "lucide-react";
-import { signOut } from "next-auth/react";
+import { logout } from "@/lib/auth/logout";
 import Link from "next/link";
 import {
   ComponentPropsWithoutRef,
@@ -45,7 +45,7 @@ export function UserDropdown() {
         label: "Log out",
         icon: LogOut,
         onClick: () => {
-          void signOut({ callbackUrl: "/login" });
+          void logout("/login");
         },
       },
     ],

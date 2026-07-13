@@ -1,5 +1,6 @@
 "use client";
 
+import { apiFetch } from "@/lib/api-client";
 import type { Organization } from "@/lib/db/schema";
 import {
   createBusinessInlineValidators,
@@ -115,7 +116,7 @@ export function CreateBusinessForm({
     setIsLoading(true);
 
     try {
-      const response = await fetch("/api/organizations", {
+      const response = await apiFetch("/api/organizations", {
         method: "POST",
         body: formData,
       });

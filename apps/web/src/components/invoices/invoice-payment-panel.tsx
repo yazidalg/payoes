@@ -1,5 +1,6 @@
 "use client";
 
+import { apiFetch } from "@/lib/api-client";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { EnvironmentBadge } from "@/components/shared/environment-badge";
 import { AlertBlock } from "@/components/shared/alert-block";
@@ -84,7 +85,7 @@ export function InvoicePaymentPanel({
       params.set("paid_asset_issuer", selectedAsset.issuer_address);
     }
 
-    const response = await fetch(
+    const response = await apiFetch(
       `/api/checkout/${paymentId}/quote?${params.toString()}`
     );
     const data = (await response.json()) as PaymentQuote & { error?: string };

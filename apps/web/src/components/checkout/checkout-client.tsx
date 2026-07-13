@@ -1,5 +1,6 @@
 "use client";
 
+import { apiFetch } from "@/lib/api-client";
 import { StellarWalletsKit } from "@creit.tech/stellar-wallets-kit/sdk";
 import { Horizon } from "@stellar/stellar-sdk";
 import { useCallback, useEffect, useMemo, useState, useRef } from "react";
@@ -243,7 +244,7 @@ export function CheckoutClient({
 
   useEffect(() => {
     async function load() {
-      const response = await fetch(`/api/checkout/${paymentId}`);
+      const response = await apiFetch(`/api/checkout/${paymentId}`);
       const json = (await response.json()) as CheckoutData & { error?: string };
 
       if (!response.ok) {
@@ -280,7 +281,7 @@ export function CheckoutClient({
 
     const interval = setInterval(async () => {
       try {
-        const statusResponse = await fetch(`/api/checkout/${paymentId}`);
+        const statusResponse = await apiFetch(`/api/checkout/${paymentId}`);
         if (statusResponse.ok) {
           const statusData = await statusResponse.json() as CheckoutData;
           if (statusData.payment.status === "completed") {
@@ -354,7 +355,7 @@ export function CheckoutClient({
     "XLM";
 
   const reloadCheckoutData = useCallback(async () => {
-    const response = await fetch(`/api/checkout/${paymentId}`);
+    const response = await apiFetch(`/api/checkout/${paymentId}`);
     const json = (await response.json()) as CheckoutData & { error?: string };
 
     if (response.ok) {
@@ -388,7 +389,7 @@ export function CheckoutClient({
 
         try {
           if (data.payment.payment_flow === "escrow") {
-            await fetch(`/api/checkout/${paymentId}`, {
+            await apiFetch(`/api/checkout/${paymentId}`, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
@@ -416,7 +417,7 @@ export function CheckoutClient({
 
   const confirmPayment = useCallback(
     async (txHash: string) => {
-      const confirmResponse = await fetch(`/api/checkout/${paymentId}`, {
+      const confirmResponse = await apiFetch(`/api/checkout/${paymentId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -597,7 +598,7 @@ export function CheckoutClient({
     setError(null);
 
     try {
-      const buildResponse = await fetch(`/api/checkout/${paymentId}`, {
+      const buildResponse = await apiFetch(`/api/checkout/${paymentId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -633,7 +634,7 @@ export function CheckoutClient({
       );
 
       const submitResult = await (async () => {
-        const response = await fetch(`/api/checkout/${paymentId}`, {
+        const response = await apiFetch(`/api/checkout/${paymentId}`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -679,7 +680,7 @@ export function CheckoutClient({
     setError(null);
 
     try {
-      const response = await fetch(`/api/checkout/${paymentId}`, {
+      const response = await apiFetch(`/api/checkout/${paymentId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

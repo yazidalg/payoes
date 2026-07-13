@@ -1,8 +1,8 @@
 "use client";
 
+import { getApiBaseUrl } from "@/lib/api-client";
 import { Button } from "@dub/ui";
 import { Google } from "@dub/ui/icons";
-import { signIn } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -31,7 +31,9 @@ export const SignUpOAuth = ({
       text="Continue with Google"
       onClick={() => {
         setClickedGoogle(true);
-        signIn("google", { callbackUrl: next });
+        const url = new URL(`${getApiBaseUrl()}/api/auth/google`);
+        url.searchParams.set("callbackUrl", next);
+        window.location.href = url.toString();
       }}
       loading={clickedGoogle}
       icon={<Google className="h-4 w-4" />}

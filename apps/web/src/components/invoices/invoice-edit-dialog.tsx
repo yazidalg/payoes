@@ -1,5 +1,6 @@
 "use client";
 
+import { apiFetch } from "@/lib/api-client";
 import { useEffect, useState } from "react";
 import { PlusIcon, Trash2Icon } from "lucide-react";
 import { toast } from "sonner";
@@ -71,7 +72,7 @@ export function InvoiceEditDialog({
     setIsSaving(true);
 
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         `/api/organizations/${organizationId}/invoices/${invoice.id}`,
         {
           method: "PATCH",

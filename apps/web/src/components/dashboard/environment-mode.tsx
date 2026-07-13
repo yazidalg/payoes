@@ -1,5 +1,6 @@
 "use client";
 
+import { apiFetch } from "@/lib/api-client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, InfoIcon, RocketIcon, TestTubeDiagonalIcon } from "lucide-react";
@@ -19,7 +20,7 @@ export function EnvironmentModeBanner({ organization, onOrganizationUpdated }: {
   async function handleSwitchToSandbox() {
     setIsSwitchingToSandbox(true);
 
-    const response = await fetch(`/api/organizations/${organization.id}/environment`, {
+    const response = await apiFetch(`/api/organizations/${organization.id}/environment`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ environment: "sandbox" }),
@@ -48,7 +49,7 @@ export function EnvironmentModeBanner({ organization, onOrganizationUpdated }: {
         <div className="flex w-full items-center justify-between gap-4">
           <div className="flex min-w-0 items-center gap-2.5">
             {isProduction ? <RocketIcon className="size-4 shrink-0" aria-hidden /> : <InfoIcon className="size-4 shrink-0" aria-hidden />}
-            <p className="text-sm font-medium leading-snug sm:text-[15px]">{isProduction ? "You're live in production. Payments use mainnet and real funds." : "You're testing in sandbox. Changes here don't affect your live account."}</p>
+            <p className="text-sm font-medium leading-snug sm:text-[15px]">{isProduction ? "You're live in production. Payments use mainnet and real funds." : "You're in sandbox mode. All transactions use Stellar testnet with no real funds or customers."}</p>
           </div>
 
           {isProduction ? (

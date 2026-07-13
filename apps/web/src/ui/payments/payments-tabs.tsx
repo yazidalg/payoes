@@ -1,5 +1,6 @@
 "use client";
 
+import { apiFetch } from "@/lib/api-client";
 import { useCallback } from "react";
 import NumberFlow from "@number-flow/react";
 import { useAsyncData } from "@/hooks/use-async-data";
@@ -26,7 +27,7 @@ export function PaymentsTabs({
   const { queryParams } = useRouterStuff();
 
   const fetchCounts = useCallback(async () => {
-    const response = await fetch(
+    const response = await apiFetch(
       `/api/organizations/${organizationId}/payments/counts`,
     );
     const data = (await response.json()) as {

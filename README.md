@@ -215,60 +215,68 @@ Merchants connect a **settlement wallet** (for example via Freighter) during onb
 
 ## Quick Start
 
+The HTTP API lives in **`apps/api` (Go)**. The Next.js app (`apps/web`) serves the UI and calls the Go API via `NEXT_PUBLIC_API_URL`. Legacy routes under `apps/web/src/app/api` remain in the repo but are unused.
+
 ```bash
 git clone git@github.com:yazidalg/payoes.git
 cd payoes
 npm install
 npm run docker:up
 cp apps/web/.env.example apps/web/.env.local
+# Ensure NEXT_PUBLIC_API_URL=http://localhost:8080 and AUTH_SECRET are set
 npm run db:migrate
-npm run dev              # http://localhost:3000
+npm run dev:api          # http://localhost:8080 (Go API)
+npm run dev              # http://localhost:3000 (Next.js UI)
 ```
 
-For the full local setup (environment variables, docs server), see the [Getting started](apps/docs/local-setup/getting-started.mdx) guide in `apps/docs/`.
+For the full local setup (environment variables, docs server), see the [Getting started](apps/docs/local-setup/getting-started.mdx) guide in `apps/docs/`. See also [`apps/api/README.md`](apps/api/README.md).
 
 ### Scripts
 
-| Script                | Description                                    |
-| --------------------- | ---------------------------------------------- |
-| `npm run dev`         | Start the Next.js dev server on port `3000`.   |
-| `npm run build`       | Produce an optimized production build.         |
-| `npm run start`       | Serve the production build locally.            |
-| `npm run lint`        | Run ESLint across the web app.                 |
-| `npm run docker:up`   | Start PostgreSQL and MinIO via Docker Compose. |
-| `npm run docker:down` | Stop Docker Compose services.                  |
-| `npm run db:migrate`  | Apply Drizzle database migrations.             |
-| `npm run db:setup`    | Initialize the database schema.                |
-| `npm run db:studio`   | Open Drizzle Studio for database inspection.   |
-| `npm run docs:dev`    | Start Mintlify docs on port `3001`.            |
+| Script                | Description                                          |
+| --------------------- | ---------------------------------------------------- |
+| `npm run dev`         | Start the Next.js UI on port `3000`.                 |
+| `npm run dev:api`     | Start the Go API on port `8080`.                     |
+| `npm run build`       | Produce an optimized production build.               |
+| `npm run build:api`   | Build the Go API binary.                             |
+| `npm run start`       | Serve the production build locally.                  |
+| `npm run lint`        | Run ESLint across the web app.                       |
+| `npm run docker:up`   | Start PostgreSQL, MinIO, and the Go API via Compose. |
+| `npm run docker:down` | Stop Docker Compose services.                        |
+| `npm run db:migrate`  | Apply Drizzle database migrations.                   |
+| `npm run db:setup`    | Initialize the database schema.                      |
+| `npm run db:studio`   | Open Drizzle Studio for database inspection.         |
+| `npm run docs:dev`    | Start Mintlify docs on port `3001`.                  |
 
 ## Architecture
 
-Payoes is a monorepo that combines a Next.js application, a Soroban settlement contract, and shared packages. Merchants integrate through REST APIs or platform plugins; customers pay on hosted checkout pages without creating a Payoes account.
+Payoes is a monorepo that combines a Next.js UI, a Go API (`apps/api`), a Soroban settlement contract, and shared packages. Merchants integrate through REST APIs or platform plugins; customers pay on hosted checkout pages without creating a Payoes account.
 
 Diagrams use the [C4 model](https://c4model.com/). Source files and full write-up live in [`docs/architecture/`](docs/architecture/).
 
 ### API surfaces
 
-Payoes exposes two authenticated API surfaces that share the same domain services (`src/lib/<domain>/service.ts`):
+The canonical API is the Go service in `apps/api`. Legacy Next.js handlers under `apps/web/src/app/api` are kept but unused.
 
 | Surface          | Path               | Auth                                       | Used by                              |
 | ---------------- | ------------------ | ------------------------------------------ | ------------------------------------ |
 | Public REST API  | `/api/v1/**`       | Bearer API key (`sandbox` or `production`) | Merchant backends, SDK, integrations |
-| Internal API     | `/api/**` (non-v1) | Auth.js session                            | Dashboard UI                         |
+| Internal API     | `/api/**` (non-v1) | JWT session cookie (`payoes_session`)      | Dashboard UI                         |
 | Inbound webhooks | `/api/webhooks/**` | Provider signatures                        | Persona, Shopify, WooCommerce        |
+| Cron workers     | `/api/cron/**`     | `CRON_SECRET`                              | `scripts/cron`                       |
 
 Every organization-scoped resource is filtered by `organizationId` and `environment`. Sandbox maps to Stellar Testnet; production maps to Mainnet.
 
 ### Repository layout
 
-| Path                | Role                                                                         |
-| ------------------- | ---------------------------------------------------------------------------- |
-| `apps/web`          | Next.js app: marketing site, dashboard, hosted checkout, REST API, cron jobs |
-| `apps/docs`         | Mintlify API documentation                                                   |
-| `packages/sdk`      | `@payoes/sdk` npm package for merchant integrations                          |
-| `contracts`         | Soroban smart contract for on-chain payment routing and settlement           |
-| `docs/architecture` | C4 PlantUML diagram sources                                                  |
+| Path                | Role                                                                                          |
+| ------------------- | --------------------------------------------------------------------------------------------- |
+| `apps/api`          | Go HTTP API: auth, dashboard APIs, `/api/v1`, checkout, cron, inbound webhooks                |
+| `apps/web`          | Next.js UI: marketing, dashboard, hosted checkout (calls Go API; legacy `/api` routes unused) |
+| `apps/docs`         | Mintlify API documentation                                                                    |
+| `packages/sdk`      | `@payoes/sdk` npm package for merchant integrations                                           |
+| `contracts`         | Soroban smart contract for on-chain payment routing and settlement                            |
+| `docs/architecture` | C4 PlantUML diagram sources                                                                   |
 
 ---
 

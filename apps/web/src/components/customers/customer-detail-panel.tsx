@@ -1,5 +1,6 @@
 "use client";
 
+import { apiFetch } from "@/lib/api-client";
 import { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
 import { useEditCustomerSheet } from "@/components/customers/use-edit-customer-sheet";
@@ -37,7 +38,7 @@ export function CustomerDetailPanel({
   });
 
   const fetchDetail = useCallback(async () => {
-    const response = await fetch(
+    const response = await apiFetch(
       `/api/organizations/${organizationId}/customers/${customerId}`,
     );
     const data = (await response.json()) as CustomerDetail & { error?: string };

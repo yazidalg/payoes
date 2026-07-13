@@ -1,5 +1,6 @@
 "use client";
 
+import { apiFetch } from "@/lib/api-client";
 import { Button, useKeyboardShortcut } from "@dub/ui";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
@@ -14,7 +15,7 @@ export function AcceptInviteButton() {
     setIsAccepting(true);
 
     try {
-      const response = await fetch(`/api/invites/${token}/accept`, {
+      const response = await apiFetch(`/api/invites/${token}/accept`, {
         method: "POST",
       });
 

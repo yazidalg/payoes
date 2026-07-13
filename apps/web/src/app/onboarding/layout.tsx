@@ -1,5 +1,5 @@
 import type React from "react";
-import { auth } from "@/auth";
+import { getGoSession } from "@/lib/auth/get-go-session";
 import { findUserByEmail, findUserById } from "@/lib/auth/users";
 import { getPendingInviteTokenForEmail } from "@/lib/organizations/members";
 import { userHasOrganization } from "@/lib/organizations/service";
@@ -25,7 +25,7 @@ export default async function OnboardingRouteLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const session = await auth();
+  const session = await getGoSession();
 
   if (!session?.user) {
     redirect("/login?callbackUrl=/onboarding");

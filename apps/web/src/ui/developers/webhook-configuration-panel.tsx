@@ -1,5 +1,6 @@
 "use client";
 
+import { apiFetch } from "@/lib/api-client";
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
 import { WebhookEventsPicker } from "@/components/developers/webhook-events-picker";
@@ -50,7 +51,7 @@ export function WebhookConfigurationPanel({
   const [refreshKey, setRefreshKey] = useState(0);
 
   const fetchEndpoint = useCallback(async () => {
-    const response = await fetch(
+    const response = await apiFetch(
       `/api/organizations/${organizationId}/webhooks/${webhookId}`,
     );
     const data = (await response.json()) as {
@@ -85,7 +86,7 @@ export function WebhookConfigurationPanel({
 
     setIsSaving(true);
 
-    const response = await fetch(
+    const response = await apiFetch(
       `/api/organizations/${organizationId}/webhooks/${webhookId}`,
       {
         method: "PATCH",
@@ -110,7 +111,7 @@ export function WebhookConfigurationPanel({
   async function handleRotateSecret() {
     setIsRotating(true);
 
-    const response = await fetch(
+    const response = await apiFetch(
       `/api/organizations/${organizationId}/webhooks/${webhookId}/rotate-secret`,
       { method: "POST" },
     );

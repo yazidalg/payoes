@@ -1,11 +1,11 @@
-import { auth } from "@/auth";
+import { getGoSession } from "@/lib/auth/get-go-session";
 import { GoLiveStep } from "@/components/kyc/go-live-step";
 import { getActiveOrganizationForUser } from "@/lib/organizations/active-organization";
 import { getMembershipForUser } from "@/lib/organizations/members";
 import { redirect } from "next/navigation";
 
 export default async function VerificationGoLivePage() {
-  const session = await auth();
+  const session = await getGoSession();
 
   if (!session?.user?.id) {
     redirect("/login");

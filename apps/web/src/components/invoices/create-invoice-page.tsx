@@ -1,8 +1,8 @@
 "use client";
 
+import { apiFetch } from "@/lib/api-client";
 import { useRouter } from "next/navigation";
 import { useCallback, useMemo, useState } from "react";
-import { toast } from "sonner";
 import { InvoiceCurrencyPicker } from "@/components/invoices/invoice-currency-picker";
 import { InvoiceDueDatePicker } from "@/components/invoices/invoice-due-date-picker";
 import { InvoicePreviewPanel } from "@/components/invoices/invoice-preview-panel";
@@ -15,6 +15,7 @@ import {
   lineItemAmount,
 } from "@/lib/invoices/amount";
 import { DEFAULT_INVOICE_CURRENCY_CODE } from "@/lib/invoices/currencies";
+import { toastInvoiceSentToCustomer } from "@/lib/invoices/send-toast";
 import type { InvoicePresentation } from "@/lib/invoices/presentation";
 import type { CustomerOption } from "@/lib/payments/types";
 import {
@@ -145,7 +146,7 @@ export function CreateInvoicePage({
 }) {
   const router = useRouter();
   const fetchCustomers = useCallback(async () => {
-    const response = await fetch(`/api/organizations/${organizationId}/customers`);
+    const response = await apiFetch(`/api/organizations/${organizationId}/customers`);
     const data = (await response.json()) as { customers?: CustomerOption[] };
     return data.customers ?? [];
   }, [organizationId]);
@@ -281,7 +282,7 @@ export function CreateInvoicePage({
     setSubmitError(null);
     setIsSending(true);
 
-    const response = await fetch(
+    const response = await apiFetch(
       `/api/organizations/${organizationId}/invoices/send`,
       {
         method: "POST",
@@ -306,7 +307,6 @@ export function CreateInvoicePage({
       error?: string;
       id?: string;
       email_delivered?: boolean;
-      email_logged?: boolean;
     };
 
     setIsSending(false);
@@ -316,11 +316,7 @@ export function CreateInvoicePage({
       return;
     }
 
-    if (data.email_logged) {
-      toast.message("Invoice prepared. Email logged because SMTP is not configured.");
-    } else {
-      toast.success("Invoice sent to customer");
-    }
+    toastInvoiceSentToCustomer(data);
 
     setReviewOpen(false);
     router.push(`/dashboard/payments/invoices/${data.id}`);

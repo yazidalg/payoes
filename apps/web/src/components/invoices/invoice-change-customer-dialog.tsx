@@ -1,5 +1,6 @@
 "use client";
 
+import { apiFetch } from "@/lib/api-client";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { CustomerPicker } from "@/components/invoices/customer-picker";
@@ -25,7 +26,7 @@ export function InvoiceChangeCustomerDialog({
   const [isSaving, setIsSaving] = useState(false);
 
   const fetchCustomers = useCallback(async () => {
-    const response = await fetch(`/api/organizations/${organizationId}/customers`);
+    const response = await apiFetch(`/api/organizations/${organizationId}/customers`);
     const data = (await response.json()) as {
       customers?: CustomerOption[];
       error?: string;
@@ -58,7 +59,7 @@ export function InvoiceChangeCustomerDialog({
     setIsSaving(true);
 
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         `/api/organizations/${organizationId}/invoices/${invoice.id}`,
         {
           method: "PATCH",

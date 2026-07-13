@@ -1,4 +1,4 @@
-import { auth } from "@/auth";
+import { getGoSession } from "@/lib/auth/get-go-session";
 import { findUserByEmail } from "@/lib/auth/users";
 import {
   getOrganizationsForUser,
@@ -36,7 +36,7 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const session = await auth();
+  const session = await getGoSession();
 
   if (!session?.user) {
     redirect("/login");

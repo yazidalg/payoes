@@ -1,4 +1,4 @@
-import { auth } from "@/auth";
+import { getGoSession } from "@/lib/auth/get-go-session";
 import { CreateBusinessScreen } from "@/components/onboarding/create-business-screen";
 import { findUserByEmail } from "@/lib/auth/users";
 import { userHasOrganization } from "@/lib/organizations/service";
@@ -20,7 +20,7 @@ async function resolveUserId(session: {
 }
 
 export default async function NewOrganizationPage() {
-  const session = await auth();
+  const session = await getGoSession();
   const userId = session?.user ? await resolveUserId(session) : null;
 
   if (!userId) {

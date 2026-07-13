@@ -1,5 +1,6 @@
 "use client";
 
+import { apiFetch } from "@/lib/api-client";
 import { useCallback, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useEditCustomerSheet } from "@/components/customers/use-edit-customer-sheet";
@@ -100,7 +101,7 @@ export function CustomersTable({
       params.set("paymentStatus", paymentStatus);
     }
 
-    const response = await fetch(
+    const response = await apiFetch(
       `/api/organizations/${organizationId}/customers?${params.toString()}`,
     );
     const data = (await response.json()) as CustomersListResponse & {

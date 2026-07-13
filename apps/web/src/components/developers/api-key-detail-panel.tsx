@@ -1,5 +1,6 @@
 "use client";
 
+import { apiFetch } from "@/lib/api-client";
 import { useCallback, useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -41,7 +42,7 @@ export function ApiKeyDetailPanel({
   const [refreshKey, setRefreshKey] = useState(0);
 
   const fetchApiKey = useCallback(async () => {
-    const response = await fetch(
+    const response = await apiFetch(
       `/api/organizations/${organizationId}/api-keys/${apiKeyId}`,
     );
     const data = (await response.json()) as {
@@ -118,7 +119,7 @@ export function ApiKeyDetailPanel({
 
     setIsSaving(true);
 
-    const response = await fetch(
+    const response = await apiFetch(
       `/api/organizations/${organizationId}/api-keys/${apiKeyId}`,
       {
         method: "PATCH",
@@ -272,7 +273,7 @@ function ApiKeyActionsMenu({
   const [, copyToClipboard] = useCopyToClipboard();
 
   async function handleRevoke() {
-    const response = await fetch(
+    const response = await apiFetch(
       `/api/organizations/${organizationId}/api-keys/${apiKey.id}`,
       { method: "DELETE" },
     );

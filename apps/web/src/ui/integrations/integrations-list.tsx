@@ -1,5 +1,6 @@
 "use client";
 
+import { apiFetch } from "@/lib/api-client";
 import { useCallback, useMemo } from "react";
 import { useAsyncData } from "@/hooks/use-async-data";
 import { INTEGRATION_CATALOG } from "@/lib/integrations/catalog";
@@ -24,7 +25,7 @@ export function IntegrationsList({
   const catalogFallback = useMemo(() => buildCatalogFallback(), []);
 
   const fetchIntegrations = useCallback(async () => {
-    const response = await fetch(`/api/organizations/${organizationId}/integrations`);
+    const response = await apiFetch(`/api/organizations/${organizationId}/integrations`);
     const data = (await response.json()) as {
       integrations?: IntegrationListItem[];
       error?: string;

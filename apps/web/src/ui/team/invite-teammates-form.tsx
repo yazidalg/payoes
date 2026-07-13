@@ -1,5 +1,6 @@
 "use client";
 
+import { apiFetch } from "@/lib/api-client";
 import { Button } from "@dub/ui";
 import { Trash } from "@dub/ui/icons";
 import { cn } from "@dub/utils";
@@ -59,7 +60,7 @@ export function InviteTeammatesForm({
 
         const results = await Promise.all(
           teammates.map(async (teammate) => {
-            const response = await fetch(
+            const response = await apiFetch(
               `/api/organizations/${organizationId}/invites`,
               {
                 method: "POST",

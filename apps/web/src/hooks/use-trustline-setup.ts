@@ -5,6 +5,7 @@ import { Horizon, TransactionBuilder } from "@stellar/stellar-sdk";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Organization } from "@/lib/db/schema";
 import { getHorizonUrl, getNetworkPassphrase } from "@/lib/stellar/network";
+import { apiFetch } from "@/lib/api-client";
 import { formatHorizonSubmitError } from "@/lib/stellar/errors";
 
 export type MissingTrustlineAsset = {
@@ -78,7 +79,7 @@ export function useTrustlineSetup({
       setError(null);
 
       try {
-        const response = await fetch(trustlinesUrl, {
+        const response = await apiFetch(trustlinesUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(requestBody("check", enabledMethodIds)),
@@ -130,7 +131,7 @@ export function useTrustlineSetup({
       setError(null);
 
       try {
-        const buildResponse = await fetch(trustlinesUrl, {
+        const buildResponse = await apiFetch(trustlinesUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(requestBody("build", enabledMethodIds)),

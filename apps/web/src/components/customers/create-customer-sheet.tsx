@@ -1,5 +1,6 @@
 "use client";
 
+import { apiFetch } from "@/lib/api-client";
 import { useMemo, useState } from "react";
 import {
   createCustomerInlineValidators,
@@ -99,7 +100,7 @@ export function CreateCustomerSheet({
     setError(null);
     setIsLoading(true);
 
-    const response = await fetch(
+    const response = await apiFetch(
       `/api/organizations/${organizationId}/customers`,
       {
         method: "POST",

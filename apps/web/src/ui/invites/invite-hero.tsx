@@ -8,7 +8,7 @@ import type { MemberRole } from "@/lib/db/schema";
 import { Avatar, Button, Tooltip } from "@dub/ui";
 import { CircleCheck, CircleHalfDottedClock } from "@dub/ui/icons";
 import { cn } from "@dub/utils";
-import { signOut } from "next-auth/react";
+import { logout } from "@/lib/auth/logout";
 
 type InviteUser = {
   id: string;
@@ -155,7 +155,7 @@ export function InviteHero({
             <Button
               text="Sign out and use invited email"
               className="h-9 rounded-lg"
-              onClick={() => signOut({ callbackUrl: `/invite/${token}` })}
+              onClick={() => void logout(`/invite/${token}`)}
             />
           ) : !isExpired ? (
             <AcceptInviteButton />

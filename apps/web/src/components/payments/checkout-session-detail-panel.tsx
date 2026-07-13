@@ -1,5 +1,6 @@
 "use client";
 
+import { apiFetch } from "@/lib/api-client";
 import { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
 import { AlertBlock } from "@/components/shared/alert-block";
@@ -34,7 +35,7 @@ export function CheckoutSessionDetailPanel({
   sessionId: string;
 }) {
   const fetchSession = useCallback(async () => {
-    const response = await fetch(
+    const response = await apiFetch(
       `/api/organizations/${organizationId}/checkout-sessions/${sessionId}`,
     );
     const data = (await response.json()) as CheckoutSessionRow & { error?: string };

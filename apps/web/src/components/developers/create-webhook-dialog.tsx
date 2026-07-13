@@ -1,5 +1,6 @@
 "use client";
 
+import { apiFetch } from "@/lib/api-client";
 import { useState } from "react";
 import { toast } from "sonner";
 import { WebhookEventsPicker } from "@/components/developers/webhook-events-picker";
@@ -46,7 +47,7 @@ export function CreateWebhookDialog({
 
     setIsLoading(true);
 
-    const response = await fetch(`/api/organizations/${organizationId}/webhooks`, {
+    const response = await apiFetch(`/api/organizations/${organizationId}/webhooks`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ url, events }),

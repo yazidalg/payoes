@@ -1,5 +1,6 @@
 "use client";
 
+import { apiFetch } from "@/lib/api-client";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -59,7 +60,7 @@ export function CreatePaymentDialog({
   onCreated,
 }: CreatePaymentDialogProps) {
   const fetchCustomers = useCallback(async () => {
-    const response = await fetch(`/api/organizations/${organizationId}/customers`);
+    const response = await apiFetch(`/api/organizations/${organizationId}/customers`);
     const data = (await response.json()) as { customers?: CustomerOption[] };
     return data.customers ?? [];
   }, [organizationId]);
@@ -184,7 +185,7 @@ export function CreatePaymentDialog({
       issuers,
     );
 
-    const response = await fetch(`/api/organizations/${organizationId}/payments`, {
+    const response = await apiFetch(`/api/organizations/${organizationId}/payments`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

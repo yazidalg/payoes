@@ -1,5 +1,6 @@
 "use client";
 
+import { apiFetch } from "@/lib/api-client";
 import { useCallback } from "react";
 import { useAsyncData } from "@/hooks/use-async-data";
 import { readJsonResponse } from "@/lib/http/read-json-response";
@@ -9,7 +10,7 @@ export type PaymentMethodOption = SerializedPaymentMethod;
 
 export function useEnabledPaymentMethods(organizationId: string) {
   const fetchMethods = useCallback(async () => {
-    const response = await fetch(
+    const response = await apiFetch(
       `/api/organizations/${organizationId}/payment-methods?enabled=true`
     );
     const data = await readJsonResponse<{

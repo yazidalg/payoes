@@ -1,5 +1,6 @@
 "use client";
 
+import { apiFetch } from "@/lib/api-client";
 import { useEffect, useMemo, useState } from "react";
 import { Monitor, Smartphone } from "lucide-react";
 import { InvoiceDocument } from "@/components/invoices/invoice-document";
@@ -51,7 +52,7 @@ export function InvoicePreviewPanel({
     setEmailError(null);
     setEmailHtml(null);
 
-    fetch(`/api/organizations/${organizationId}/invoices/preview-email`, {
+    apiFetch(`/api/organizations/${organizationId}/invoices/preview-email`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

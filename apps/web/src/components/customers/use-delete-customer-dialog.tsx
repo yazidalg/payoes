@@ -1,5 +1,6 @@
 "use client";
 
+import { apiFetch } from "@/lib/api-client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@dub/ui";
@@ -35,7 +36,7 @@ export function useDeleteCustomerDialog({
     setIsDeleting(true);
 
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         `/api/organizations/${organizationId}/customers/${customer.id}`,
         { method: "DELETE" },
       );

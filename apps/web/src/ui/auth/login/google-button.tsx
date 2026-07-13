@@ -1,8 +1,8 @@
 "use client";
 
+import { getApiBaseUrl } from "@/lib/api-client";
 import { Button } from "@dub/ui";
 import { Google } from "@dub/ui/icons";
-import { signIn } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
 import { useContext } from "react";
 import { LoginFormContext } from "./login-form";
@@ -21,7 +21,9 @@ export function GoogleButton({ next }: { next?: string }) {
       onClick={() => {
         setClickedMethod("google");
         setLastUsedAuthMethod("google");
-        signIn("google", { callbackUrl: finalNext });
+        const url = new URL(`${getApiBaseUrl()}/api/auth/google`);
+        url.searchParams.set("callbackUrl", finalNext);
+        window.location.href = url.toString();
       }}
       loading={clickedMethod === "google"}
       disabled={clickedMethod && clickedMethod !== "google"}

@@ -1,5 +1,6 @@
 "use client";
 
+import { apiFetch } from "@/lib/api-client";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
@@ -41,7 +42,7 @@ export function ShopifyIntegrationPanel({
   const loadIntegration = useCallback(async () => {
     setIsLoading(true);
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         `/api/organizations/${organizationId}/integrations/shopify`,
       );
       const data = (await response.json()) as {
@@ -82,7 +83,7 @@ export function ShopifyIntegrationPanel({
 
     void (async () => {
       try {
-        const response = await fetch(
+        const response = await apiFetch(
           `/api/organizations/${organizationId}/integrations/shopify`,
         );
         const data = (await response.json()) as {
@@ -108,7 +109,7 @@ export function ShopifyIntegrationPanel({
   async function handleConnect() {
     setIsConnecting(true);
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         `/api/organizations/${organizationId}/integrations/shopify/connect`,
         {
           method: "POST",
@@ -138,7 +139,7 @@ export function ShopifyIntegrationPanel({
   async function handleDisconnect() {
     setIsDisconnecting(true);
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         `/api/organizations/${organizationId}/integrations/shopify`,
         { method: "DELETE" },
       );

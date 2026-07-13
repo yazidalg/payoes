@@ -1,5 +1,6 @@
 "use client";
 
+import { apiFetch } from "@/lib/api-client";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -242,7 +243,7 @@ export function CreatePaymentLinkPage({
       (item) => item.description.trim() && Number(item.unitAmount) > 0,
     );
 
-    const response = await fetch(
+    const response = await apiFetch(
       `/api/organizations/${organizationId}/payment-links`,
       {
         method: "POST",

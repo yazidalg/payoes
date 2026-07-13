@@ -1,3 +1,4 @@
+import { apiFetch } from "@/lib/api-client";
 import { DEFAULT_AUTH_URL } from "@/constants/app";
 import type { OrganizationIntegration } from "@/lib/db/schema";
 import { getShopifyAccessToken } from "./webhooks";
@@ -38,7 +39,7 @@ export async function shopifyAdminFetch(
     throw new Error("Shopify access token is missing");
   }
 
-  const response = await fetch(
+  const response = await apiFetch(
     `https://${integration.storeIdentifier}/admin/api/2024-10${path}`,
     {
       ...init,

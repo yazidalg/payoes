@@ -1,17 +1,17 @@
 "use client";
 
+import { apiFetch } from "@/lib/api-client";
 import type { UserProfile } from "@/lib/users/service";
 import { UploadProfileAvatar } from "@/ui/profile/upload-profile-avatar";
 import { ProfileDetailsCard } from "@/ui/profile/profile-details-card";
 import { useDashboardShell } from "@/ui/layout/dashboard-shell-context";
 import { Form } from "@dub/ui";
 import { useRouter } from "next/navigation";
-import { useSession } from "next-auth/react";
 import { useState } from "react";
 import { toast } from "sonner";
 
 async function patchUser(data: Record<string, string | null>) {
-  const response = await fetch("/api/user", {
+  const response = await apiFetch("/api/user", {
     method: "PATCH",
     headers: {
       "Content-Type": "application/json",
@@ -37,7 +37,6 @@ async function patchUser(data: Record<string, string | null>) {
 
 export function ProfileSettingsPanel({ user: initialUser }: { user: UserProfile }) {
   const router = useRouter();
-  const { update } = useSession();
   const { setUser: setShellUser } = useDashboardShell();
   const [user, setUser] = useState(initialUser);
   const formKey = user.updatedAt.toString();
@@ -52,10 +51,6 @@ export function ProfileSettingsPanel({ user: initialUser }: { user: UserProfile 
       setShellUser({
         name: updatedUser.name,
         email: updatedUser.email,
-        image: updatedUser.image,
-      });
-      await update({
-        name: updatedUser.name,
         image: updatedUser.image,
       });
       toast.success(successMessage);

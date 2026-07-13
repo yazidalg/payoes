@@ -1,5 +1,6 @@
 "use client";
 
+import { apiFetch } from "@/lib/api-client";
 import { useCallback, useMemo, useState } from "react";
 import type { WebhookDeliveryRow } from "@/lib/webhooks/types";
 import { NoWebhookDeliveriesPlaceholder } from "@/ui/developers/no-webhook-deliveries-placeholder";
@@ -19,7 +20,7 @@ export function WebhookEventLogsPanel({
   refreshKey?: number;
 }) {
   const fetchDeliveries = useCallback(async () => {
-    const response = await fetch(
+    const response = await apiFetch(
       `/api/organizations/${organizationId}/webhooks/${webhookId}`,
     );
     const data = (await response.json()) as {

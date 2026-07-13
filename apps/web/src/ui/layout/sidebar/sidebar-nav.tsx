@@ -4,7 +4,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CSSProperties, ReactNode, useMemo, useRef } from "react";
+import { CSSProperties, ReactNode, useMemo, useRef, useState } from "react";
 import { Logo } from "@/components/shared/logo";
 import { OrgDropdown } from "./org-dropdown";
 
@@ -188,6 +188,7 @@ function NavItem({
   const { name, href, exact, isActive: customIsActive, locked, icon: ItemIcon, submenuId } =
     item;
 
+  const [hovered, setHovered] = useState(false);
   const pathname = usePathname();
 
   const isActive = useMemo(() => {
@@ -207,6 +208,8 @@ function NavItem({
     <Link
       href={locked ? "#" : href}
       data-active={isActive}
+      onPointerEnter={() => !locked && setHovered(true)}
+      onPointerLeave={() => !locked && setHovered(false)}
       className={cn(
         "text-content-default group flex h-9 items-center justify-between rounded-lg px-3 py-2 text-sm leading-none transition-[background-color,color,font-weight] duration-75",
         "outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
@@ -220,6 +223,7 @@ function NavItem({
     >
       <span className="flex items-center gap-2.5">
         <ItemIcon
+          data-hovered={hovered}
           className={cn("size-4", "group-data-[active=true]:text-primary")}
         />
         {name}

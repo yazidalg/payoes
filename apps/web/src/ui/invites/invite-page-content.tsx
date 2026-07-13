@@ -1,4 +1,4 @@
-import { auth } from "@/auth";
+import { getGoSession } from "@/lib/auth/get-go-session";
 import {
   getInvitePageData,
   getUserOrganizationCount,
@@ -16,7 +16,7 @@ import { LinkBroken } from "@dub/ui/icons";
 import { redirect } from "next/navigation";
 
 export async function InvitePageContent({ token }: { token: string }) {
-  const session = await auth();
+  const session = await getGoSession();
 
   if (!session?.user?.id || !session.user.email) {
     redirect(`/login?callbackUrl=${encodeURIComponent(`/invite/${token}`)}`);

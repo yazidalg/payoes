@@ -1,4 +1,4 @@
-import { auth } from "@/auth";
+import { getGoSession } from "@/lib/auth/get-go-session";
 import { SettlementWalletStep } from "@/components/kyc/settlement-wallet-step";
 import { getVerificationSummary } from "@/lib/kyc/service";
 import { getActiveOrganizationForUser } from "@/lib/organizations/active-organization";
@@ -7,7 +7,7 @@ import { getSettlementWallet } from "@/lib/organizations/settlement-wallet";
 import { redirect } from "next/navigation";
 
 export default async function VerificationSettlementWalletPage() {
-  const session = await auth();
+  const session = await getGoSession();
 
   if (!session?.user?.id) {
     redirect("/login");

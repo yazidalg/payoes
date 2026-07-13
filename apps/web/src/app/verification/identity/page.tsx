@@ -1,11 +1,11 @@
-import { auth } from "@/auth";
+import { getGoSession } from "@/lib/auth/get-go-session";
 import { IdentityVerificationForm } from "@/components/kyc/identity-verification-form";
 import { getActiveOrganizationForUser } from "@/lib/organizations/active-organization";
 import { getMembershipForUser } from "@/lib/organizations/members";
 import { redirect } from "next/navigation";
 
 export default async function VerificationIdentityPage() {
-  const session = await auth();
+  const session = await getGoSession();
 
   if (!session?.user?.id) {
     redirect("/login");

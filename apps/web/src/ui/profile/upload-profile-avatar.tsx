@@ -1,10 +1,10 @@
 "use client";
 
+import { apiFetch } from "@/lib/api-client";
 import type { UserProfile } from "@/lib/users/service";
 import { useDashboardShell } from "@/ui/layout/dashboard-shell-context";
 import { Avatar, FileUpload, Button } from "@dub/ui";
 import { useRouter } from "next/navigation";
-import { useSession } from "next-auth/react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -16,7 +16,6 @@ export function UploadProfileAvatar({
   onUserUpdated?: (user: UserProfile) => void;
 }) {
   const router = useRouter();
-  const { update } = useSession();
   const { setUser: setShellUser } = useDashboardShell();
   const [savedImage, setSavedImage] = useState<string | null>(user.image ?? null);
   const [image, setImage] = useState<string | null>(user.image ?? null);
@@ -28,7 +27,7 @@ export function UploadProfileAvatar({
         event.preventDefault();
         setUploading(true);
 
-        const response = await fetch("/api/user", {
+        const response = await apiFetch("/api/user", {
           method: "PATCH",
           headers: {
             "Content-Type": "application/json",
@@ -57,10 +56,6 @@ export function UploadProfileAvatar({
         setShellUser({
           name: nextUser.name,
           email: nextUser.email,
-          image: updatedImage,
-        });
-        await update({
-          name: nextUser.name,
           image: updatedImage,
         });
         toast.success("Successfully updated your profile picture!");

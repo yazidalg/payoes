@@ -1,5 +1,6 @@
 "use client";
 
+import { apiFetch } from "@/lib/api-client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -97,7 +98,7 @@ export function SettlementWalletStep({
     setIsSaving(true);
 
     try {
-      const walletResponse = await fetch(
+      const walletResponse = await apiFetch(
         `/api/organizations/${organizationId}/settlement-wallet`,
         {
           method: "PUT",
@@ -118,7 +119,7 @@ export function SettlementWalletStep({
         return;
       }
 
-      const environmentResponse = await fetch(
+      const environmentResponse = await apiFetch(
         `/api/organizations/${organizationId}/environment`,
         {
           method: "PATCH",

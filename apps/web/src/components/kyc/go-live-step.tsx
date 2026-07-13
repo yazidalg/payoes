@@ -1,5 +1,6 @@
 "use client";
 
+import { apiFetch } from "@/lib/api-client";
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { KycStepPage } from "@/ui/kyc/kyc-step-page";
@@ -13,7 +14,7 @@ type VerificationSummary = {
 };
 
 async function fetchVerificationSummary(organizationId: string) {
-  const response = await fetch(`/api/organizations/${organizationId}/verification`);
+  const response = await apiFetch(`/api/organizations/${organizationId}/verification`);
   const data = (await response.json()) as VerificationSummary & { error?: string };
 
   if (!response.ok) {

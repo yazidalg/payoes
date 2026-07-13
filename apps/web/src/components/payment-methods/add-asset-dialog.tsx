@@ -1,5 +1,6 @@
 "use client";
 
+import { apiFetch } from "@/lib/api-client";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { AlertBlock } from "@/components/shared/alert-block";
@@ -80,7 +81,7 @@ export function AddAssetDialog({
     setValidation(null);
     setIsValidating(true);
 
-    const response = await fetch(
+    const response = await apiFetch(
       `/api/organizations/${organizationId}/payment-methods/validate`,
       {
         method: "POST",
@@ -116,7 +117,7 @@ export function AddAssetDialog({
     setIsSubmitting(true);
     setError(null);
 
-    const response = await fetch(`/api/organizations/${organizationId}/payment-methods`, {
+    const response = await apiFetch(`/api/organizations/${organizationId}/payment-methods`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -147,7 +148,7 @@ export function AddAssetDialog({
     setIsSubmitting(true);
     setError(null);
 
-    const response = await fetch(`/api/organizations/${organizationId}/payment-methods`, {
+    const response = await apiFetch(`/api/organizations/${organizationId}/payment-methods`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

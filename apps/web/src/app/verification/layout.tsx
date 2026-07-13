@@ -1,5 +1,5 @@
 import type React from "react";
-import { auth } from "@/auth";
+import { getGoSession } from "@/lib/auth/get-go-session";
 import { findUserByEmail, findUserById } from "@/lib/auth/users";
 import { getVerificationSummary } from "@/lib/kyc/service";
 import { getActiveOrganizationForUser } from "@/lib/organizations/active-organization";
@@ -27,7 +27,7 @@ export default async function VerificationLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const session = await auth();
+  const session = await getGoSession();
 
   if (!session?.user) {
     redirect("/login?callbackUrl=/verification");

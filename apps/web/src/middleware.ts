@@ -1,19 +1,23 @@
-import NextAuth from "next-auth";
 import { NextResponse } from "next/server";
-import { authConfig } from "@/auth.config";
+import type { NextRequest } from "next/server";
 import { getSafePostAuthRedirect } from "@/lib/auth/safe-redirect";
+import {
+  GO_SESSION_COOKIE,
+  verifyGoSessionToken,
+} from "@/lib/auth/go-session";
 
-const { auth } = NextAuth(authConfig);
-
-export default auth((req) => {
-  const isLoggedIn = !!req.auth;
+export default async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
+  const token = req.cookies.get(GO_SESSION_COOKIE)?.value;
+  const sessionUser = await verifyGoSessionToken(token);
+  const isLoggedIn = Boolean(sessionUser);
 
   if (pathname === "/api/auth/error") {
     const errorUrl = new URL("/auth/error", req.nextUrl.origin);
     errorUrl.search = req.nextUrl.search;
     return NextResponse.redirect(errorUrl);
   }
+
   const requestHeaders = new Headers(req.headers);
   requestHeaders.set("x-pathname", pathname);
   const callbackUrl = getSafePostAuthRedirect(
@@ -53,7 +57,7 @@ export default auth((req) => {
       headers: requestHeaders,
     },
   });
-});
+}
 
 export const config = {
   matcher: [

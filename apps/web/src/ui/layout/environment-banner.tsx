@@ -61,8 +61,8 @@ export function EnvironmentBanner() {
     >
       <div className="flex w-full max-w-screen-xl items-center justify-between gap-4">
         <p className="min-w-0 text-sm leading-snug">
-          You&apos;re testing in a sandbox. Changes you make here don&apos;t
-          affect real customers or payments.
+          You&apos;re in sandbox mode. All transactions use Stellar testnet with
+          no real funds or customers.
         </p>
         <Button
           type="button"

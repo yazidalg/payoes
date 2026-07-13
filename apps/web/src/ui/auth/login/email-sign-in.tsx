@@ -8,13 +8,13 @@ import {
   authFieldLabelClass,
   authFormFieldsClass,
 } from "@/ui/auth/auth-styles";
+import { apiFetch } from "@/lib/api-client";
 import { Button, Input, useMediaQuery } from "@dub/ui";
-import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useContext, useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
-import { errorCodes, LoginFormContext } from "./login-form";
+import { LoginFormContext } from "./login-form";
 
 const emailSchema = z
   .string()
@@ -63,9 +63,8 @@ export const EmailSignIn = ({ next }: { next?: string }) => {
         setClickedMethod("email");
         setIsSubmitting(true);
 
-        const validation = await fetch("/api/auth/validate-login", {
+        const validation = await apiFetch("/api/auth/validate-login", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email, password, callbackUrl: finalNext }),
         });
 
@@ -88,22 +87,6 @@ export const EmailSignIn = ({ next }: { next?: string }) => {
 
           toast.error(
             validationData.error ?? AUTH_ERROR_MESSAGES.INVALID_CREDENTIALS,
-          );
-          setIsSubmitting(false);
-          setClickedMethod(undefined);
-          return;
-        }
-
-        const result = await signIn("credentials", {
-          email,
-          password,
-          redirect: false,
-        });
-
-        if (result?.error) {
-          toast.error(
-            errorCodes[result.error as keyof typeof errorCodes] ??
-              AUTH_ERROR_MESSAGES.INVALID_CREDENTIALS,
           );
           setIsSubmitting(false);
           setClickedMethod(undefined);

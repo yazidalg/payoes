@@ -1,5 +1,6 @@
 "use client";
 
+import { apiFetch } from "@/lib/api-client";
 import { useRouter } from "next/navigation";
 import { Form } from "@dub/ui";
 import { toast } from "sonner";
@@ -19,7 +20,7 @@ async function patchOrganization(
   organizationId: string,
   data: Record<string, string>,
 ) {
-  const response = await fetch(`/api/organizations/${organizationId}`, {
+  const response = await apiFetch(`/api/organizations/${organizationId}`, {
     method: "PATCH",
     headers: {
       "Content-Type": "application/json",

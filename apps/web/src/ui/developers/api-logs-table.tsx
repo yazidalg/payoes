@@ -1,5 +1,6 @@
 "use client";
 
+import { apiFetch } from "@/lib/api-client";
 import { useCallback, useMemo } from "react";
 import { useAsyncData } from "@/hooks/use-async-data";
 import { API_LOGS_PAGE_SIZE, METHOD_BADGE_VARIANTS } from "@/lib/api-logs/constants";
@@ -69,7 +70,7 @@ export function ApiLogsTable({ organizationId }: { organizationId: string }) {
       params.set("apiKeyId", apiKeyId);
     }
 
-    const response = await fetch(
+    const response = await apiFetch(
       `/api/organizations/${organizationId}/api-logs?${params.toString()}`,
     );
     const data = (await response.json()) as ApiLogsListResponse & {

@@ -1,5 +1,6 @@
 "use client";
 
+import { apiFetch } from "@/lib/api-client";
 import { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
 import { AlertBlock } from "@/components/shared/alert-block";
@@ -39,7 +40,7 @@ export function PaymentLinkDetailPanel({
   linkId: string;
 }) {
   const fetchLink = useCallback(async () => {
-    const response = await fetch(
+    const response = await apiFetch(
       `/api/organizations/${organizationId}/payment-links/${linkId}`,
     );
     const data = (await response.json()) as PaymentLinkRow & { error?: string };

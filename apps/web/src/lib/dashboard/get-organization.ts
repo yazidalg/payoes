@@ -1,4 +1,4 @@
-import { auth } from "@/auth";
+import { getGoSession } from "@/lib/auth/get-go-session";
 import { findUserByEmail } from "@/lib/auth/users";
 import { getActiveOrganizationForUser } from "@/lib/organizations/active-organization";
 import { redirect } from "next/navigation";
@@ -19,7 +19,7 @@ async function resolveUserId(session: {
 }
 
 export async function getDashboardUserId() {
-  const session = await auth();
+  const session = await getGoSession();
   const userId = session?.user ? await resolveUserId(session) : null;
 
   if (!userId) {

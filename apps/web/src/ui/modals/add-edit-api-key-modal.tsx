@@ -8,6 +8,7 @@ import {
   scopesObjectToArray,
   type ScopePreset,
 } from "@/lib/api-keys/scopes";
+import { apiFetch } from "@/lib/api-client";
 import type { ApiKeyRow } from "@/lib/api-keys/types";
 import {
   AnimatedSizeContainer,
@@ -118,7 +119,7 @@ function AddEditApiKeyModal({
       return;
     }
 
-    const response = await fetch(endpoint.url, {
+    const response = await apiFetch(endpoint.url, {
       method: endpoint.method,
       headers: {
         "Content-Type": "application/json",

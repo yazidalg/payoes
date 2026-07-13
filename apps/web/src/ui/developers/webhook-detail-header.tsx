@@ -1,5 +1,6 @@
 "use client";
 
+import { apiFetch } from "@/lib/api-client";
 import { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSelectedLayoutSegment } from "next/navigation";
@@ -44,7 +45,7 @@ export function WebhookDetailHeader({
   const [, copyToClipboard] = useCopyToClipboard();
 
   const fetchEndpoint = useCallback(async () => {
-    const response = await fetch(
+    const response = await apiFetch(
       `/api/organizations/${organizationId}/webhooks/${webhookId}`,
     );
     const data = (await response.json()) as {
@@ -99,7 +100,7 @@ export function WebhookDetailHeader({
   async function handleTest() {
     setIsTesting(true);
 
-    const response = await fetch(
+    const response = await apiFetch(
       `/api/organizations/${organizationId}/webhooks/${webhookId}/test`,
       { method: "POST" },
     );
@@ -125,7 +126,7 @@ export function WebhookDetailHeader({
 
     setIsToggling(true);
 
-    const response = await fetch(
+    const response = await apiFetch(
       `/api/organizations/${organizationId}/webhooks/${webhookId}`,
       {
         method: "PATCH",
@@ -148,7 +149,7 @@ export function WebhookDetailHeader({
   }
 
   async function handleDelete() {
-    const response = await fetch(
+    const response = await apiFetch(
       `/api/organizations/${organizationId}/webhooks/${webhookId}`,
       { method: "DELETE" },
     );

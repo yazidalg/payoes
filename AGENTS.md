@@ -4,7 +4,8 @@ Cross-tool rules for Claude Code, OpenAI Codex, Antigravity, and other AGENTS.md
 
 ## Project
 
-- Monorepo with npm workspaces; main app is `apps/web` (Next.js)
+- Monorepo with npm workspaces plus a Go API; main UI is `apps/web` (Next.js)
+- Canonical HTTP API is `apps/api` (Go). Legacy Next.js routes under `apps/web/src/app/api` remain in the repo but are unused.
 - API docs live in `apps/docs/` (Mintlify)
 - Stellar payments platform for organizations
 
@@ -13,7 +14,9 @@ Cross-tool rules for Claude Code, OpenAI Codex, Antigravity, and other AGENTS.md
 | Command | Purpose |
 |---------|---------|
 | `npm run dev` | Start web dev server |
+| `npm run dev:api` | Start Go API on port 8080 |
 | `npm run build` | Build web app |
+| `npm run build:api` | Build Go API binary |
 | `npm run lint` | Lint web app |
 | `npm run db:migrate` | Run database migrations |
 | `npm run db:setup` | Set up database |
@@ -21,23 +24,25 @@ Cross-tool rules for Claude Code, OpenAI Codex, Antigravity, and other AGENTS.md
 
 ## Repository layout
 
-- `apps/web`: the entire application (Next.js 16 App Router, React 19, Tailwind CSS v4, shadcn/ui). Dashboard, hosted checkout, and the public REST API all live here.
+- `apps/api`: Go HTTP API (chi). Auth, dashboard APIs, public REST `/api/v1`, checkout, cron, and inbound webhooks. See `apps/api/README.md`.
+- `apps/web`: Next.js 16 App Router UI (React 19, Tailwind CSS v4, shadcn/ui). Hosted checkout pages and dashboard. Calls the Go API via `NEXT_PUBLIC_API_URL` and `apiFetch` (`src/lib/api-client.ts`).
 - `packages/sdk`: `@payoes/sdk`, currently a placeholder.
 - `apps/docs/`: Mintlify API documentation. `apps/docs/CONTEXT.md` describes the product vision and object model.
 
-Run all npm scripts from the repo root. Local infrastructure comes from `docker compose up -d` (or `npm run docker:up`): PostgreSQL on 5432 and MinIO (S3-compatible storage) on 9000/9001. Copy `apps/web/.env.example` to `apps/web/.env` for configuration. There is no test suite.
+Run all npm scripts from the repo root. Local infrastructure comes from `docker compose up -d` (or `npm run docker:up`): PostgreSQL on 5432, MinIO on 9000/9001, and the Go `api` service on 8080. Copy `apps/web/.env.example` to `apps/web/.env.local` (and optionally `apps/api/.env`). Set `NEXT_PUBLIC_API_URL=http://localhost:8080`.
 
-Database: Drizzle ORM + PostgreSQL. The entire schema is one file, `apps/web/src/lib/db/schema.ts`. After changing it, run `npm run db:generate` (creates SQL in `apps/web/drizzle/`) then `npm run db:migrate`. `npm run db:studio` opens Drizzle Studio.
+Database: Drizzle ORM + PostgreSQL remain the schema source of truth in `apps/web`. The entire schema is one file, `apps/web/src/lib/db/schema.ts`. After changing it, run `npm run db:generate` then `npm run db:migrate`. The Go API uses the same database and does not own migrations.
 
 ## Architecture
 
-### Two API surfaces, two auth models
+### Two API surfaces, two auth models (Go)
 
-- `src/app/api/v1/**`: the public REST API. Authenticated with Bearer API keys via `withApiKeyAuth` (`src/lib/api-keys/auth.ts`), which also logs every request to `api_logs`. The authenticated `apiKey` carries `organizationId` and `environment`; handlers pass both into services.
-- `src/app/api/**` (everything outside `v1/` and `webhooks/`): internal endpoints for the dashboard UI, authenticated with the Auth.js session (NextAuth v5; config in `src/auth.ts` and `src/auth.config.ts`, route protection in `src/middleware.ts`, session helpers in `src/lib/auth/`).
-- `src/app/api/webhooks/persona/`: inbound Persona KYC webhooks.
+- `/api/v1/**`: public REST API. Bearer API keys, scopes, and `api_logs` (ported from `apps/web/src/lib/api-keys`).
+- Dashboard `/api/organizations/**`, `/api/user`, `/api/session/**`: JWT session cookie `payoes_session` signed with `AUTH_SECRET` (Go auth; NextAuth handlers remain unused).
+- `/api/webhooks/**`: inbound Persona / Shopify / WooCommerce webhooks.
+- `/api/cron/**`: settlement and webhook retries, protected by `CRON_SECRET`. Point `scripts/cron` `PAYOES_URL` at the Go API.
 
-Route handlers stay thin: validate with zod, then call a service. Domain logic lives in `src/lib/<domain>/service.ts` (payments, invoices, subscriptions, customers, webhooks, api-keys, organizations, ...). The dashboard and the v1 API share these services; per the project's API-driven principle, dashboard-only capabilities should not exist.
+Legacy TypeScript route handlers and `src/lib` services in `apps/web` are kept for reference and must not be deleted during the migration.
 
 ### Environment scoping (sandbox vs production)
 

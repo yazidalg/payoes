@@ -1,5 +1,6 @@
 "use client";
 
+import { apiFetch } from "@/lib/api-client";
 import { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
 import { AlertBlock } from "@/components/shared/alert-block";
@@ -37,7 +38,7 @@ export function PaymentDetailPanel({
 }) {
   const { activeOrganization } = useDashboardShell();
   const fetchPayment = useCallback(async () => {
-    const response = await fetch(
+    const response = await apiFetch(
       `/api/organizations/${organizationId}/payments/${paymentId}`,
     );
     const data = (await response.json()) as PaymentRow & { error?: string };

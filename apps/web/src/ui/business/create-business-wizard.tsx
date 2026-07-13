@@ -1,5 +1,6 @@
 "use client";
 
+import { apiFetch } from "@/lib/api-client";
 import type { CreateBusinessStep } from "@/constants/business/create-steps";
 import type { Organization } from "@/lib/db/schema";
 import { CreateBusinessForm } from "@/components/business/create-business-form";
@@ -119,7 +120,7 @@ export function CreateBusinessWizard({
     setIsFinishing(true);
 
     try {
-      const response = await fetch("/api/organizations", {
+      const response = await apiFetch("/api/organizations", {
         method: "POST",
         body: pendingOrganization,
       });
@@ -137,7 +138,7 @@ export function CreateBusinessWizard({
         return;
       }
 
-      const walletResponse = await fetch(
+      const walletResponse = await apiFetch(
         `/api/organizations/${payload.organization.id}/settlement-wallet`,
         {
           method: "PUT",

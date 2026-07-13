@@ -1,5 +1,6 @@
 "use client";
 
+import { apiFetch } from "@/lib/api-client";
 import { useCallback, useMemo, useState } from "react";
 import { useAsyncData } from "@/hooks/use-async-data";
 import type { ApiKeyRow } from "@/lib/api-keys/types";
@@ -28,7 +29,7 @@ export function useApiLogFilters({
   const [selectedFilter, setSelectedFilter] = useState<string | null>(null);
 
   const fetchApiKeys = useCallback(async () => {
-    const response = await fetch(`/api/organizations/${organizationId}/api-keys`);
+    const response = await apiFetch(`/api/organizations/${organizationId}/api-keys`);
     const data = (await response.json()) as { apiKeys?: ApiKeyRow[] };
     return data.apiKeys ?? [];
   }, [organizationId]);

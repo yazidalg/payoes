@@ -4,6 +4,7 @@ import {
   AUTH_ERROR_CODES,
   AUTH_ERROR_MESSAGES,
 } from "@/constants/auth";
+import { apiFetch } from "@/lib/api-client";
 import { PasswordRequirements } from "@/ui/shared/password-requirements";
 import {
   authFieldLabelClass,
@@ -83,9 +84,8 @@ export const SignUpEmail = () => {
 
       setIsPending(true);
 
-      const response = await fetch("/api/auth/register", {
+      const response = await apiFetch("/api/auth/register", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: data.name.trim(),
           email: data.email,

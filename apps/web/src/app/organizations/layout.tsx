@@ -1,5 +1,5 @@
 import type React from "react";
-import { auth } from "@/auth";
+import { getGoSession } from "@/lib/auth/get-go-session";
 import { findUserByEmail, findUserById } from "@/lib/auth/users";
 import { redirect } from "next/navigation";
 
@@ -23,7 +23,7 @@ export default async function OrganizationsLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const session = await auth();
+  const session = await getGoSession();
 
   if (!session?.user) {
     redirect("/login?callbackUrl=/business/new");

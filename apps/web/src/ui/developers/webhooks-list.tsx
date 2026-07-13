@@ -1,5 +1,6 @@
 "use client";
 
+import { apiFetch } from "@/lib/api-client";
 import { useCallback } from "react";
 import { useAsyncData } from "@/hooks/use-async-data";
 import type { WebhookEndpointRow } from "@/lib/webhooks/types";
@@ -16,7 +17,7 @@ export function WebhooksList({
   refreshKey?: number;
 }) {
   const fetchEndpoints = useCallback(async () => {
-    const response = await fetch(`/api/organizations/${organizationId}/webhooks`);
+    const response = await apiFetch(`/api/organizations/${organizationId}/webhooks`);
     const data = (await response.json()) as {
       endpoints?: WebhookEndpointRow[];
       error?: string;

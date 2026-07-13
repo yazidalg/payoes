@@ -1,5 +1,6 @@
 "use client";
 
+import { apiFetch } from "@/lib/api-client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type {
   AllowedAsset,
@@ -105,7 +106,7 @@ export function useCheckoutQuotes({
         params.set("paid_asset_issuer", asset.issuer_address);
       }
 
-      const response = await fetch(
+      const response = await apiFetch(
         `/api/checkout/${paymentId}/quote?${params.toString()}`,
       );
       const quoteData = (await response.json()) as PaymentQuote & {

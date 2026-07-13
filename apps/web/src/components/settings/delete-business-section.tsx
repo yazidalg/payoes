@@ -1,5 +1,6 @@
 "use client";
 
+import { apiFetch } from "@/lib/api-client";
 import { useState } from "react";
 import { Button } from "@dub/ui";
 import { toast } from "sonner";
@@ -37,7 +38,7 @@ export function DeleteBusinessSection({
     setIsDeleting(true);
 
     try {
-      const response = await fetch(`/api/organizations/${organization.id}`, {
+      const response = await apiFetch(`/api/organizations/${organization.id}`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ confirmName: confirmName.trim() }),
@@ -59,7 +60,7 @@ export function DeleteBusinessSection({
       setConfirmName("");
 
       if (data.nextOrganization) {
-        await fetch("/api/session/active-organization", {
+        await apiFetch("/api/session/active-organization", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ organizationId: data.nextOrganization.id }),

@@ -1,5 +1,6 @@
 "use client";
 
+import { apiFetch } from "@/lib/api-client";
 import { useEffect, useMemo, useState } from "react";
 import type { CustomerRow } from "@/lib/customers/types";
 import {
@@ -111,7 +112,7 @@ export function EditCustomerSheet({
     setError(null);
     setIsLoading(true);
 
-    const response = await fetch(
+    const response = await apiFetch(
       `/api/organizations/${organizationId}/customers/${customer.id}`,
       {
         method: "PATCH",

@@ -1,5 +1,6 @@
 "use client";
 
+import { apiFetch } from "@/lib/api-client";
 import { useCallback, useMemo, useState } from "react";
 import { useAsyncData } from "@/hooks/use-async-data";
 import { scopesToName } from "@/lib/api-keys/scopes";
@@ -18,7 +19,7 @@ export function ApiKeysTable({ organizationId, refreshKey = 0, onCreateClick, on
   const [localRefreshKey, setLocalRefreshKey] = useState(0);
 
   const fetchKeys = useCallback(async () => {
-    const response = await fetch(`/api/organizations/${organizationId}/api-keys`);
+    const response = await apiFetch(`/api/organizations/${organizationId}/api-keys`);
     const data = (await response.json()) as {
       apiKeys?: ApiKeyRow[];
       error?: string;
@@ -132,7 +133,7 @@ function RowMenuButton({ row, organizationId, onEdit, onRevoked }: { row: Row<Ap
   const isRevoked = Boolean(apiKey.revokedAt);
 
   async function handleRevoke() {
-    const response = await fetch(`/api/organizations/${organizationId}/api-keys/${apiKey.id}`, { method: "DELETE" });
+    const response = await apiFetch(`/api/organizations/${organizationId}/api-keys/${apiKey.id}`, { method: "DELETE" });
 
     if (!response.ok) {
       throw new Error("Unable to revoke API key");

@@ -1,5 +1,6 @@
 "use client";
 
+import { apiFetch } from "@/lib/api-client";
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
 import { AlertBlock } from "@/components/shared/alert-block";
@@ -25,7 +26,7 @@ export function CreateInvoiceDialog({
   onCreated,
 }: CreateInvoiceDialogProps) {
   const fetchCustomers = useCallback(async () => {
-    const response = await fetch(`/api/organizations/${organizationId}/customers`);
+    const response = await apiFetch(`/api/organizations/${organizationId}/customers`);
     const data = (await response.json()) as { customers?: CustomerOption[] };
     return data.customers ?? [];
   }, [organizationId]);
@@ -50,7 +51,7 @@ export function CreateInvoiceDialog({
     setError(null);
     setIsLoading(true);
 
-    const response = await fetch(`/api/organizations/${organizationId}/invoices`, {
+    const response = await apiFetch(`/api/organizations/${organizationId}/invoices`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

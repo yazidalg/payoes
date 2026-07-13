@@ -1,5 +1,6 @@
 "use client";
 
+import { apiFetch } from "@/lib/api-client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Client } from "persona";
@@ -35,7 +36,7 @@ export function IdentityVerificationForm({
   const [isOpening, setIsOpening] = useState(false);
 
   const loadSummary = useCallback(async () => {
-    const response = await fetch(`/api/organizations/${organizationId}/verification`);
+    const response = await apiFetch(`/api/organizations/${organizationId}/verification`);
     const data = (await response.json()) as VerificationSummary & { error?: string };
 
     if (!response.ok) {
@@ -93,7 +94,7 @@ export function IdentityVerificationForm({
   }, []);
 
   async function syncVerificationStatus() {
-    const response = await fetch(
+    const response = await apiFetch(
       `/api/organizations/${organizationId}/verification/session`,
       {
         method: "POST",
@@ -198,7 +199,7 @@ export function IdentityVerificationForm({
     const currentSummary = summary ?? (await loadSummary());
 
     if (!currentSummary.application?.providerInquiryId) {
-      const startResponse = await fetch(`/api/organizations/${organizationId}/verification`, {
+      const startResponse = await apiFetch(`/api/organizations/${organizationId}/verification`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({}),
@@ -212,7 +213,7 @@ export function IdentityVerificationForm({
       await loadSummary();
     }
 
-    const sessionResponse = await fetch(
+    const sessionResponse = await apiFetch(
       `/api/organizations/${organizationId}/verification/session`,
       { method: "POST" },
     );

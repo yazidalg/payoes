@@ -1,5 +1,6 @@
 "use client";
 
+import { apiFetch } from "@/lib/api-client";
 import type { Organization } from "@/lib/db/schema";
 import { BusinessMark } from "@/components/business/business-mark";
 import { Button, FileUpload } from "@dub/ui";
@@ -32,7 +33,7 @@ export function UploadBusinessLogo({
         event.preventDefault();
         setUploading(true);
 
-        const response = await fetch(`/api/organizations/${organization.id}`, {
+        const response = await apiFetch(`/api/organizations/${organization.id}`, {
           method: "PATCH",
           headers: {
             "Content-Type": "application/json",

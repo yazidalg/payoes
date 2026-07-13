@@ -1,5 +1,6 @@
 "use client";
 
+import { apiFetch } from "@/lib/api-client";
 import type { Organization } from "@/lib/db/schema";
 import {
   DROPDOWN_ORGANIZATION_LIMIT,
@@ -14,7 +15,7 @@ import { cn } from "@dub/utils";
 import { ChevronDown, LogOut, TestTubeDiagonal } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { signOut } from "next-auth/react";
+import { logout } from "@/lib/auth/logout";
 import { useState } from "react";
 import { toast } from "sonner";
 import { AppModal } from "@/ui/modals/app-modal";
@@ -119,7 +120,7 @@ function OrgList({
   async function handleSwitchToSandbox() {
     setIsSwitchingToSandbox(true);
 
-    const response = await fetch(`/api/organizations/${activeOrganization.id}/environment`, {
+    const response = await apiFetch(`/api/organizations/${activeOrganization.id}/environment`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ environment: "sandbox" }),
@@ -221,7 +222,7 @@ function OrgList({
             className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-neutral-700 transition-all duration-75 hover:bg-neutral-200/50 active:bg-neutral-200/80"
             onClick={() => {
               setOpenPopover(false);
-              void signOut({ callbackUrl: "/login" });
+              void logout("/login");
             }}
           >
             <LogOut className="size-4 shrink-0 text-neutral-500" />

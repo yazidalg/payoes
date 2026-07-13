@@ -1,5 +1,6 @@
 "use client";
 
+import { apiFetch } from "@/lib/api-client";
 import type { Organization } from "@/lib/db/schema";
 import { getHubPathAfterOrganizationSwitch } from "@/lib/navigation/org-switch-redirect";
 import { useDashboardShell } from "@/ui/layout/dashboard-shell-context";
@@ -31,7 +32,7 @@ export function useBusinessSwitch() {
       setIsSwitching(true);
 
       try {
-        const response = await fetch("/api/session/active-organization", {
+        const response = await apiFetch("/api/session/active-organization", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ organizationId: organization.id }),

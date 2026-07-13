@@ -1,5 +1,6 @@
 "use client";
 
+import { apiFetch } from "@/lib/api-client";
 import { useCallback } from "react";
 import { useAsyncData } from "@/hooks/use-async-data";
 import type { DashboardAnalytics } from "@/lib/analytics/types";
@@ -23,7 +24,7 @@ export function useDashboardAnalytics(
       to: dateRange.to.toISOString(),
     });
 
-    const response = await fetch(
+    const response = await apiFetch(
       `/api/organizations/${organizationId}/analytics?${params.toString()}`,
     );
 

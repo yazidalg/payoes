@@ -1,5 +1,6 @@
 "use client";
 
+import { apiFetch } from "@/lib/api-client";
 import { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -95,7 +96,7 @@ export function SettlementsTable({
       params.set("conversionType", conversionType);
     }
 
-    const response = await fetch(
+    const response = await apiFetch(
       `/api/organizations/${organizationId}/settlements?${params.toString()}`,
     );
     const data = (await response.json()) as SettlementsListResponse & {

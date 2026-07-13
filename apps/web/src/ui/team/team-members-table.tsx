@@ -1,5 +1,6 @@
 "use client";
 
+import { apiFetch } from "@/lib/api-client";
 import { useCallback, useMemo, useState } from "react";
 import { useAsyncData } from "@/hooks/use-async-data";
 import type { MemberRole } from "@/lib/db/schema";
@@ -68,7 +69,7 @@ export function TeamMembersTable({
   const canChangeRoles = viewerRole === "owner";
 
   const fetchTeamRows = useCallback(async () => {
-    const membersResponse = await fetch(
+    const membersResponse = await apiFetch(
       `/api/organizations/${organizationId}/members`,
     );
     const membersData = (await membersResponse.json()) as {
@@ -95,7 +96,7 @@ export function TeamMembersTable({
       return activeRows;
     }
 
-    const invitesResponse = await fetch(
+    const invitesResponse = await apiFetch(
       `/api/organizations/${organizationId}/invites`,
     );
     const invitesData = (await invitesResponse.json()) as {
@@ -134,7 +135,7 @@ export function TeamMembersTable({
 
   const handleChangeRole = useCallback(
     async (userId: string, role: "admin" | "member") => {
-      const response = await fetch(
+      const response = await apiFetch(
         `/api/organizations/${organizationId}/members/${userId}`,
         {
           method: "PATCH",
@@ -154,7 +155,7 @@ export function TeamMembersTable({
 
   const handleRemoveMember = useCallback(
     async (userId: string) => {
-      const response = await fetch(
+      const response = await apiFetch(
         `/api/organizations/${organizationId}/members/${userId}`,
         { method: "DELETE" },
       );
@@ -170,7 +171,7 @@ export function TeamMembersTable({
 
   const handleResendInvite = useCallback(
     async (inviteId: string) => {
-      const response = await fetch(
+      const response = await apiFetch(
         `/api/organizations/${organizationId}/invites/${inviteId}`,
         { method: "POST" },
       );
@@ -186,7 +187,7 @@ export function TeamMembersTable({
 
   const handleRevokeInvite = useCallback(
     async (inviteId: string) => {
-      const response = await fetch(
+      const response = await apiFetch(
         `/api/organizations/${organizationId}/invites/${inviteId}`,
         { method: "DELETE" },
       );

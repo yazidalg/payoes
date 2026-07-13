@@ -48,7 +48,7 @@ function formatDate(date: Date | null) {
 }
 
 function getWordmarkUrl() {
-  const appUrl = process.env.AUTH_URL ?? DEFAULT_AUTH_URL;
+  const appUrl = process.env.WEB_URL ?? process.env.AUTH_URL ?? DEFAULT_AUTH_URL;
   return `${appUrl.replace(/\/$/, "")}/logo-full.png`;
 }
 

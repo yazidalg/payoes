@@ -1,5 +1,6 @@
 "use client";
 
+import { apiFetch } from "@/lib/api-client";
 import { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -7,6 +8,7 @@ import { InvoiceChangeCustomerDialog } from "@/components/invoices/invoice-chang
 import { InvoiceEditDialog } from "@/components/invoices/invoice-edit-dialog";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { useAsyncData } from "@/hooks/use-async-data";
+import { toastInvoiceSentToCustomer } from "@/lib/invoices/send-toast";
 import {
   canChangeInvoiceCustomer,
   canDeleteInvoice,
@@ -61,7 +63,7 @@ export function InvoiceDetailPanel({
   const [changeCustomerOpen, setChangeCustomerOpen] = useState(false);
 
   const fetchInvoice = useCallback(async () => {
-    const response = await fetch(
+    const response = await apiFetch(
       `/api/organizations/${organizationId}/invoices/${invoiceId}`,
     );
     const data = (await response.json()) as InvoiceRow & { error?: string };
@@ -79,7 +81,7 @@ export function InvoiceDetailPanel({
   ]);
 
   const finalizeInvoice = useCallback(async () => {
-    const response = await fetch(
+    const response = await apiFetch(
       `/api/organizations/${organizationId}/invoices/${invoiceId}/finalize`,
       { method: "POST" },
     );
@@ -95,23 +97,26 @@ export function InvoiceDetailPanel({
   }, [organizationId, invoiceId, reload]);
 
   const resendInvoice = useCallback(async () => {
-    const response = await fetch(
+    const response = await apiFetch(
       `/api/organizations/${organizationId}/invoices/${invoiceId}/send`,
       { method: "POST" },
     );
-    const data = (await response.json()) as { error?: string };
+    const data = (await response.json()) as {
+      error?: string;
+      email_delivered?: boolean;
+    };
 
     if (!response.ok) {
       toast.error(data.error ?? "Unable to resend invoice");
       return;
     }
 
-    toast.success("Email sent");
+    toastInvoiceSentToCustomer(data, { resend: true });
     reload();
   }, [organizationId, invoiceId, reload]);
 
   const voidInvoice = useCallback(async () => {
-    const response = await fetch(
+    const response = await apiFetch(
       `/api/organizations/${organizationId}/invoices/${invoiceId}/void`,
       { method: "POST" },
     );
@@ -127,7 +132,7 @@ export function InvoiceDetailPanel({
   }, [organizationId, invoiceId, reload]);
 
   const markAsPaid = useCallback(async () => {
-    const response = await fetch(
+    const response = await apiFetch(
       `/api/organizations/${organizationId}/invoices/${invoiceId}/mark-paid`,
       { method: "POST" },
     );
@@ -143,7 +148,7 @@ export function InvoiceDetailPanel({
   }, [organizationId, invoiceId, reload]);
 
   const deleteInvoice = useCallback(async () => {
-    const response = await fetch(
+    const response = await apiFetch(
       `/api/organizations/${organizationId}/invoices/${invoiceId}`,
       { method: "DELETE" },
     );

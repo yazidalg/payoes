@@ -7,7 +7,8 @@ function getAppUrl() {
 }
 
 function getWordmarkUrl() {
-  return `${getAppUrl().replace(/\/$/, "")}/logo-full.png`;
+  const appUrl = process.env.WEB_URL ?? getAppUrl();
+  return `${appUrl.replace(/\/$/, "")}/logo-full.png`;
 }
 
 export async function sendOrganizationInviteEmail(input: {

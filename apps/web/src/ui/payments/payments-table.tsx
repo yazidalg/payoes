@@ -1,5 +1,6 @@
 "use client";
 
+import { apiFetch } from "@/lib/api-client";
 import { useCallback, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAsyncData } from "@/hooks/use-async-data";
@@ -133,7 +134,7 @@ export function PaymentsTable({
       params.set("status", status);
     }
 
-    const response = await fetch(
+    const response = await apiFetch(
       `/api/organizations/${organizationId}/payments?${params.toString()}`,
     );
     const data = (await response.json()) as PaymentsListResponse & {

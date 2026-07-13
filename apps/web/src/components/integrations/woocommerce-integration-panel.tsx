@@ -1,5 +1,6 @@
 "use client";
 
+import { apiFetch } from "@/lib/api-client";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import type { OrganizationIntegration } from "@/lib/db/schema";
@@ -40,7 +41,7 @@ export function WooCommerceIntegrationPanel({
   const loadIntegration = useCallback(async () => {
     setIsLoading(true);
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         `/api/organizations/${organizationId}/integrations/woocommerce`,
       );
       const data = (await response.json()) as {
@@ -68,7 +69,7 @@ export function WooCommerceIntegrationPanel({
   async function handleConnect() {
     setIsConnecting(true);
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         `/api/organizations/${organizationId}/integrations/woocommerce/connect`,
         {
           method: "POST",
@@ -102,7 +103,7 @@ export function WooCommerceIntegrationPanel({
   async function handleDisconnect() {
     setIsDisconnecting(true);
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         `/api/organizations/${organizationId}/integrations/woocommerce`,
         { method: "DELETE" },
       );

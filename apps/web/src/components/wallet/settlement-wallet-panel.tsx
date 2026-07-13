@@ -1,5 +1,6 @@
 "use client";
 
+import { apiFetch } from "@/lib/api-client";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -108,7 +109,7 @@ export function SettlementWalletPanel({
   });
 
   const fetchMethods = useCallback(async () => {
-    const response = await fetch(`/api/organizations/${organizationId}/payment-methods`);
+    const response = await apiFetch(`/api/organizations/${organizationId}/payment-methods`);
     const payload = await readJsonResponse<PaymentMethodsResponse & { error?: string }>(
       response,
     );
@@ -201,7 +202,7 @@ export function SettlementWalletPanel({
     setWalletError(null);
     setIsSavingWallet(true);
 
-    const response = await fetch(
+    const response = await apiFetch(
       `/api/organizations/${organizationId}/settlement-wallet`,
       {
         method: "PUT",
@@ -272,7 +273,7 @@ export function SettlementWalletPanel({
   }
 
   async function toggleMethod(methodId: string, enabled: boolean) {
-    const response = await fetch(
+    const response = await apiFetch(
       `/api/organizations/${organizationId}/payment-methods/${methodId}`,
       {
         method: "PATCH",
@@ -316,7 +317,7 @@ export function SettlementWalletPanel({
       return [] as MissingTrustlineAsset[];
     }
 
-    const response = await fetch(
+    const response = await apiFetch(
       `/api/organizations/${organizationId}/settlement-wallet/trustlines`,
       {
         method: "POST",
@@ -472,7 +473,7 @@ export function SettlementWalletPanel({
 
     setIsSavingSettlementAsset(true);
 
-    const response = await fetch(
+    const response = await apiFetch(
       `/api/organizations/${organizationId}/payment-methods/settlement`,
       {
         method: "PATCH",
@@ -495,7 +496,7 @@ export function SettlementWalletPanel({
   }
 
   async function removeMethod(methodId: string) {
-    const response = await fetch(
+    const response = await apiFetch(
       `/api/organizations/${organizationId}/payment-methods/${methodId}`,
       { method: "DELETE" },
     );

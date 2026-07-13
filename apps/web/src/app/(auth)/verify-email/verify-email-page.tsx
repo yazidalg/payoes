@@ -1,5 +1,6 @@
 "use client";
 
+import { apiFetch } from "@/lib/api-client";
 import {
   AUTH_ERROR_CODES,
   AUTH_ERROR_MESSAGES,
@@ -40,7 +41,7 @@ export default function VerifyEmailPage() {
 
     setIsResending(true);
 
-    const response = await fetch("/api/auth/resend-verification", {
+    const response = await apiFetch("/api/auth/resend-verification", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
