@@ -83,6 +83,7 @@ export async function GET(
       settlement_quote_rate: payment.settlementQuoteRate,
       source_type: payment.sourceType,
       receiving_address: payment.receivingAddress,
+      memo: payment.memo,
     },
     items,
     merchant: organization,
