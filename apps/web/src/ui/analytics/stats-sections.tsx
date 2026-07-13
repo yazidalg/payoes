@@ -65,8 +65,8 @@ function PaymentMethodsSection({
             maxValue={getMaxValue(data)}
             setShowModal={setShowModal}
             limit={limit}
-            barBackground="bg-blue-100/50"
-            hoverBackground="hover:bg-blue-50"
+            barBackground="bg-primary/10"
+            hoverBackground="hover:bg-primary/5"
           />
         ) : (
           <EmptyBreakdownMessage />

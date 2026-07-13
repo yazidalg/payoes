@@ -42,7 +42,7 @@ export function ChartSection({
       id: "volume",
       valueAccessor: (d: (typeof chartData)[number]) => d.values.volume,
       isActive: selectedTab === "volume",
-      colorClassName: "text-blue-500",
+      colorClassName: "text-primary",
     },
     {
       id: "payments",

@@ -165,7 +165,7 @@ export function useTable<T extends any>(
                   title="Select all"
                 >
                   <Checkbox
-                    className="border-border-default pointer-events-none size-4 rounded data-[state=checked]:bg-black data-[state=indeterminate]:bg-black"
+                    className="border-border-default pointer-events-none size-4 rounded data-[state=checked]:bg-primary data-[state=indeterminate]:bg-primary"
                     checked={
                       table.getIsAllRowsSelected()
                         ? true
@@ -246,7 +246,7 @@ export function useTable<T extends any>(
                     title="Select"
                   >
                     <Checkbox
-                      className="border-border-default pointer-events-none size-4 rounded data-[state=checked]:bg-black data-[state=indeterminate]:bg-black"
+                      className="border-border-default pointer-events-none size-4 rounded data-[state=checked]:bg-primary data-[state=indeterminate]:bg-primary"
                       checked={row.getIsSelected()}
                     />
                   </button>

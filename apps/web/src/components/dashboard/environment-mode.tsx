@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { InfoIcon, RocketIcon, TestTubeDiagonalIcon } from "lucide-react";
+import { ArrowRight, InfoIcon, RocketIcon, TestTubeDiagonalIcon } from "lucide-react";
 import { toast } from "sonner";
 import type { Organization } from "@/lib/db/schema";
 import { Button } from "@/components/ui/button";
@@ -44,7 +44,7 @@ export function EnvironmentModeBanner({ organization, onOrganizationUpdated }: {
 
   return (
     <>
-      <div role="status" className={cn("relative z-50 flex w-full shrink-0 items-center border-b px-4 py-3 sm:px-6", isProduction ? "border-emerald-700 bg-emerald-600 text-emerald-50" : "border-primary-foreground/10 bg-primary text-primary-foreground")}>
+      <div role="status" className={cn("relative z-50 flex w-full shrink-0 items-center border-b px-4 py-3 sm:px-6", isProduction ? "border-emerald-700 bg-emerald-600 text-emerald-50" : "border-sandbox-banner-border bg-sandbox-banner text-sandbox-banner-foreground")}>
         <div className="flex w-full items-center justify-between gap-4">
           <div className="flex min-w-0 items-center gap-2.5">
             {isProduction ? <RocketIcon className="size-4 shrink-0" aria-hidden /> : <InfoIcon className="size-4 shrink-0" aria-hidden />}
@@ -57,9 +57,9 @@ export function EnvironmentModeBanner({ organization, onOrganizationUpdated }: {
               Switch to sandbox
             </button>
           ) : (
-            <button type="button" onClick={() => router.push("/verification")} className="inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-md border border-primary-foreground bg-primary-foreground px-3 py-1.5 text-xs font-medium text-primary shadow-sm transition-colors hover:bg-primary-foreground/90 sm:text-sm">
-              <RocketIcon className="size-3.5" />
-              Switch to production
+            <button type="button" onClick={() => router.push("/verification")} className="inline-flex shrink-0 cursor-pointer items-center gap-1.5 text-xs font-semibold text-white transition-colors hover:text-white/80 sm:text-sm">
+              Verify Your Business
+              <ArrowRight className="size-3.5" aria-hidden />
             </button>
           )}
         </div>

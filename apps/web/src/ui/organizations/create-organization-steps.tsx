@@ -93,14 +93,14 @@ export function CreateOrganizationSteps({
                   }}
                   className={cn(
                     "flex w-full items-center gap-2 rounded-md px-3 py-2 text-left hover:bg-neutral-100",
-                    current && "bg-blue-50",
+                    current && "bg-primary/10",
                   )}
                 >
                   <div
                     className={cn(
                       "flex size-5 items-center justify-center rounded-full text-xs",
-                      completed && !current && "bg-black text-white",
-                      current && "bg-blue-500 text-white",
+                      completed && !current && "bg-primary text-primary-foreground",
+                      current && "bg-primary text-primary-foreground",
                       !current &&
                         !completed &&
                         "border border-neutral-200 text-neutral-500",
@@ -115,7 +115,7 @@ export function CreateOrganizationSteps({
                   <span
                     className={cn(
                       "text-sm font-medium",
-                      current && "text-blue-500",
+                      current && "text-primary",
                       !current && !completed && "text-neutral-600",
                       completed && !current && "text-neutral-900",
                     )}

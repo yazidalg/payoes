@@ -1,13 +1,32 @@
 import sharedConfig from "@dub/tailwind-config/tailwind.config";
 import type { Config } from "tailwindcss";
 
-const config: Pick<Config, "presets"> = {
+const config: Pick<Config, "presets" | "safelist"> = {
+  safelist: [
+    "bg-sandbox-banner",
+    "text-sandbox-banner-foreground",
+    "border-sandbox-banner-border",
+    "bg-primary",
+    "text-primary",
+    "text-primary-foreground",
+    "border-primary",
+    "hover:bg-primary/90",
+    "hover:ring-primary/20",
+    "ring-primary/50",
+    "focus-visible:ring-primary/50",
+    "focus-visible:border-primary",
+    "bg-primary/10",
+    "bg-primary/15",
+    "text-primary",
+    "shadow-[0_0_0_1px_var(--primary)_inset]",
+  ],
   presets: [
     {
       ...sharedConfig,
       content: [
         "./src/**/*.{js,ts,jsx,tsx}",
         "../../packages/ui/src/**/*.{js,ts,jsx,tsx}",
+        "../../packages/ui/dist/**/*.{js,mjs}",
       ],
       theme: {
         extend: {
@@ -44,6 +63,11 @@ const config: Pick<Config, "presets"> = {
             border: "var(--border)",
             input: "var(--input)",
             ring: "var(--ring)",
+            sandbox: {
+              banner: "var(--sandbox-banner)",
+              "banner-foreground": "var(--sandbox-banner-foreground)",
+              "banner-border": "var(--sandbox-banner-border)",
+            },
             sidebar: {
               DEFAULT: "var(--sidebar)",
               foreground: "var(--sidebar-foreground)",

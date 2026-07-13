@@ -15,7 +15,7 @@ const TABS: Tab[] = [
   {
     id: "volume",
     label: "Volume",
-    colorClassName: "text-blue-500/50",
+    colorClassName: "text-primary/50",
   },
   {
     id: "payments",
@@ -62,7 +62,7 @@ export function MetricTabs({
             >
               <div
                 className={cn(
-                  "absolute bottom-0 left-0 h-0.5 w-full bg-black transition-transform duration-100",
+                  "absolute bottom-0 left-0 h-0.5 w-full bg-primary transition-transform duration-100",
                   tab !== id && "translate-y-[3px]",
                 )}
               />

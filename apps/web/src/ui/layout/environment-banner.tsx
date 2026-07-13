@@ -2,6 +2,7 @@
 
 import { Button } from "@dub/ui";
 import { cn } from "@dub/utils";
+import { ArrowRight } from "lucide-react";
 import { useSwitchToProduction } from "@/hooks/use-switch-to-production";
 import { useDashboardShell } from "./dashboard-shell-context";
 import { useUpgradeBannerVisibility } from "./upgrade-banner";
@@ -30,7 +31,8 @@ export function useDashboardTopBannerHeight() {
   };
 }
 
-const actionButtonClassName = "h-7 w-fit shrink-0 px-2.5 text-sm font-medium";
+const actionButtonClassName =
+  "h-7 w-fit shrink-0 border-transparent bg-transparent px-0 text-sm font-semibold text-white hover:bg-transparent hover:text-white/80";
 
 export function EnvironmentBanner() {
   const { isVisible: isEnvironmentBannerVisible } = useEnvironmentBannerVisibility();
@@ -52,7 +54,7 @@ export function EnvironmentBanner() {
         role="status"
         style={{ top: environmentBannerOffset }}
         className={cn(
-          "fixed left-0 right-0 z-30 flex h-12 items-center justify-center border-b border-primary-foreground/10 bg-primary px-4 text-primary-foreground sm:px-6",
+          "fixed left-0 right-0 z-30 flex h-12 items-center justify-center border-b border-sandbox-banner-border bg-sandbox-banner px-4 text-sandbox-banner-foreground sm:px-6",
         )}
       >
         <div className="flex w-full max-w-screen-xl items-center justify-between gap-4">
@@ -62,8 +64,9 @@ export function EnvironmentBanner() {
           </p>
           <Button
             type="button"
-            variant="secondary"
-            text="Switch to production"
+            variant="outline"
+            text="Verify Your Business"
+            right={<ArrowRight className="size-4 text-white" />}
             className={actionButtonClassName}
             onClick={openVerification}
           />

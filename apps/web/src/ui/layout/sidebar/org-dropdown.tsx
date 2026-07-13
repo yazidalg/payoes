@@ -59,7 +59,7 @@ export function OrgDropdown({ placement = "switcher" }: { placement?: "switcher"
         openPopover={openPopover}
         setOpenPopover={setOpenPopover}>
         {isSidebarBottom ? (
-          <button type="button" onClick={() => setOpenPopover(!openPopover)} className={cn("flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left text-sm transition-all duration-75", "hover:bg-bg-inverted/5 active:bg-bg-inverted/10 data-[state=open]:bg-bg-inverted/10", "outline-none focus-visible:ring-2 focus-visible:ring-black/50")}>
+          <button type="button" onClick={() => setOpenPopover(!openPopover)} className={cn("flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left text-sm transition-all duration-75", "hover:bg-bg-inverted/5 active:bg-bg-inverted/10 data-[state=open]:bg-bg-inverted/10", "outline-none focus-visible:ring-2 focus-visible:ring-primary/50")}>
             <div className="flex size-8 shrink-0 overflow-hidden rounded-full">
               <UserProfileMark user={user} className="size-full" />
             </div>
@@ -70,7 +70,7 @@ export function OrgDropdown({ placement = "switcher" }: { placement?: "switcher"
             <ChevronDown className="size-4 shrink-0 text-neutral-400" />
           </button>
         ) : (
-          <button type="button" onClick={() => setOpenPopover(!openPopover)} className={cn("flex size-11 items-center justify-center rounded-lg p-1.5 text-left text-sm transition-all duration-75", "hover:bg-bg-inverted/5 active:bg-bg-inverted/10 data-[state=open]:bg-bg-inverted/10", "outline-none focus-visible:ring-2 focus-visible:ring-black/50")}>
+          <button type="button" onClick={() => setOpenPopover(!openPopover)} className={cn("flex size-11 items-center justify-center rounded-lg p-1.5 text-left text-sm transition-all duration-75", "hover:bg-bg-inverted/5 active:bg-bg-inverted/10 data-[state=open]:bg-bg-inverted/10", "outline-none focus-visible:ring-2 focus-visible:ring-primary/50")}>
             <div className="flex size-7 overflow-hidden rounded-full">
               <UserProfileMark user={user} className="size-full" />
             </div>
@@ -183,16 +183,16 @@ function OrgList({ user, organizations, activeOrganization, setOpenPopover, onCr
             </div>
 
             <div className="flex flex-row flex-wrap gap-1">
-              <Link href="/dashboard/settings/organization" className="flex items-center justify-start gap-x-2 rounded-lg border border-neutral-200 px-2 py-1 text-neutral-700 outline-none transition-all duration-75 hover:bg-neutral-100/50 focus-visible:ring-2 focus-visible:ring-black/50 active:bg-neutral-200/80" onClick={() => setOpenPopover(false)}>
+              <Link href="/dashboard/settings/organization" className="flex items-center justify-start gap-x-2 rounded-lg border border-neutral-200 px-2 py-1 text-neutral-700 outline-none transition-all duration-75 hover:bg-neutral-100/50 focus-visible:ring-2 focus-visible:ring-primary/50 active:bg-neutral-200/80" onClick={() => setOpenPopover(false)}>
                 <Gear className="size-4 text-neutral-800" />
                 <span className="block truncate text-sm">Settings</span>
               </Link>
-              <Link href="/dashboard/settings/team" className="flex items-center justify-start gap-x-2 rounded-lg border border-neutral-200 px-2 py-1 text-neutral-700 outline-none transition-all duration-75 hover:bg-neutral-100/50 focus-visible:ring-2 focus-visible:ring-black/50 active:bg-neutral-200/80" onClick={() => setOpenPopover(false)}>
+              <Link href="/dashboard/settings/team" className="flex items-center justify-start gap-x-2 rounded-lg border border-neutral-200 px-2 py-1 text-neutral-700 outline-none transition-all duration-75 hover:bg-neutral-100/50 focus-visible:ring-2 focus-visible:ring-primary/50 active:bg-neutral-200/80" onClick={() => setOpenPopover(false)}>
                 <UserPlus className="size-4 text-neutral-800" />
                 <span className="block truncate text-sm">Invite members</span>
               </Link>
               {isProduction ? (
-                <button type="button" className="flex items-center justify-start gap-x-2 rounded-lg border border-neutral-200 px-2 py-1 text-neutral-700 outline-none transition-all duration-75 hover:bg-neutral-100/50 focus-visible:ring-2 focus-visible:ring-black/50 active:bg-neutral-200/80" onClick={() => setSandboxDialogOpen(true)}>
+                <button type="button" className="flex items-center justify-start gap-x-2 rounded-lg border border-neutral-200 px-2 py-1 text-neutral-700 outline-none transition-all duration-75 hover:bg-neutral-100/50 focus-visible:ring-2 focus-visible:ring-primary/50 active:bg-neutral-200/80" onClick={() => setSandboxDialogOpen(true)}>
                   <TestTubeDiagonal className="size-4 text-neutral-800" />
                   <span className="block truncate text-sm">Switch to sandbox</span>
                 </button>
@@ -207,7 +207,7 @@ function OrgList({ user, organizations, activeOrganization, setOpenPopover, onCr
                 const isActive = organization.id === activeOrganization.id;
 
                 return (
-                  <button key={organization.id} type="button" disabled={isSwitching} className={cn("relative flex w-full items-center gap-x-2 rounded-md px-2 py-2 transition-all duration-75", "hover:bg-neutral-200/50 active:bg-neutral-200/80", "outline-none focus-visible:ring-2 focus-visible:ring-black/50", isActive && "bg-neutral-200/50")} onClick={() => void selectOrganization(organization)}>
+                  <button key={organization.id} type="button" disabled={isSwitching} className={cn("relative flex w-full items-center gap-x-2 rounded-md px-2 py-2 transition-all duration-75", "hover:bg-neutral-200/50 active:bg-neutral-200/80", "outline-none focus-visible:ring-2 focus-visible:ring-primary/50", isActive && "bg-neutral-200/50")} onClick={() => void selectOrganization(organization)}>
                     <div className="flex size-5 shrink-0 overflow-hidden rounded-full">
                       <OrganizationMark organization={organization} className="size-full" />
                     </div>

@@ -14,14 +14,17 @@ body {
 
 @layer base {
   :root {
+    /* Brand primary: single source of truth */
+    --primary: #054fbf;
+    --primary-hover: #043a99;
+    --primary-foreground: #ffffff;
+
     --background: oklch(1 0 0);
     --foreground: oklch(0.145 0 0);
     --card: oklch(1 0 0);
     --card-foreground: oklch(0.145 0 0);
     --popover: oklch(1 0 0);
     --popover-foreground: oklch(0.145 0 0);
-    --primary: oklch(0.205 0 0);
-    --primary-foreground: oklch(0.985 0 0);
     --secondary: oklch(0.97 0 0);
     --secondary-foreground: oklch(0.205 0 0);
     --muted: oklch(0.97 0 0);
@@ -31,7 +34,7 @@ body {
     --destructive: oklch(0.577 0.245 27.325);
     --border: oklch(0.922 0 0);
     --input: oklch(0.922 0 0);
-    --ring: oklch(0.708 0 0);
+    --ring: var(--primary);
     --chart-1: oklch(0.87 0 0);
     --chart-2: oklch(0.556 0 0);
     --chart-3: oklch(0.439 0 0);
@@ -40,26 +43,27 @@ body {
     --radius: 0.625rem;
     --sidebar: oklch(0.985 0 0);
     --sidebar-foreground: oklch(0.145 0 0);
-    --sidebar-primary: oklch(0.205 0 0);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
+    --sidebar-primary: var(--primary);
+    --sidebar-primary-foreground: var(--primary-foreground);
     --sidebar-accent: oklch(0.97 0 0);
     --sidebar-accent-foreground: oklch(0.205 0 0);
     --sidebar-border: oklch(0.922 0 0);
-    --sidebar-ring: oklch(0.708 0 0);
-    --sandbox-banner: var(--primary);
-    --sandbox-banner-border: oklch(0.17 0 0);
-    --sandbox-banner-foreground: var(--primary-foreground);
+    --sidebar-ring: var(--primary);
+    --sandbox-banner: #0f3359;
+    --sandbox-banner-border: #0a2644;
+    --sandbox-banner-foreground: #ffffff;
   }
 
   .dark {
+    --primary: #054fbf;
+    --primary-hover: #043a99;
+    --primary-foreground: #ffffff;
     --background: oklch(0.145 0 0);
     --foreground: oklch(0.985 0 0);
     --card: oklch(0.205 0 0);
     --card-foreground: oklch(0.985 0 0);
     --popover: oklch(0.205 0 0);
     --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.922 0 0);
-    --primary-foreground: oklch(0.205 0 0);
     --secondary: oklch(0.269 0 0);
     --secondary-foreground: oklch(0.985 0 0);
     --muted: oklch(0.269 0 0);
@@ -69,15 +73,15 @@ body {
     --destructive: oklch(0.704 0.191 22.216);
     --border: oklch(1 0 0 / 10%);
     --input: oklch(1 0 0 / 15%);
-    --ring: oklch(0.556 0 0);
+    --ring: var(--primary);
     --sidebar: oklch(0.205 0 0);
     --sidebar-foreground: oklch(0.985 0 0);
-    --sidebar-primary: oklch(0.488 0.243 264.376);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
+    --sidebar-primary: var(--primary);
+    --sidebar-primary-foreground: var(--primary-foreground);
     --sidebar-accent: oklch(0.269 0 0);
     --sidebar-accent-foreground: oklch(0.985 0 0);
     --sidebar-border: oklch(1 0 0 / 10%);
-    --sidebar-ring: oklch(0.556 0 0);
+    --sidebar-ring: var(--primary);
   }
 
   * {
@@ -86,6 +90,40 @@ body {
 
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+@layer utilities {
+  .bg-sandbox-banner {
+    background-color: var(--sandbox-banner);
+  }
+
+  .text-sandbox-banner-foreground {
+    color: var(--sandbox-banner-foreground);
+  }
+
+  .border-sandbox-banner-border {
+    border-color: var(--sandbox-banner-border);
+  }
+
+  .bg-primary {
+    background-color: var(--primary);
+  }
+
+  .text-primary {
+    color: var(--primary);
+  }
+
+  .text-primary-foreground {
+    color: var(--primary-foreground);
+  }
+
+  .border-primary {
+    border-color: var(--primary);
+  }
+
+  .ring-primary {
+    --tw-ring-color: var(--primary);
   }
 }
 
@@ -119,7 +157,28 @@ body {
   --swk-foreground-strong: #000000 !important;
   --swk-foreground: #161619 !important;
   --swk-foreground-secondary: #2d2d31 !important;
-  --swk-primary: #3b82f6 !important;
-  --swk-primary-foreground: #ffffff !important;
+  --swk-primary: var(--primary) !important;
+  --swk-primary-foreground: var(--primary-foreground) !important;
   --swk-border: rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Primary buttons: runtime imports @dub/ui from dist */
+button[data-payoes-variant="primary"]:not(:disabled) {
+  border-color: var(--primary) !important;
+  background-color: var(--primary) !important;
+  color: var(--primary-foreground) !important;
+}
+
+button[data-payoes-variant="primary"]:not(:disabled):hover {
+  background-color: var(--primary-hover) !important;
+}
+
+[data-slot="button"]:not(:disabled).bg-primary {
+  border-color: var(--primary) !important;
+  background-color: var(--primary) !important;
+  color: var(--primary-foreground) !important;
+}
+
+[data-slot="button"]:not(:disabled).bg-primary:hover {
+  background-color: var(--primary-hover) !important;
 }

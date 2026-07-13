@@ -63,7 +63,7 @@ export function SidebarNav({
             <div className="flex-shrink-0 px-4 pb-1 pt-3">
               <Link
                 href="/dashboard"
-                className="block overflow-visible rounded-lg outline-none transition-opacity focus-visible:ring-2 focus-visible:ring-black/50"
+                className="block overflow-visible rounded-lg outline-none transition-opacity focus-visible:ring-2 focus-visible:ring-primary/50"
               >
                 <NavWordmark className="h-5 overflow-visible" isInApp />
               </Link>
@@ -130,7 +130,7 @@ function SidebarPanel({
                   >
                     <Link
                       href={activeSubmenuConfig.backHref ?? "/dashboard"}
-                      className="group mb-2 flex items-center gap-3 rounded-lg px-3 py-2 outline-none focus-visible:ring-2 focus-visible:ring-black/50"
+                      className="group mb-2 flex items-center gap-3 rounded-lg px-3 py-2 outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
                     >
                       <div
                         className={cn(
@@ -213,9 +213,9 @@ function NavItem({
       data-active={isActive}
       className={cn(
         "text-content-default group flex h-9 items-center justify-between rounded-lg px-3 py-2 text-sm leading-none transition-[background-color,color,font-weight] duration-75",
-        "outline-none focus-visible:ring-2 focus-visible:ring-black/50",
+        "outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
         isActive
-          ? "bg-blue-100/50 font-medium text-blue-600 hover:bg-blue-100/80 active:bg-blue-100"
+          ? "bg-primary/10 font-medium text-primary hover:bg-primary/15 active:bg-primary/20"
           : locked
             ? "cursor-not-allowed opacity-75"
             : "hover:bg-bg-inverted/5 active:bg-bg-inverted/10",
@@ -224,7 +224,7 @@ function NavItem({
     >
       <span className="flex items-center gap-2.5">
         <ItemIcon
-          className={cn("size-4", "group-data-[active=true]:text-blue-600")}
+          className={cn("size-4", "group-data-[active=true]:text-primary")}
         />
         {name}
       </span>
@@ -234,8 +234,8 @@ function NavItem({
             className={cn(
               "flex items-center justify-center rounded px-1.5 py-0.5 text-xs font-semibold",
               isActive
-                ? "bg-blue-600 text-white"
-                : "bg-blue-100 text-blue-600",
+                ? "bg-primary text-primary-foreground"
+                : "bg-primary/10 text-primary",
             )}
           >
             {item.badge}

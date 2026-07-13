@@ -83,7 +83,7 @@ export function UserDropdown() {
         className={cn(
           "group relative flex size-11 items-center justify-center rounded-lg transition-all",
           "hover:bg-bg-inverted/5 active:bg-bg-inverted/10 data-[state=open]:bg-bg-inverted/10",
-          "outline-none focus-visible:ring-2 focus-visible:ring-black/50",
+          "outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
         )}
       >
         {user.image ? (

@@ -91,8 +91,8 @@ export function PaymentsTabs({
           className={cn(
             "flex min-w-0 justify-between gap-4 rounded-xl border bg-white px-5 py-4 text-left transition-[box-shadow] focus:outline-none",
             activeTab === tab
-              ? "border-black shadow-[0_0_0_1px_black_inset]"
-              : "border-neutral-200 focus-visible:border-black",
+              ? "border-primary shadow-[0_0_0_1px_var(--primary)_inset]"
+              : "border-neutral-200 focus-visible:border-primary",
           )}
           onClick={() => onTabClick(tab)}
         >

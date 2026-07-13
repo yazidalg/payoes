@@ -51,7 +51,7 @@ export function CardSelector({
               "relative flex w-full cursor-pointer items-start rounded-md border border-neutral-200 bg-white text-neutral-600 hover:bg-neutral-50",
               "transition-all duration-150",
               isSelected &&
-                "border-black bg-neutral-50 text-neutral-900 ring-1 ring-black",
+                "border-primary bg-neutral-50 text-neutral-900 ring-1 ring-primary",
               disabled && "cursor-not-allowed opacity-50",
               className,
             )}

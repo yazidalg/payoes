@@ -8,7 +8,7 @@ export const buttonVariants = cva("transition-all", {
   variants: {
     variant: {
       primary:
-        "border-black bg-black dark:bg-white dark:border-white text-content-inverted hover:bg-inverted hover:ring-4 hover:ring-border-subtle",
+        "border-primary bg-primary text-primary-foreground hover:bg-primary/90 hover:ring-4 hover:ring-primary/20",
       secondary: cn(
         "border-border-subtle bg-bg-default text-content-emphasis hover:bg-bg-muted focus-visible:border-border-emphasis outline-none",
         "data-[state=open]:border-border-emphasis data-[state=open]:ring-4 data-[state=open]:ring-border-subtle",
@@ -102,6 +102,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     return (
       <button
         ref={forwardedRef}
+        data-payoes-variant={variant ?? undefined}
         // if onClick is passed, it's a "button" type, otherwise it's being used in a form, hence "submit"
         type={props.onClick ? "button" : "submit"}
         className={cn(
@@ -131,7 +132,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
             className={cn(
               "hidden rounded px-2 py-0.5 text-xs font-light transition-all duration-75 md:inline-block",
               {
-                "bg-neutral-700 text-neutral-400 group-hover:bg-neutral-600 group-hover:text-neutral-300":
+                "bg-white/20 text-white group-hover:bg-white/30":
                   variant === "primary",
                 "bg-neutral-200 text-neutral-400 group-hover:bg-neutral-100 group-hover:text-neutral-500":
                   variant === "secondary",
