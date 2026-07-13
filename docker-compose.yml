@@ -51,7 +51,7 @@ services:
       echo 'MinIO bucket payoes-uploads is ready';
       "
 
-api:
+  api:
     build:
       context: ./apps/api
       dockerfile: Dockerfile
