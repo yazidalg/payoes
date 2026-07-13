@@ -1,21 +1,20 @@
 "use client";
 
 import {
-  BarChart3,
+  ArrowLeftRight,
+  ArrowUpDown,
   Check,
-  Compass,
   Info,
-  Layers,
+  KeyRound,
   Link2,
-  MessageSquare,
   MoreHorizontal,
+  Plus,
   Receipt,
-  RefreshCw,
+  ScrollText,
   Search,
-  ShieldAlert,
-  UserPlus,
   Users,
   Wallet,
+  Webhook,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
@@ -28,18 +27,18 @@ const DASHBOARD_HEIGHT = 420;
 
 const TABS = [
   {
-    label: "Payment Links",
-    icon: Link2,
+    label: "Payments",
+    icon: ArrowLeftRight,
     iconClass: "bg-gradient-to-b from-violet-500 to-violet-600",
   },
   {
-    label: "Conversion Analytics",
-    icon: BarChart3,
+    label: "Hosted Checkout",
+    icon: Wallet,
     iconClass: "bg-gradient-to-b from-emerald-500 to-emerald-600",
   },
   {
-    label: "Subscriptions",
-    icon: RefreshCw,
+    label: "Invoices",
+    icon: Receipt,
     iconClass: "bg-gradient-to-b from-orange-500 to-orange-600",
   },
 ];
@@ -83,7 +82,7 @@ export function HeroShowcase() {
                   transformOrigin: "top left",
                 }}
               >
-                <Dashboard />
+                <Dashboard view={active} />
               </div>
             </div>
           </div>
@@ -145,153 +144,263 @@ export function HeroShowcase() {
 
 const NAV_MAIN = [
   { label: "Overview", icon: Info },
-  { label: "Payouts", icon: Wallet, badge: "0" },
-  { label: "Messages", icon: MessageSquare, badge: "4" },
+  { label: "Payments", icon: ArrowLeftRight, view: 0 },
+  { label: "Transactions", icon: ArrowUpDown },
+  { label: "Payment Links", icon: Link2 },
+  { label: "Invoices", icon: Receipt, view: 2 },
+  { label: "Customers", icon: Users },
 ];
 
-const NAV_PARTNERS = [
-  { label: "All partners", icon: Users },
-  { label: "Groups", icon: Layers },
-  { label: "Partner Network", icon: Compass },
-  { label: "Applications", icon: UserPlus, badge: "3", active: true },
+const NAV_DEVELOPERS = [
+  { label: "API Keys", icon: KeyRound },
+  { label: "Webhooks", icon: Webhook, badge: "2" },
+  { label: "API Logs", icon: ScrollText },
 ];
 
-const NAV_INSIGHTS = [
-  { label: "Analytics", icon: BarChart3 },
-  { label: "Commissions", icon: Receipt },
-  { label: "Fraud Detection", icon: ShieldAlert, badge: "3" },
-];
-
-const ROWS = [
+const PAYMENT_ROWS = [
   {
-    name: "Mia Thompson",
-    date: "Dec 12, 2025",
-    flag: "🇺🇸",
-    country: "United States",
-    handle: "@mia.thomp.son",
-    verified: true,
-    selected: true,
+    id: "pay_9tK4mQx8",
+    customer: "mia@acme.co",
+    asset: "USDC",
+    amount: "49.99",
+    status: "Completed",
+    date: "Jul 14",
   },
   {
-    name: "Ethan Brooks",
-    date: "Dec 12, 2025",
-    flag: "🇨🇦",
-    country: "Canada",
-    handle: "@ethan_brooks_CAN",
-    verified: true,
-    selected: false,
+    id: "pay_7hW2xLp3",
+    customer: "ethan@northwind.io",
+    asset: "XLM",
+    amount: "120.00",
+    status: "Completed",
+    date: "Jul 14",
   },
   {
-    name: "Jessica Coleman",
-    date: "Dec 12, 2025",
-    flag: "🇺🇸",
-    country: "United States",
-    handle: "-",
-    verified: false,
-    selected: false,
+    id: "pay_5rN8vDk6",
+    customer: "jess@lumen.app",
+    asset: "USDC",
+    amount: "310.50",
+    status: "Pending",
+    date: "Jul 13",
+  },
+  {
+    id: "pay_2mB6cFj9",
+    customer: "liam@cobalt.dev",
+    asset: "USDC",
+    amount: "18.00",
+    status: "Expired",
+    date: "Jul 12",
   },
 ];
 
-function Dashboard() {
+const INVOICE_ROWS = [
+  {
+    id: "inv_8pR3sVn2",
+    customer: "Acme Inc.",
+    amount: "116.00 USDC",
+    status: "Paid",
+    due: "Jul 20",
+  },
+  {
+    id: "inv_6dJ9wYt5",
+    customer: "Northwind Labs",
+    amount: "480.00 USDC",
+    status: "Open",
+    due: "Jul 28",
+  },
+  {
+    id: "inv_4gF7zQm1",
+    customer: "Lumen Studio",
+    amount: "89.00 USDC",
+    status: "Draft",
+    due: "-",
+  },
+];
+
+const STATUS_STYLES: Record<string, string> = {
+  Completed: "border-emerald-100 bg-emerald-50 text-emerald-600",
+  Paid: "border-emerald-100 bg-emerald-50 text-emerald-600",
+  Pending: "border-amber-100 bg-amber-50 text-amber-600",
+  Open: "border-blue-100 bg-blue-50 text-blue-600",
+  Draft: "border-neutral-200 bg-neutral-50 text-neutral-500",
+  Expired: "border-neutral-200 bg-neutral-50 text-neutral-500",
+};
+
+function Dashboard({ view }: { view: number }) {
   return (
     <div className="flex h-[420px] min-w-[820px] text-left">
-      {/* App icon rail */}
-      <div className="flex w-14 flex-none flex-col items-center gap-4 border-r border-neutral-200 py-4">
-        <span className="font-display text-lg font-black tracking-tight text-neutral-900">
-          P
-        </span>
-        <div className="mt-2 flex flex-col items-center gap-3">
-          <RailIcon>
-            <div className="size-5 rounded-full bg-gradient-to-b from-neutral-700 to-black" />
-          </RailIcon>
-          <RailIcon>
-            <Compass className="size-5 text-neutral-500" strokeWidth={1.75} />
-          </RailIcon>
-          <RailIcon active>
-            <Layers className="size-5 text-neutral-900" strokeWidth={1.75} />
-          </RailIcon>
-        </div>
-      </div>
-
       {/* Sidebar */}
       <div className="flex w-52 flex-none flex-col gap-5 border-r border-neutral-200 px-3 py-4">
-        <h3 className="px-2 text-[15px] font-semibold text-neutral-900">
-          Partner Program
-        </h3>
-        <NavGroup items={NAV_MAIN} />
-        <NavGroup title="Partners" items={NAV_PARTNERS} />
-        <NavGroup title="Insights" items={NAV_INSIGHTS} />
+        <div className="flex items-center justify-between px-2">
+          <div className="flex items-center gap-2">
+            <span className="flex size-6 items-center justify-center rounded-md bg-neutral-900 font-display text-sm font-black text-white">
+              P
+            </span>
+            <h3 className="text-[15px] font-semibold text-neutral-900">
+              Acme Inc.
+            </h3>
+          </div>
+        </div>
+        <div className="mx-2 flex items-center justify-between rounded-lg border border-amber-200 bg-amber-50 px-2 py-1.5">
+          <span className="text-xs font-medium text-amber-700">Sandbox</span>
+          <span className="text-[10px] text-amber-600">Testnet</span>
+        </div>
+        <NavGroup items={NAV_MAIN} view={view} />
+        <NavGroup title="Developers" items={NAV_DEVELOPERS} view={view} />
       </div>
 
       {/* Main */}
-      <div className="flex flex-1 flex-col gap-4 p-6">
+      {view === 1 ? <CheckoutView /> : <TableView view={view} />}
+    </div>
+  );
+}
+
+function TableView({ view }: { view: number }) {
+  const isInvoices = view === 2;
+
+  return (
+    <div className="flex flex-1 flex-col gap-4 p-6">
+      <div className="flex items-center justify-between">
         <h2 className="text-[17px] font-semibold text-neutral-900">
-          Applications
+          {isInvoices ? "Invoices" : "Payments"}
         </h2>
+        <button className="flex items-center gap-1.5 rounded-lg bg-neutral-900 px-3 py-1.5 text-xs font-medium text-white">
+          <Plus className="size-3.5" strokeWidth={2.5} />
+          {isInvoices ? "Create invoice" : "Create payment"}
+        </button>
+      </div>
 
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-neutral-400" />
-          <div className="flex h-9 items-center rounded-lg border border-neutral-200 pl-9 text-sm text-neutral-400">
-            Search by name or email
-          </div>
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-neutral-400" />
+        <div className="flex h-9 items-center rounded-lg border border-neutral-200 pl-9 text-sm text-neutral-400">
+          {isInvoices
+            ? "Search by customer or invoice ID"
+            : "Search by customer or payment ID"}
         </div>
+      </div>
 
-        <div className="overflow-hidden rounded-xl border border-neutral-200">
-          {/* Selection toolbar */}
-          <div className="flex items-center gap-3 border-b border-neutral-200 px-4 py-2.5">
-            <span className="flex size-4 items-center justify-center rounded bg-neutral-900 text-white">
-              <div className="h-0.5 w-2 rounded-full bg-white" />
-            </span>
-            <span className="text-sm font-medium text-neutral-900">
-              1 selected
-            </span>
-            <button className="rounded-md bg-neutral-900 px-3 py-1 text-xs font-medium text-white">
-              Approve
-            </button>
-            <button className="rounded-md border border-neutral-200 bg-white px-3 py-1 text-xs font-medium text-neutral-900">
-              Reject
-            </button>
-          </div>
-
-          {ROWS.map((row) => (
-            <Row key={row.name} {...row} />
-          ))}
-        </div>
+      <div className="overflow-hidden rounded-xl border border-neutral-200">
+        {isInvoices
+          ? INVOICE_ROWS.map((row) => (
+              <div
+                key={row.id}
+                className="flex items-center gap-4 border-b border-neutral-100 px-4 py-3 text-sm last:border-b-0"
+              >
+                <span className="w-32 flex-none font-mono text-neutral-800">
+                  {row.id}
+                </span>
+                <span className="flex-1 truncate text-neutral-600">
+                  {row.customer}
+                </span>
+                <span className="w-28 flex-none text-right font-medium text-neutral-900">
+                  {row.amount}
+                </span>
+                <StatusBadge status={row.status} />
+                <span className="w-14 flex-none text-right text-neutral-500">
+                  {row.due}
+                </span>
+                <MoreHorizontal className="size-4 flex-none text-neutral-400" />
+              </div>
+            ))
+          : PAYMENT_ROWS.map((row) => (
+              <div
+                key={row.id}
+                className="flex items-center gap-4 border-b border-neutral-100 px-4 py-3 text-sm last:border-b-0"
+              >
+                <span className="w-28 flex-none font-mono text-neutral-800">
+                  {row.id}
+                </span>
+                <span className="flex-1 truncate text-neutral-500">
+                  {row.customer}
+                </span>
+                <span className="flex-none rounded-md border border-neutral-200 bg-neutral-50 px-2 py-0.5 text-xs font-medium text-neutral-600">
+                  {row.asset}
+                </span>
+                <span className="w-16 flex-none text-right font-medium text-neutral-900">
+                  {row.amount}
+                </span>
+                <StatusBadge status={row.status} />
+                <span className="w-12 flex-none text-right text-neutral-500">
+                  {row.date}
+                </span>
+              </div>
+            ))}
       </div>
     </div>
   );
 }
 
-function RailIcon({
-  children,
-  active,
-}: {
-  children: React.ReactNode;
-  active?: boolean;
-}) {
+function CheckoutView() {
   return (
-    <div
+    <div className="flex flex-1 items-center justify-center bg-neutral-50/60 p-6">
+      <div className="w-[340px] rounded-2xl border border-neutral-200 bg-white p-6 shadow-[0_16px_32px_-16px_rgba(0,0,0,0.12)]">
+        <div className="flex items-center gap-2.5">
+          <div className="size-8 rounded-full bg-gradient-to-b from-orange-300 to-orange-400" />
+          <div>
+            <p className="text-sm font-medium text-neutral-900">Acme Inc.</p>
+            <p className="text-xs text-neutral-500">Pro plan</p>
+          </div>
+        </div>
+
+        <p className="font-display mt-5 text-3xl font-medium text-neutral-900">
+          49.99 <span className="text-lg text-neutral-500">USDC</span>
+        </p>
+
+        <div className="mt-5 flex gap-2">
+          {["USDC", "XLM"].map((asset, i) => (
+            <div
+              key={asset}
+              className={cn(
+                "flex flex-1 items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium",
+                i === 0
+                  ? "border-neutral-900 bg-neutral-50 text-neutral-900"
+                  : "border-neutral-200 text-neutral-500",
+              )}
+            >
+              {i === 0 && <Check className="size-3.5" strokeWidth={3} />}
+              {asset}
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-4 flex items-center justify-center gap-2 rounded-lg bg-neutral-900 py-2.5 text-sm font-medium text-white">
+          <Wallet className="size-4" strokeWidth={2} />
+          Connect wallet
+        </div>
+
+        <p className="mt-4 text-center text-xs text-neutral-400">
+          Pay from any Stellar wallet. No account needed.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function StatusBadge({ status }: { status: string }) {
+  return (
+    <span
       className={cn(
-        "flex size-9 items-center justify-center rounded-lg",
-        active && "border border-neutral-200 bg-neutral-50 shadow-sm",
+        "w-24 flex-none rounded-md border px-2 py-0.5 text-center text-xs font-medium",
+        STATUS_STYLES[status],
       )}
     >
-      {children}
-    </div>
+      {status}
+    </span>
   );
 }
 
 function NavGroup({
   title,
   items,
+  view,
 }: {
   title?: string;
   items: {
     label: string;
     icon: typeof Info;
     badge?: string;
-    active?: boolean;
+    view?: number;
   }[];
+  view: number;
 }) {
   return (
     <div className="flex flex-col gap-1">
@@ -300,96 +409,44 @@ function NavGroup({
           {title}
         </p>
       )}
-      {items.map(({ label, icon: Icon, badge, active }) => (
-        <div
-          key={label}
-          className={cn(
-            "flex items-center gap-2.5 rounded-lg px-2 py-1.5 text-sm",
-            active
-              ? "bg-blue-50 font-medium text-blue-600"
-              : "text-neutral-600",
-          )}
-        >
-          <Icon
-            className={cn("size-4", active ? "text-blue-600" : "text-neutral-400")}
-            strokeWidth={1.75}
-          />
-          <span className="flex-1">{label}</span>
-          {badge && (
-            <span
+      {items.map(({ label, icon: Icon, badge, view: itemView }) => {
+        // The checkout tab is a hosted page, not a dashboard section, so
+        // "Payments" stays highlighted while it is shown.
+        const active =
+          itemView === view || (view === 1 && itemView === 0);
+        return (
+          <div
+            key={label}
+            className={cn(
+              "flex items-center gap-2.5 rounded-lg px-2 py-1.5 text-sm",
+              active
+                ? "bg-blue-50 font-medium text-blue-600"
+                : "text-neutral-600",
+            )}
+          >
+            <Icon
               className={cn(
-                "flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-medium",
-                active
-                  ? "bg-blue-600 text-white"
-                  : "bg-neutral-100 text-neutral-500",
+                "size-4",
+                active ? "text-blue-600" : "text-neutral-400",
               )}
-            >
-              {badge}
-            </span>
-          )}
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function Row({
-  name,
-  date,
-  flag,
-  country,
-  handle,
-  verified,
-  selected,
-}: {
-  name: string;
-  date: string;
-  flag: string;
-  country: string;
-  handle: string;
-  verified: boolean;
-  selected: boolean;
-}) {
-  return (
-    <div
-      className={cn(
-        "flex items-center gap-3 border-b border-neutral-100 px-4 py-3 text-sm last:border-b-0",
-        selected && "bg-neutral-50/60",
-      )}
-    >
-      <span
-        className={cn(
-          "flex size-4 flex-none items-center justify-center rounded border",
-          selected
-            ? "border-neutral-900 bg-neutral-900 text-white"
-            : "border-neutral-300 bg-white",
-        )}
-      >
-        {selected && <Check className="size-3" strokeWidth={3} />}
-      </span>
-
-      <div className="flex w-44 flex-none items-center gap-2">
-        <div className="size-6 flex-none rounded-full bg-gradient-to-b from-orange-300 to-orange-400" />
-        <span className="font-medium text-neutral-900">{name}</span>
-      </div>
-
-      <span className="w-24 flex-none text-neutral-500">{date}</span>
-
-      <span className="flex w-40 flex-none items-center gap-2 text-neutral-600">
-        <span>{flag}</span>
-        {country}
-      </span>
-
-      <span className="flex flex-1 items-center gap-1.5 text-neutral-500">
-        {handle}
-        {verified && (
-          <span className="flex size-4 items-center justify-center rounded-full bg-emerald-500 text-white">
-            <Check className="size-2.5" strokeWidth={3} />
-          </span>
-        )}
-      </span>
-
-      <MoreHorizontal className="size-4 flex-none text-neutral-400" />
+              strokeWidth={1.75}
+            />
+            <span className="flex-1">{label}</span>
+            {badge && (
+              <span
+                className={cn(
+                  "flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-medium",
+                  active
+                    ? "bg-blue-600 text-white"
+                    : "bg-neutral-100 text-neutral-500",
+                )}
+              >
+                {badge}
+              </span>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }

@@ -1,21 +1,23 @@
 import { cn } from "@/lib/utils";
 
 const WORDMARKS = [
-  "Meridian",
-  "Northwind",
-  "Lumen",
-  "Cobalt",
-  "Vantage",
-  "Helio",
-  "Cascade",
-  "Orbit",
+  "Stellar",
+  "Soroban",
+  "USDC",
+  "XLM",
+  "Freighter",
+  "xBull",
+  "Albedo",
+  "LOBSTR",
+  "Rabet",
+  "Hana",
 ];
 
 export function Logos() {
   return (
     <section id="logos" className="py-16">
       <p className="mx-auto max-w-sm text-balance text-center text-sm text-neutral-500">
-        Powering payments for teams building on Stellar
+        Works with the assets and wallets your customers already use
       </p>
       <div className="relative mt-8 flex w-full items-center overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_20%,black_80%,transparent)]">
         {[...Array(2)].map((_, idx) => (

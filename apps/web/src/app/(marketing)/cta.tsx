@@ -1,23 +1,19 @@
-import { Star, StarHalf } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { ButtonLink } from "./button-link";
 import { Grid } from "./grid";
 
-const RATINGS = [
-  { name: "G2", stars: 5 },
-  { name: "Product Hunt", stars: 5 },
-  { name: "Trustpilot", stars: 4.5 },
-];
-
-const WORDMARKS = [
-  "Meridian",
-  "Northwind",
-  "Lumen",
-  "Cobalt",
-  "Vantage",
-  "Helio",
-  "Cascade",
-  "Orbit",
+const VALUE_PROPS = [
+  {
+    title: "Open source",
+    description: "Audit, extend, or self-host the whole platform",
+  },
+  {
+    title: "USDC, XLM & more",
+    description: "Accept any Stellar asset out of the box",
+  },
+  {
+    title: "Sandbox included",
+    description: "Test everything free on Stellar Testnet",
+  },
 ];
 
 export function CTA() {
@@ -34,30 +30,15 @@ export function CTA() {
           <div className="size-full bg-[conic-gradient(from_-66deg,#855AFC_-32deg,#f00_63deg,#EAB308_158deg,#5CFF80_240deg,#855AFC_328deg,#f00_423deg)] [mask-image:radial-gradient(closest-side,black_100%,transparent_100%)]" />
         </div>
 
-        <div className="relative mx-auto my-8 flex flex-wrap justify-center gap-x-8 gap-y-6">
-          {RATINGS.map(({ name, stars }) => (
-            <div key={name} className="group flex flex-col items-center">
+        <div className="relative mx-auto my-8 flex flex-wrap justify-center gap-x-12 gap-y-6">
+          {VALUE_PROPS.map(({ title, description }) => (
+            <div key={title} className="group flex max-w-44 flex-col items-center">
               <span className="text-sm font-semibold text-neutral-700 transition-transform duration-150 group-hover:scale-105">
-                {name}
+                {title}
               </span>
-              <div className="mt-4 flex items-center gap-1.5 text-black">
-                {[...Array(Math.floor(stars))].map((_, idx) => (
-                  <Star
-                    key={idx}
-                    fill="currentColor"
-                    strokeWidth={0}
-                    className="size-4 text-amber-500"
-                  />
-                ))}
-                {stars % 1 > 0 && (
-                  <StarHalf
-                    fill="currentColor"
-                    strokeWidth={0}
-                    className="size-4 text-amber-500"
-                  />
-                )}
-              </div>
-              <p className="mt-2 text-xs text-neutral-500">{stars} out of 5</p>
+              <p className="mt-2 text-balance text-xs text-neutral-500">
+                {description}
+              </p>
             </div>
           ))}
         </div>
@@ -67,7 +48,7 @@ export function CTA() {
             Supercharge your payments
           </h2>
           <p className="mt-5 text-balance text-base text-neutral-500 sm:text-xl">
-            See why Payoes is the payment platform of choice for modern teams.
+            Start accepting stablecoin payments in minutes, not months.
           </p>
         </div>
 
@@ -78,33 +59,6 @@ export function CTA() {
           <ButtonLink variant="secondary" href="/login">
             Get a demo
           </ButtonLink>
-        </div>
-
-        <div className="relative mt-12">
-          <p className="mx-auto max-w-sm text-balance text-center text-sm text-neutral-500">
-            Giving payment superpowers to world-class teams
-          </p>
-          <div className="mt-8 flex w-full items-center overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_20%,black_80%,transparent)]">
-            {[...Array(2)].map((_, idx) => (
-              <div
-                key={idx}
-                className={cn(
-                  "flex w-max min-w-max items-center gap-12 pl-12",
-                  "motion-safe:animate-infinite-scroll [--scroll:-100%] motion-safe:[animation-duration:40s]",
-                )}
-                aria-hidden={idx !== 0}
-              >
-                {WORDMARKS.map((name) => (
-                  <span
-                    key={name}
-                    className="font-display whitespace-nowrap text-xl font-bold text-neutral-400"
-                  >
-                    {name}
-                  </span>
-                ))}
-              </div>
-            ))}
-          </div>
         </div>
       </div>
     </section>

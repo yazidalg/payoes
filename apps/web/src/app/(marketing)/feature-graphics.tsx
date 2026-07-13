@@ -1,16 +1,14 @@
 "use client";
 
 import {
-  Clock,
+  Check,
   Copy,
   Download,
-  Fingerprint,
   Globe,
   HelpCircle,
-  KeyRound,
-  MapPin,
   MousePointerClick,
   Sparkles,
+  Webhook,
 } from "lucide-react";
 import { CSSProperties, useState } from "react";
 import { cn } from "@/lib/utils";
@@ -190,81 +188,121 @@ function QRCode({ hideLogo }: { hideLogo: boolean }) {
   );
 }
 
-/* --------------------------- Payment features --------------------------- */
+/* ------------------------------- Invoicing ------------------------------ */
 
-const OPTIONS = [
-  { label: "Custom branding", icon: Sparkles, checked: true },
-  { label: "Metadata", icon: Fingerprint, checked: true },
-  { label: "Expiration", icon: Clock, checked: false },
-  { label: "Geo targeting", icon: MapPin, checked: true },
-  { label: "Password", icon: KeyRound, checked: true },
+const INVOICE_ITEMS = [
+  { label: "Pro plan (monthly)", amount: "89.00 USDC" },
+  { label: "Additional seats x 3", amount: "27.00 USDC" },
 ];
 
-export function PaymentFeaturesGraphic() {
+export function InvoiceGraphic() {
+  return (
+    <div
+      className="size-full overflow-clip [mask-image:linear-gradient(black_70%,transparent)]"
+      aria-hidden
+    >
+      <div className="mx-3.5 flex cursor-default flex-col gap-4 rounded-xl border border-neutral-200 bg-white p-5 shadow-[0_20px_20px_0_#00000017]">
+        <div className="flex items-start justify-between">
+          <div>
+            <h3 className="text-base font-medium">Invoice</h3>
+            <p className="mt-0.5 font-mono text-xs text-neutral-500">
+              inv_9tK4mQx82L
+            </p>
+          </div>
+          <span className="flex items-center gap-1 rounded-md border border-emerald-100 bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-600">
+            <Check className="size-3.5" strokeWidth={3} />
+            Paid
+          </span>
+        </div>
+
+        <div className="flex flex-col gap-2.5 border-t border-neutral-100 pt-3">
+          {INVOICE_ITEMS.map(({ label, amount }) => (
+            <div
+              key={label}
+              className="flex items-center justify-between text-sm"
+            >
+              <span className="text-neutral-600">{label}</span>
+              <span className="font-medium text-neutral-900">{amount}</span>
+            </div>
+          ))}
+        </div>
+
+        <div className="flex items-center justify-between border-t border-neutral-200 pt-3">
+          <span className="text-sm font-medium text-neutral-900">
+            Total due
+          </span>
+          <span className="font-display text-lg font-medium text-neutral-900">
+            116.00 USDC
+          </span>
+        </div>
+
+        <div className="rounded-lg bg-neutral-900 py-2 text-center text-sm font-medium text-white">
+          Pay invoice
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------- Webhooks ------------------------------- */
+
+const DELIVERIES = [
+  { event: "payment.completed", status: "200 OK", ok: true, time: "2s ago" },
+  { event: "payment.created", status: "200 OK", ok: true, time: "1m ago" },
+  { event: "payment.failed", status: "Retrying", ok: false, time: "6m ago" },
+  { event: "payment.expired", status: "200 OK", ok: true, time: "18m ago" },
+];
+
+export function WebhooksGraphic() {
   return (
     <div
       className="size-full overflow-clip [mask-image:linear-gradient(black_70%,transparent)]"
       aria-hidden
     >
       <div className="mx-3.5 flex cursor-default flex-col gap-3 rounded-xl border border-neutral-200 bg-white p-5 shadow-[0_20px_20px_0_#00000017]">
-        <h3 className="text-base font-medium">Checkout customization</h3>
+        <div className="flex items-center justify-between gap-2">
+          <h3 className="text-base font-medium">Webhook deliveries</h3>
+          <div className="flex items-center gap-1.5 rounded-md border border-neutral-200 bg-neutral-50 px-2 py-1">
+            <Webhook className="size-3.5 text-neutral-500" />
+            <span className="whitespace-nowrap font-mono text-xs text-neutral-500">
+              acme.co/webhooks
+            </span>
+          </div>
+        </div>
 
         <div className="flex flex-col gap-2.5">
-          {OPTIONS.map(({ label, icon: Icon, checked }) => (
-            <DummyRow key={label} label={label} Icon={Icon} checked={checked} />
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function DummyRow({
-  label,
-  Icon,
-  checked,
-}: {
-  label: string;
-  Icon: typeof Sparkles;
-  checked: boolean;
-}) {
-  const [isChecked, setIsChecked] = useState(checked);
-  return (
-    <div className="flex items-center justify-between gap-2 rounded-lg border border-neutral-200 p-2.5">
-      <div className="flex items-center gap-2 text-neutral-800">
-        <Icon className="size-5" strokeWidth={1.75} />
-        <span className="text-sm font-medium">{label}</span>
-      </div>
-      <Switch checked={isChecked} onChange={setIsChecked} />
-    </div>
-  );
-}
-
-/* ---------------------------- Team / SAML SSO --------------------------- */
-
-export function CollaborationGraphic() {
-  return (
-    <div
-      className="size-full pt-5 [mask-image:linear-gradient(black_50%,transparent)]"
-      aria-hidden
-    >
-      <div className="relative size-full rounded-t-2xl border-x-2 border-t-2 border-orange-600 bg-white/70">
-        <div className="absolute -top-px left-1/2 flex h-7 -translate-x-1/2 -translate-y-1/2 drop-shadow-[0_2px_4px_#EA590D80]">
-          <BadgeCap />
-          <div className="-mx-px flex h-full items-center bg-orange-600 px-2 font-mono text-sm tracking-wide text-white">
-            SAML SSO
-          </div>
-          <BadgeCap className="-scale-x-100" />
-        </div>
-        <div className="grid grid-cols-6 gap-4 p-8">
-          {Array.from({ length: 36 }).map((_, idx) => (
+          {DELIVERIES.map(({ event, status, ok, time }) => (
             <div
-              key={idx}
-              className="aspect-square rounded-lg transition-transform hover:scale-110 sm:rounded-xl"
-              style={{
-                backgroundImage: `linear-gradient(135deg, hsl(${(idx * 47) % 360} 65% 78%), hsl(${(idx * 47 + 40) % 360} 60% 62%))`,
-              }}
-            />
+              key={event}
+              className="flex items-center justify-between gap-2 rounded-lg border border-neutral-200 p-2.5"
+            >
+              <div className="flex items-center gap-2.5">
+                <span
+                  className={cn(
+                    "size-2 rounded-full",
+                    ok ? "bg-emerald-500" : "bg-amber-500",
+                  )}
+                />
+                <span className="font-mono text-sm text-neutral-800">
+                  {event}
+                </span>
+              </div>
+              <div className="flex items-center gap-3">
+                <span
+                  className={cn(
+                    "rounded-md px-2 py-0.5 text-xs font-medium",
+                    ok
+                      ? "border border-emerald-100 bg-emerald-50 text-emerald-600"
+                      : "border border-amber-100 bg-amber-50 text-amber-600",
+                  )}
+                >
+                  {status}
+                </span>
+                <span className="hidden whitespace-nowrap text-xs text-neutral-400 sm:inline">
+                  {time}
+                </span>
+              </div>
+            </div>
           ))}
         </div>
       </div>
@@ -272,29 +310,46 @@ export function CollaborationGraphic() {
   );
 }
 
-function BadgeCap({ className }: { className?: string }) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="31"
-      height="30"
-      fill="none"
-      viewBox="0 0 28 30"
-      className={cn("h-full text-orange-600", className)}
-    >
-      <path
-        fill="currentColor"
-        d="M25.658.14h5.337v29.572h-5.337a9.24 9.24 0 0 1-6.626-2.8l-4.327-4.45A26.2 26.2 0 0 0 .5 14.926a26.2 26.2 0 0 0 14.205-7.535l4.327-4.451a9.24 9.24 0 0 1 6.626-2.8"
-      />
-    </svg>
-  );
-}
+/* -------------------------- Payment processing -------------------------- */
 
-/* ---------------------------- Payment analytics ------------------------- */
+const PAYMENTS = [
+  {
+    id: "pay_9tK4mQx8",
+    customer: "mia@acme.co",
+    asset: "USDC",
+    amount: "49.99",
+    status: "Completed",
+  },
+  {
+    id: "pay_7hW2xLp3",
+    customer: "ethan@northwind.io",
+    asset: "XLM",
+    amount: "120.00",
+    status: "Completed",
+  },
+  {
+    id: "pay_5rN8vDk6",
+    customer: "jess@lumen.app",
+    asset: "USDC",
+    amount: "310.50",
+    status: "Pending",
+  },
+  {
+    id: "pay_2mB6cFj9",
+    customer: "liam@cobalt.dev",
+    asset: "USDC",
+    amount: "18.00",
+    status: "Expired",
+  },
+];
 
-const BARS = [38, 52, 44, 66, 58, 74, 62, 88, 79, 96, 84, 100];
+const STATUS_STYLES: Record<string, string> = {
+  Completed: "border-emerald-100 bg-emerald-50 text-emerald-600",
+  Pending: "border-amber-100 bg-amber-50 text-amber-600",
+  Expired: "border-neutral-200 bg-neutral-50 text-neutral-500",
+};
 
-export function AnalyticsGraphic() {
+export function PaymentsGraphic() {
   return (
     <div
       aria-hidden
@@ -324,21 +379,34 @@ export function AnalyticsGraphic() {
           </div>
         </div>
 
-        <div className="relative h-64 px-6 pb-6 pt-8">
-          <div className="flex h-full items-end justify-between gap-2 sm:gap-3">
-            {BARS.map((h, idx) => (
-              <div
-                key={idx}
-                className="flex-1 rounded-t-md bg-gradient-to-t from-violet-500/70 to-blue-500"
-                style={{ height: `${h}%` }}
-              />
-            ))}
-          </div>
-          <div className="pointer-events-none absolute inset-x-6 bottom-6 top-8 flex flex-col justify-between">
-            {[0, 1, 2, 3].map((i) => (
-              <div key={i} className="h-px w-full bg-neutral-100" />
-            ))}
-          </div>
+        <div className="flex flex-col">
+          {PAYMENTS.map(({ id, customer, asset, amount, status }) => (
+            <div
+              key={id}
+              className="flex items-center gap-3 border-b border-neutral-100 px-6 py-3.5 text-sm last:border-b-0 sm:gap-4"
+            >
+              <span className="w-28 flex-none font-mono text-neutral-800 sm:w-32">
+                {id}
+              </span>
+              <span className="hidden flex-1 truncate text-neutral-500 sm:inline">
+                {customer}
+              </span>
+              <span className="flex-none rounded-md border border-neutral-200 bg-neutral-50 px-2 py-0.5 text-xs font-medium text-neutral-600">
+                {asset}
+              </span>
+              <span className="w-16 flex-none text-right font-medium text-neutral-900 sm:w-20">
+                {amount}
+              </span>
+              <span
+                className={cn(
+                  "w-24 flex-none rounded-md border px-2 py-0.5 text-center text-xs font-medium",
+                  STATUS_STYLES[status],
+                )}
+              >
+                {status}
+              </span>
+            </div>
+          ))}
         </div>
       </div>
     </div>

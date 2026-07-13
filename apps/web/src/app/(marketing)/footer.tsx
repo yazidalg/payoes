@@ -4,11 +4,11 @@ const FOOTER_COLUMNS: { title: string; links: { label: string; href: string }[] 
   {
     title: "Product",
     links: [
-      { label: "Payments", href: "#features" },
-      { label: "Payment Links", href: "#features" },
-      { label: "Invoices", href: "#features" },
+      { label: "Payments", href: "#payments" },
+      { label: "Payment Links", href: "#checkout" },
+      { label: "Invoices", href: "#invoicing" },
       { label: "Subscriptions", href: "#features" },
-      { label: "Checkout", href: "#features" },
+      { label: "Checkout", href: "#checkout" },
     ],
   },
   {
@@ -36,7 +36,7 @@ const FOOTER_COLUMNS: { title: string; links: { label: string; href: string }[] 
       { label: "About", href: "#" },
       { label: "Blog", href: "#" },
       { label: "Careers", href: "#" },
-      { label: "Customers", href: "#logos" },
+      { label: "Ecosystem", href: "#logos" },
       { label: "Contact", href: "#" },
     ],
   },

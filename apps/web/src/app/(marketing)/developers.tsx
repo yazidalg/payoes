@@ -3,16 +3,23 @@ import { CodeTabs } from "./code-tabs";
 
 const BULLETS = [
   {
-    title: "Real-time webhooks",
-    description: "React to payments, refunds, and settlements instantly.",
-  },
-  {
-    title: "Multi-language SDKs",
-    description: "TypeScript, Python, and more, with typed responses.",
-  },
-  {
     title: "Hosted checkout",
     description: "Spin up a payment page with a single API call.",
+  },
+  {
+    title: "Real-time webhooks",
+    description:
+      "HMAC-signed payment events with automatic retries and delivery logs.",
+  },
+  {
+    title: "Sandbox environment",
+    description:
+      "Build and test against Stellar Testnet, then switch your keys to Mainnet.",
+  },
+  {
+    title: "Full request visibility",
+    description:
+      "Inspect every API call with built-in logs: endpoint, response, and timing.",
   },
 ];
 
@@ -25,11 +32,12 @@ export function Developers() {
             Payoes API
           </div>
           <h2 className="font-display mt-3 text-balance text-3xl font-medium text-neutral-900 sm:text-4xl">
-            Enterprise-grade payment infrastructure
+            Payment infrastructure, not blockchain homework
           </h2>
           <p className="mt-4 text-pretty text-lg text-neutral-500">
-            Programmatically create payments, links, and subscriptions.
-            Integrate stablecoin checkout into your product in minutes.
+            Programmatically create payments, links, invoices, and
+            subscriptions with a REST API that feels familiar. One request
+            returns a checkout URL; Payoes handles the rest.
           </p>
 
           <ul className="mt-8 flex flex-col gap-5">

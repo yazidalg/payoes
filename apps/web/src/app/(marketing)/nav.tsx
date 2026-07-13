@@ -1,20 +1,61 @@
 "use client";
 
-import { ChevronDown, Menu, X } from "lucide-react";
+import {
+  ArrowLeftRight,
+  ChevronDown,
+  Link2,
+  Menu,
+  QrCode,
+  Receipt,
+  Webhook,
+  X,
+} from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
+import { cn } from "@/lib/utils";
 
-const NAV_LINKS: { label: string; href: string; hasMenu?: boolean }[] = [
-  { label: "Product", href: "#features", hasMenu: true },
-  { label: "Solutions", href: "#features", hasMenu: true },
-  { label: "Resources", href: "#developers", hasMenu: true },
-  { label: "Enterprise", href: "#developers" },
-  { label: "Customers", href: "#logos" },
+const PRODUCT_ITEMS = [
+  {
+    label: "Crypto payments",
+    description: "Accept USDC, XLM, and any Stellar asset",
+    href: "#payments",
+    icon: ArrowLeftRight,
+  },
+  {
+    label: "Checkout & payment links",
+    description: "Hosted checkout pages and shareable links",
+    href: "#checkout",
+    icon: Link2,
+  },
+  {
+    label: "Invoicing",
+    description: "Bill customers with hosted invoices",
+    href: "#invoicing",
+    icon: Receipt,
+  },
+  {
+    label: "QR code checkout",
+    description: "Free QR codes for every payment link",
+    href: "#qr-checkout",
+    icon: QrCode,
+  },
+  {
+    label: "Webhooks",
+    description: "HMAC-signed events with automatic retries",
+    href: "#webhooks",
+    icon: Webhook,
+  },
+];
+
+const NAV_LINKS: { label: string; href: string }[] = [
+  { label: "Developers", href: "#developers" },
+  { label: "Ecosystem", href: "#logos" },
   { label: "Pricing", href: "#cta" },
 ];
 
 export function Nav() {
   const [open, setOpen] = useState(false);
+  const [productOpen, setProductOpen] = useState(false);
 
   return (
     <header className="sticky inset-x-0 top-0 z-50 w-full border-b border-neutral-100 bg-white/80 backdrop-blur-lg">
@@ -27,19 +68,65 @@ export function Nav() {
         </Link>
 
         <nav className="hidden items-center gap-8 md:flex">
-          {NAV_LINKS.map(({ label, href, hasMenu }) => (
+          <div
+            className="relative"
+            onMouseEnter={() => setProductOpen(true)}
+            onMouseLeave={() => setProductOpen(false)}
+          >
+            <button
+              type="button"
+              onClick={() => setProductOpen((prev) => !prev)}
+              aria-expanded={productOpen}
+              className="flex items-center gap-1 py-5 text-[15px] font-medium text-neutral-800 transition-colors hover:text-neutral-500"
+            >
+              Product
+              <ChevronDown
+                className={cn(
+                  "size-3.5 text-neutral-400 transition-transform",
+                  productOpen && "rotate-180",
+                )}
+                strokeWidth={2.5}
+              />
+            </button>
+
+            {productOpen && (
+              <div className="absolute left-1/2 top-full w-80 -translate-x-1/2 rounded-xl border border-neutral-200 bg-white p-2 shadow-lg">
+                {PRODUCT_ITEMS.map(
+                  ({ label, description, href, icon: Icon }) => (
+                    <Link
+                      key={label}
+                      href={href}
+                      onClick={() => setProductOpen(false)}
+                      className="flex items-start gap-3 rounded-lg p-2.5 transition-colors hover:bg-neutral-50"
+                    >
+                      <div className="flex size-9 flex-none items-center justify-center rounded-lg border border-neutral-200 bg-gradient-to-t from-neutral-100">
+                        <Icon
+                          className="size-4 text-neutral-700"
+                          strokeWidth={1.75}
+                        />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-neutral-900">
+                          {label}
+                        </p>
+                        <p className="text-xs text-neutral-500">
+                          {description}
+                        </p>
+                      </div>
+                    </Link>
+                  ),
+                )}
+              </div>
+            )}
+          </div>
+
+          {NAV_LINKS.map(({ label, href }) => (
             <Link
               key={label}
               href={href}
-              className="flex items-center gap-1 text-[15px] font-medium text-neutral-800 transition-colors hover:text-neutral-500"
+              className="text-[15px] font-medium text-neutral-800 transition-colors hover:text-neutral-500"
             >
               {label}
-              {hasMenu && (
-                <ChevronDown
-                  className="size-3.5 text-neutral-400"
-                  strokeWidth={2.5}
-                />
-              )}
             </Link>
           ))}
         </nav>
@@ -71,6 +158,20 @@ export function Nav() {
 
       {open && (
         <nav className="flex flex-col border-t border-neutral-100 bg-white px-6 py-4 md:hidden">
+          <p className="py-2 text-xs font-medium uppercase tracking-wide text-neutral-400">
+            Product
+          </p>
+          {PRODUCT_ITEMS.map(({ label, href }) => (
+            <Link
+              key={label}
+              href={href}
+              onClick={() => setOpen(false)}
+              className="py-2.5 pl-3 text-[15px] font-medium text-neutral-800 transition-colors hover:text-neutral-500"
+            >
+              {label}
+            </Link>
+          ))}
+          <div className="my-2 border-t border-neutral-100" />
           {NAV_LINKS.map(({ label, href }) => (
             <Link
               key={label}

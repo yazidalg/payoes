@@ -2,11 +2,11 @@ import Link from "next/link";
 import type { PropsWithChildren, ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import {
-  AnalyticsGraphic,
-  CollaborationGraphic,
-  PaymentFeaturesGraphic,
+  InvoiceGraphic,
   PaymentLinksGraphic,
+  PaymentsGraphic,
   QRGraphic,
+  WebhooksGraphic,
 } from "./feature-graphics";
 
 export function Features() {
@@ -28,50 +28,55 @@ export function Features() {
       <div className="mx-auto mt-14 grid w-full max-w-screen-lg grid-cols-1 px-4 sm:grid-cols-2">
         <div className="contents divide-neutral-200 max-sm:divide-y sm:divide-x">
           <FeatureCard
-            title="Branded payment links"
-            description="Create branded checkout links on your own domain and get paid in stablecoins. Every plan includes a complimentary custom domain."
+            id="checkout"
+            title="Checkout & payment links"
+            description="Every payment gets a hosted checkout page with your branding. Need something reusable? Share payment links anywhere you can paste a URL: email, WhatsApp, Telegram, or your site."
             linkText="Learn more"
             href="#developers"
           >
             <PaymentLinksGraphic />
           </FeatureCard>
           <FeatureCard
-            title="QR code checkout"
-            description="QR codes and payment links are like peas in a pod. Payoes offers free QR codes for every link. Feeling artsy? Customize them with your own logo."
-            linkText="Try the demo"
+            id="invoicing"
+            title="Invoicing"
+            description="Create a draft invoice, finalize it, and Payoes generates a hosted payment page for your customer. The invoice flips to paid the moment the transaction confirms on-chain."
+            linkText="Learn more"
             href="#developers"
           >
-            <QRGraphic />
+            <InvoiceGraphic />
           </FeatureCard>
         </div>
 
         <FeatureCard
+          id="payments"
           className="border-y border-neutral-200 pt-12 sm:col-span-2"
           graphicClassName="sm:h-96"
-          title="Analytics that matter"
-          description="Payoes provides powerful analytics for your payments, including volume, conversion, customer, and settlement insights in real time."
-          linkText="Explore analytics"
+          title="Crypto payment processing"
+          description="Accept USDC, XLM, and any Stellar asset with a single API call. Payoes handles wallet connections, on-chain verification, and settlement to your wallet, so a payment feels like a charge, not a blockchain project."
+          linkText="Explore payments"
           href="#developers"
         >
-          <AnalyticsGraphic />
+          <PaymentsGraphic />
         </FeatureCard>
 
         <div className="contents divide-neutral-200 max-sm:divide-y sm:divide-x [&>*]:border-t [&>*]:border-neutral-200">
           <FeatureCard
-            title="Advanced payment features"
-            description="Supercharge your checkout with custom branding, metadata, expiration, geo targeting, and password protection, all configurable per link."
+            id="qr-checkout"
+            title="QR code checkout"
+            description="QR codes and payment links are like peas in a pod. Payoes offers free QR codes for every link. Feeling artsy? Customize them with your own logo."
             linkText="Learn more"
             href="#developers"
           >
-            <PaymentFeaturesGraphic />
+            <QRGraphic />
           </FeatureCard>
           <FeatureCard
-            title="Collaborate with your team"
-            description="Invite your teammates to collaborate on payments. For enterprises, Payoes offers SAML SSO with Okta, Google, and Azure AD for higher security."
+            id="webhooks"
+            title="Webhooks & real-time events"
+            description="React to payment created, completed, failed, and expired events with HMAC-signed webhooks. Automatic retries with exponential backoff, plus delivery logs in the dashboard."
             linkText="Learn more"
             href="#developers"
           >
-            <CollaborationGraphic />
+            <WebhooksGraphic />
           </FeatureCard>
         </div>
       </div>
@@ -80,6 +85,7 @@ export function Features() {
 }
 
 function FeatureCard({
+  id,
   title,
   description,
   linkText,
@@ -88,6 +94,7 @@ function FeatureCard({
   className,
   graphicClassName,
 }: PropsWithChildren<{
+  id?: string;
   title: string;
   description: ReactNode;
   linkText: string;
@@ -97,8 +104,10 @@ function FeatureCard({
 }>) {
   return (
     <div
+      id={id}
       className={cn(
         "relative flex flex-col gap-10 px-4 py-14 sm:px-12",
+        id && "scroll-mt-24",
         className,
       )}
     >
