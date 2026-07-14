@@ -18,11 +18,16 @@ function getQueryClient() {
     throw new Error("DATABASE_URL is not set");
   }
 
-  const client = postgres(url, { max: 10, connect_timeout: 10 });
+  const max = Number(process.env.DATABASE_POOL_MAX ?? "5");
 
-  if (process.env.NODE_ENV !== "production") {
-    globalForDb.queryClient = client;
-  }
+  const client = postgres(url, {
+    max: Number.isFinite(max) && max > 0 ? max : 5,
+    connect_timeout: 10,
+    idle_timeout: 20,
+    max_lifetime: 60 * 30,
+  });
+
+  globalForDb.queryClient = client;
 
   return client;
 }
@@ -34,9 +39,7 @@ export function getDb() {
 
   const database = drizzle(getQueryClient(), { schema });
 
-  if (process.env.NODE_ENV !== "production") {
-    globalForDb.db = database;
-  }
+  globalForDb.db = database;
 
   return database;
 }
