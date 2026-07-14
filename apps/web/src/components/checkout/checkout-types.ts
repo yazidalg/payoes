@@ -1,4 +1,5 @@
 import type { CheckoutLineItem } from "@/lib/checkout/line-items";
+import type { CheckoutInvoiceDetails } from "@/lib/checkout/invoice-details";
 import type { Organization } from "@/lib/db/schema";
 
 export type AllowedAsset = {
@@ -51,4 +52,5 @@ export type CheckoutData = {
     logoUrl: string | null;
     logoInitials: string;
   } | null;
+  invoice?: CheckoutInvoiceDetails | null;
 };

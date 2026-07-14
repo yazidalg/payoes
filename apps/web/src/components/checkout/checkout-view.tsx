@@ -73,6 +73,14 @@ function getSourceLabel(sourceType: string | null) {
   }
 }
 
+function formatCheckoutDueDate(iso: string) {
+  return new Date(iso).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
 function RateLockBadge({
   content,
   children,
@@ -269,27 +277,106 @@ export function CheckoutView({
                     </div>
                   ) : null}
                   <div className="min-w-0">
-                    <p className={cn("truncate text-neutral-500 hidden @lg:block", disabled ? "text-[10px]" : "text-sm")}>{sourceLabel}</p>
-                    <p className={cn("truncate font-medium text-neutral-900", disabled ? "text-xs" : "text-sm @lg:text-base")}>
-                      {data.merchant?.name ?? "Merchant"}
-                    </p>
+                    {data.invoice ? (
+                      <>
+                        <p
+                          className={cn(
+                            "truncate font-semibold text-neutral-900",
+                            disabled ? "text-sm" : "text-base",
+                          )}
+                        >
+                          {data.merchant?.name ?? "Merchant"}
+                        </p>
+                        <p
+                          className={cn(
+                            "mt-1 truncate text-neutral-500",
+                            disabled ? "text-xs" : "text-sm",
+                          )}
+                        >
+                          {data.invoice.invoice_number}
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <p className={cn("truncate text-neutral-500 hidden @lg:block", disabled ? "text-[10px]" : "text-sm")}>{sourceLabel}</p>
+                        <p className={cn("truncate font-medium text-neutral-900", disabled ? "text-xs" : "text-sm @lg:text-base")}>
+                          {data.merchant?.name ?? "Merchant"}
+                        </p>
+                      </>
+                    )}
                   </div>
                 </div>
 
-                <div className="@lg:hidden text-right">
-                  <p className="text-[10px] text-neutral-500">Total</p>
-                  <p className={cn("font-semibold text-neutral-900", disabled ? "text-xs" : "text-sm")}>
-                    {hasPricing ? (
-                      formatInvoiceAmount(
-                        data.payment.pricing_amount!,
-                        data.payment.pricing_currency!,
-                      )
-                    ) : (
-                      formatTokenWithAsset(data.payment.amount, settlementLabel)
-                    )}
-                  </p>
+                <div className="text-right">
+                  {data.invoice?.due_at ? (
+                    <div className="hidden @lg:block">
+                      <p className="text-[10px] text-neutral-500">Due</p>
+                      <p className={cn("font-medium text-neutral-900", disabled ? "text-xs" : "text-sm")}>
+                        {formatCheckoutDueDate(data.invoice.due_at)}
+                      </p>
+                    </div>
+                  ) : null}
+                  {data.invoice?.due_at ? (
+                    <div className="@lg:hidden space-y-2">
+                      <div>
+                        <p className="text-[10px] text-neutral-500">Due</p>
+                        <p className={cn("font-medium text-neutral-900", disabled ? "text-xs" : "text-sm")}>
+                          {formatCheckoutDueDate(data.invoice.due_at)}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-neutral-500">Total</p>
+                        <p className={cn("font-semibold text-neutral-900", disabled ? "text-xs" : "text-sm")}>
+                          {hasPricing ? (
+                            formatInvoiceAmount(
+                              data.payment.pricing_amount!,
+                              data.payment.pricing_currency!,
+                            )
+                          ) : (
+                            formatTokenWithAsset(data.payment.amount, settlementLabel)
+                          )}
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="@lg:hidden">
+                      <p className="text-[10px] text-neutral-500">Total</p>
+                      <p className={cn("font-semibold text-neutral-900", disabled ? "text-xs" : "text-sm")}>
+                        {hasPricing ? (
+                          formatInvoiceAmount(
+                            data.payment.pricing_amount!,
+                            data.payment.pricing_currency!,
+                          )
+                        ) : (
+                          formatTokenWithAsset(data.payment.amount, settlementLabel)
+                        )}
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
+
+              {data.invoice ? (
+                <div className={cn("border-t border-neutral-200/60 pt-3", disabled ? "space-y-1" : "space-y-1.5")}>
+                  <p className={cn("text-neutral-500", disabled ? "text-[10px]" : "text-xs")}>Bill to</p>
+                  <p className={cn("font-medium text-neutral-900", disabled ? "text-xs" : "text-sm")}>
+                    {data.invoice.customer.name ?? data.invoice.customer.email ?? "Customer"}
+                  </p>
+                  {data.invoice.customer.name && data.invoice.customer.email ? (
+                    <p className={cn("text-neutral-500", disabled ? "text-[10px]" : "text-xs")}>
+                      {data.invoice.customer.email}
+                    </p>
+                  ) : null}
+                  {data.invoice.memo ? (
+                    <div className={cn("border-t border-neutral-200/60 pt-2", disabled ? "space-y-0.5" : "space-y-1")}>
+                      <p className={cn("text-neutral-500", disabled ? "text-[10px]" : "text-xs")}>Memo</p>
+                      <p className={cn("whitespace-pre-wrap text-neutral-900", disabled ? "text-xs" : "text-sm")}>
+                        {data.invoice.memo}
+                      </p>
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
 
               {/* Mobile Compact Line Items */}
               <div className="@lg:hidden">

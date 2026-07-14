@@ -4,6 +4,7 @@ import { z } from "zod";
 import { findAllowedAsset } from "@/lib/assets/types";
 import { serializePaymentAssets } from "@/lib/assets/serialize";
 import { getCheckoutLineItems } from "@/lib/checkout/line-items";
+import { getCheckoutInvoiceDetails } from "@/lib/checkout/invoice-details";
 import { resolvePaymentForHostedCheckout } from "@/lib/checkout-sessions/service";
 import { db } from "@/lib/db";
 import { organizations } from "@/lib/db/schema";
@@ -86,7 +87,7 @@ export async function GET(
   const payment = payable.payment;
   const assets = serializePaymentAssets(payment);
 
-  const [organization, items] = await Promise.all([
+  const [organization, items, invoice] = await Promise.all([
     db
       .select({
         name: organizations.name,
@@ -98,6 +99,7 @@ export async function GET(
       .limit(1)
       .then((rows) => rows[0] ?? null),
     getCheckoutLineItems(payment),
+    getCheckoutInvoiceDetails(payment),
   ]);
 
   return NextResponse.json({
@@ -126,6 +128,7 @@ export async function GET(
     },
     items,
     merchant: organization,
+    invoice,
   });
 }
 

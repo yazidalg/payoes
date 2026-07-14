@@ -136,6 +136,15 @@ export function InvoicePreviewPanel({
         logoUrl: presentation.organization.logoUrl,
         logoInitials: presentation.organization.logoInitials,
       },
+      invoice: {
+        invoice_number: presentation.invoiceNumber,
+        due_at: presentation.dueAt?.toISOString() ?? null,
+        memo: presentation.description,
+        customer: {
+          name: presentation.customer.name,
+          email: presentation.customer.email,
+        },
+      },
     };
   }, [presentation, environment, selectedPaidAssetKey]);
 
