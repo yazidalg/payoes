@@ -26,7 +26,7 @@ export function PaymentAssetPicker({
   if (!methods || methods.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">
-        No enabled payment methods. Add assets in Settings → Payment Methods.
+        No enabled payment methods. Add assets in Settings → Settlement Wallet.
       </p>
     );
   }

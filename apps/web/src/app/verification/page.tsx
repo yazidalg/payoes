@@ -44,20 +44,15 @@ export default async function VerificationPage() {
     "production",
   );
   const walletComplete = Boolean(productionWallet);
-  const goLiveComplete = organization.environment === "production";
 
-  if (goLiveComplete && walletComplete) {
+  if (walletComplete && organization.environment === "production") {
     redirect("/dashboard/payments");
-  }
-
-  if (goLiveComplete && !walletComplete) {
-    redirect("/verification/settlement-wallet");
   }
 
   const summary = await getVerificationSummary(organization.id);
 
   if (summary.canSwitchToProduction) {
-    redirect("/verification/go-live");
+    redirect("/verification/settlement-wallet");
   }
 
   redirect("/verification/identity");

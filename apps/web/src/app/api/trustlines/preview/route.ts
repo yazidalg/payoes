@@ -1,57 +1,36 @@
 import { auth } from "@/auth";
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { getOrganizationForMember } from "@/lib/organizations/settlement-wallet";
 import {
   buildChangeTrustTransactionXdr,
+  getDefaultRequiredTrustlineAssets,
   getMissingTrustlines,
-  getRequiredTrustlineAssets,
-  getRequiredTrustlineAssetsForMethodIds,
 } from "@/lib/stellar/trustlines";
 
-const trustlineSchema = z.object({
+const previewTrustlineSchema = z.object({
   action: z.enum(["check", "build"]),
   sourcePublicKey: z.string().min(1),
-  environment: z.enum(["sandbox", "production"]).optional(),
-  enabled_method_ids: z.array(z.string().uuid()).optional(),
+  environment: z.enum(["sandbox", "production"]),
 });
 
-export async function POST(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function POST(request: Request) {
   const session = await auth();
 
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { id } = await params;
-  const organization = await getOrganizationForMember(id, session.user.id);
-
-  if (!organization) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-
   const body = await request.json();
-  const parsed = trustlineSchema.safeParse(body);
+  const parsed = previewTrustlineSchema.safeParse(body);
 
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
   }
 
-  const { action, sourcePublicKey, environment: environmentOverride, enabled_method_ids } =
-    parsed.data;
+  const { action, sourcePublicKey, environment } = parsed.data;
 
   try {
-    const environment = environmentOverride ?? organization.environment;
-    const requiredAssets = enabled_method_ids?.length
-      ? await getRequiredTrustlineAssetsForMethodIds(
-          organization.id,
-          enabled_method_ids,
-          environment,
-        )
-      : await getRequiredTrustlineAssets(organization.id, environment);
+    const requiredAssets = getDefaultRequiredTrustlineAssets(environment);
     const missing = await getMissingTrustlines(
       sourcePublicKey,
       requiredAssets,

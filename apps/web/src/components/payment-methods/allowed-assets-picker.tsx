@@ -85,7 +85,7 @@ export function AllowedAssetsPicker({
   if (!methods || methods.length === 0) {
     return (
       <p className="text-content-subtle text-sm">
-        No enabled payment methods. Configure them in Settings → Payment Methods.
+        No enabled payment methods. Configure them in Settings → Settlement Wallet.
       </p>
     );
   }

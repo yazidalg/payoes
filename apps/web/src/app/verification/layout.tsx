@@ -59,16 +59,17 @@ export default async function VerificationLayout({
     organization.id,
     "production",
   );
-  const walletComplete = Boolean(productionWallet);
-  const goLiveComplete = organization.environment === "production";
+  const walletComplete =
+    Boolean(productionWallet) && organization.environment === "production";
 
-  if (goLiveComplete && walletComplete) {
+  if (walletComplete && organization.environment === "production") {
     redirect("/dashboard/payments");
   }
 
   const summary = await getVerificationSummary(organization.id);
   const identityComplete =
     summary.organization.verificationStatus === "verified" && !summary.isExpired;
+  const goLiveComplete = identityComplete;
 
   return (
     <KycVerificationLayout

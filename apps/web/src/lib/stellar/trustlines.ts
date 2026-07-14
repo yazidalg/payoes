@@ -8,12 +8,17 @@ import {
 import type { AllowedAsset } from "@/lib/assets/types";
 import { assetKey } from "@/lib/assets/types";
 import type { Organization } from "@/lib/db/schema";
-import { listEnabledPaymentMethods } from "@/lib/payment-methods/service";
+import { DEFAULT_ORGANIZATION_ASSET_CODES } from "@/constants/assets/official";
 import {
-  OFFICIAL_ASSETS,
+  listEnabledPaymentMethods,
+  listPaymentMethods,
+  type PaymentMethod,
+} from "@/lib/payment-methods/service";
+import {
   isOfficialAssetAvailable,
   isOfficialAssetCode,
   resolveOfficialIssuer,
+  getOfficialAsset,
 } from "@/lib/payment-methods/official-assets";
 import { STELLAR_TRANSACTION_TIMEOUT_SECONDS } from "@/constants/stellar";
 import { resolveStellarAsset } from "@/lib/stellar/assets";
@@ -54,44 +59,30 @@ export async function accountTrustsAsset(
   }
 }
 
-export async function getRequiredTrustlineAssets(
-  organizationId: string,
-  environment: Organization["environment"]
-): Promise<TrustlineAsset[]> {
+export function buildTrustlineAssetsFromMethods(
+  methods: PaymentMethod[],
+  environment: Organization["environment"],
+): TrustlineAsset[] {
   const assets = new Map<string, TrustlineAsset>();
 
-  for (const official of OFFICIAL_ASSETS) {
-    if (official.isNative) {
+  for (const method of methods) {
+    const official = getOfficialAsset(method.assetCode);
+
+    if (official?.isNative) {
       continue;
     }
 
-    if (!isOfficialAssetAvailable(official.code, environment)) {
-      continue;
-    }
+    let issuer: string | null = null;
 
-    const issuer = resolveOfficialIssuer(official.code, environment);
-
-    if (!issuer) {
-      continue;
-    }
-
-    const asset: TrustlineAsset = {
-      asset_code: official.code,
-      issuer_address: issuer,
-      display_name: official.displayName,
-    };
-
-    assets.set(assetKey(asset), asset);
-  }
-
-  const enabledMethods = await listEnabledPaymentMethods(organizationId);
-
-  for (const method of enabledMethods) {
     if (isOfficialAssetCode(method.assetCode)) {
-      continue;
-    }
+      if (!isOfficialAssetAvailable(method.assetCode, environment)) {
+        continue;
+      }
 
-    const issuer = method.issuerAddress?.trim();
+      issuer = resolveOfficialIssuer(method.assetCode, environment);
+    } else {
+      issuer = method.issuerAddress?.trim() || null;
+    }
 
     if (!issuer) {
       continue;
@@ -102,6 +93,88 @@ export async function getRequiredTrustlineAssets(
       issuer_address: issuer,
       display_name: method.displayName,
     };
+
+    assets.set(assetKey(asset), asset);
+  }
+
+  return Array.from(assets.values());
+}
+
+export async function getRequiredTrustlineAssets(
+  organizationId: string,
+  environment: Organization["environment"]
+): Promise<TrustlineAsset[]> {
+  const enabledMethods = await listEnabledPaymentMethods(organizationId);
+  return buildTrustlineAssetsFromMethods(enabledMethods, environment);
+}
+
+export async function getRequiredTrustlineAssetsForMethodIds(
+  organizationId: string,
+  methodIds: string[],
+  environment: Organization["environment"],
+): Promise<TrustlineAsset[]> {
+  const methods = await listPaymentMethods(organizationId);
+  const selectedIds = new Set(methodIds);
+
+  return buildTrustlineAssetsFromMethods(
+    methods.filter((method) => selectedIds.has(method.id)),
+    environment,
+  );
+}
+
+function trustlineAssetFromCode(
+  assetCode: string,
+  displayName: string,
+  environment: Organization["environment"],
+) {
+  const official = getOfficialAsset(assetCode);
+
+  if (official?.isNative) {
+    return null;
+  }
+
+  let issuer: string | null = null;
+
+  if (isOfficialAssetCode(assetCode)) {
+    if (!isOfficialAssetAvailable(assetCode, environment)) {
+      return null;
+    }
+
+    issuer = resolveOfficialIssuer(assetCode, environment);
+  }
+
+  if (!issuer) {
+    return null;
+  }
+
+  return {
+    asset_code: assetCode,
+    issuer_address: issuer,
+    display_name: displayName,
+  } satisfies TrustlineAsset;
+}
+
+export function getDefaultRequiredTrustlineAssets(
+  environment: Organization["environment"],
+): TrustlineAsset[] {
+  const assets = new Map<string, TrustlineAsset>();
+
+  for (const assetCode of DEFAULT_ORGANIZATION_ASSET_CODES) {
+    const official = getOfficialAsset(assetCode);
+
+    if (!official) {
+      continue;
+    }
+
+    const asset = trustlineAssetFromCode(
+      assetCode,
+      official.displayName,
+      environment,
+    );
+
+    if (!asset) {
+      continue;
+    }
 
     assets.set(assetKey(asset), asset);
   }

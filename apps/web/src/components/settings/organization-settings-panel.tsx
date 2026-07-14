@@ -7,6 +7,7 @@ import type { MemberRole, Organization } from "@/lib/db/schema";
 import { OrganizationDetailsCard } from "@/ui/organizations/organization-details-card";
 import { OrganizationFieldForm } from "@/ui/organizations/organization-field-form";
 import { UploadOrganizationLogo } from "@/ui/organizations/upload-organization-logo";
+import { DeleteOrganizationSection } from "@/components/settings/delete-organization-section";
 
 function getPermissionsError(canEdit: boolean) {
   return canEdit
@@ -126,6 +127,11 @@ export function OrganizationSettingsPanel({
       <UploadOrganizationLogo organization={organization} canEdit={canEdit} />
 
       <OrganizationDetailsCard organization={organization} />
+
+      <DeleteOrganizationSection
+        organization={organization}
+        isOwner={viewerRole === "owner"}
+      />
     </div>
   );
 }

@@ -1,8 +1,5 @@
-import { PaymentMethodsPanel } from "@/components/payment-methods/payment-methods-panel";
-import { getDashboardOrganization } from "@/lib/dashboard/get-organization";
+import { redirect } from "next/navigation";
 
-export default async function PaymentMethodsPage() {
-  const organization = await getDashboardOrganization();
-
-  return <PaymentMethodsPanel organizationId={organization.id} />;
+export default function LegacyPaymentMethodsPage() {
+  redirect("/dashboard/settings/settlement-wallet");
 }

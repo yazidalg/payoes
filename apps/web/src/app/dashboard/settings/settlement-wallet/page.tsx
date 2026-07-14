@@ -15,7 +15,6 @@ export default async function SettlementWalletPage() {
       organizationId={organization.id}
       environment={organization.environment}
       initialAddress={wallet?.stellarAddress ?? null}
-      initialWalletProvider={wallet?.walletProvider ?? null}
     />
   );
 }

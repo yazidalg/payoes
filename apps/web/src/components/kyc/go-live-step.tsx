@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { toast } from "sonner";
 import { KycStepPage } from "@/ui/kyc/kyc-step-page";
 import { WhiteFadeOverlay } from "@/ui/transitions/white-fade-overlay";
 
@@ -37,29 +36,14 @@ export function GoLiveStep({
     "Preparing production setup...",
   );
 
-  const switchToProduction = useCallback(async () => {
-    setOverlayMessage("Switching to production...");
-
-    const response = await fetch(`/api/organizations/${organizationId}/environment`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ environment: "production" }),
-    });
-
-    const data = (await response.json()) as { error?: string };
-
-    if (!response.ok) {
-      throw new Error(data.error ?? "Unable to switch to production");
-    }
-
-    setOverlayMessage("You are now live in production");
-    toast.success("Production mode enabled");
+  const continueToSettlementWallet = useCallback(() => {
+    setOverlayMessage("Continue to your production settlement wallet");
     router.refresh();
 
     window.setTimeout(() => {
       router.push("/verification/settlement-wallet");
     }, 700);
-  }, [organizationId, router]);
+  }, [router]);
 
   useEffect(() => {
     let cancelled = false;
@@ -83,7 +67,7 @@ export function GoLiveStep({
           return;
         }
 
-        await switchToProduction();
+        continueToSettlementWallet();
       } catch (initError) {
         if (cancelled) {
           return;
@@ -103,7 +87,7 @@ export function GoLiveStep({
     return () => {
       cancelled = true;
     };
-  }, [organizationId, router, switchToProduction]);
+  }, [continueToSettlementWallet, organizationId, router]);
 
   if (!isOwner) {
     return (
@@ -129,7 +113,7 @@ export function GoLiveStep({
       {error ? (
         <KycStepPage
           title="Go live"
-          description="We could not switch your workspace to production."
+          description="We could not continue to production setup."
         >
           <p className="text-sm text-red-600">{error}</p>
         </KycStepPage>

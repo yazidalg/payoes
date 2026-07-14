@@ -14,17 +14,21 @@ export type MissingTrustlineAsset = {
 };
 
 type UseTrustlineSetupOptions = {
-  organizationId: string;
+  organizationId?: string;
+  useDefaultAssets?: boolean;
   address: string | null;
   environment: Organization["environment"];
   enabled?: boolean;
+  required?: boolean;
 };
 
 export function useTrustlineSetup({
   organizationId,
+  useDefaultAssets = false,
   address,
   environment,
   enabled = true,
+  required = false,
 }: UseTrustlineSetupOptions) {
   const [missingAssets, setMissingAssets] = useState<MissingTrustlineAsset[]>([]);
   const [isChecking, setIsChecking] = useState(false);
@@ -33,113 +37,157 @@ export function useTrustlineSetup({
   const [isDismissed, setIsDismissed] = useState(false);
   const lastCheckedAddressRef = useRef<string | null>(null);
 
-  const trustlinesUrl = `/api/organizations/${organizationId}/settlement-wallet/trustlines`;
+  const trustlinesUrl = useDefaultAssets
+    ? "/api/trustlines/preview"
+    : `/api/organizations/${organizationId}/settlement-wallet/trustlines`;
 
-  const checkTrustlines = useCallback(async () => {
-    if (!address || !enabled) {
-      setMissingAssets([]);
-      return;
-    }
-
-    setIsChecking(true);
-    setError(null);
-
-    try {
-      const response = await fetch(trustlinesUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "check",
-          sourcePublicKey: address,
-        }),
-      });
-
-      const data = (await response.json()) as {
-        missing?: MissingTrustlineAsset[];
-        has_missing?: boolean;
-        error?: string;
+  const requestBody = useCallback(
+    (action: "check" | "build", enabledMethodIds?: string[]) => {
+      const body: Record<string, unknown> = {
+        action,
+        sourcePublicKey: address,
+        environment,
       };
 
-      if (!response.ok) {
+      if (enabledMethodIds?.length) {
+        body.enabled_method_ids = enabledMethodIds;
+      }
+
+      if (useDefaultAssets) {
+        return body;
+      }
+
+      return body;
+    },
+    [address, environment, useDefaultAssets],
+  );
+
+  const checkTrustlines = useCallback(
+    async (enabledMethodIds?: string[]) => {
+      if (!address || !enabled) {
         setMissingAssets([]);
-        setError(data.error ?? "Unable to check trustlines.");
-        return;
+        return [];
       }
 
-      setMissingAssets(data.missing ?? []);
-      lastCheckedAddressRef.current = address;
-
-      if ((data.missing?.length ?? 0) === 0) {
-        setIsDismissed(false);
+      if (!useDefaultAssets && !organizationId) {
+        setMissingAssets([]);
+        return [];
       }
-    } catch {
-      setError("Unable to check trustlines.");
-      setMissingAssets([]);
-    } finally {
-      setIsChecking(false);
-    }
-  }, [address, enabled, trustlinesUrl]);
 
-  const addTrustlines = useCallback(async () => {
-    if (!address) {
-      return false;
-    }
+      setIsChecking(true);
+      setError(null);
 
-    setIsAdding(true);
-    setError(null);
+      try {
+        const response = await fetch(trustlinesUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(requestBody("check", enabledMethodIds)),
+        });
 
-    try {
-      const buildResponse = await fetch(trustlinesUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "build",
-          sourcePublicKey: address,
-        }),
-      });
+        const data = (await response.json()) as {
+          missing?: MissingTrustlineAsset[];
+          has_missing?: boolean;
+          error?: string;
+        };
 
-      const buildData = (await buildResponse.json()) as {
-        xdr?: string | null;
-        error?: string;
-      };
+        if (!response.ok) {
+          setMissingAssets([]);
+          setError(data.error ?? "Unable to check trustlines.");
+          return [];
+        }
 
-      if (!buildResponse.ok) {
-        setError(buildData.error ?? "Unable to prepare trustline transaction.");
+        const missing = data.missing ?? [];
+        setMissingAssets(missing);
+        lastCheckedAddressRef.current = address;
+
+        if (missing.length === 0) {
+          setIsDismissed(false);
+        }
+
+        return missing;
+      } catch {
+        setError("Unable to check trustlines.");
+        setMissingAssets([]);
+        return [];
+      } finally {
+        setIsChecking(false);
+      }
+    },
+    [address, enabled, organizationId, requestBody, trustlinesUrl, useDefaultAssets],
+  );
+
+  const addTrustlines = useCallback(
+    async (enabledMethodIds?: string[]) => {
+      if (!address) {
         return false;
       }
 
-      if (!buildData.xdr) {
-        setMissingAssets([]);
-        setIsDismissed(false);
-        return true;
+      if (!useDefaultAssets && !organizationId) {
+        return false;
       }
 
-      const { signedTxXdr } = await StellarWalletsKit.signTransaction(
-        buildData.xdr,
-        {
-          networkPassphrase: getNetworkPassphrase(environment),
-          address,
+      setIsAdding(true);
+      setError(null);
+
+      try {
+        const buildResponse = await fetch(trustlinesUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(requestBody("build", enabledMethodIds)),
+        });
+
+        const buildData = (await buildResponse.json()) as {
+          xdr?: string | null;
+          error?: string;
+        };
+
+        if (!buildResponse.ok) {
+          setError(buildData.error ?? "Unable to prepare trustline transaction.");
+          return false;
         }
-      );
 
-      const server = new Horizon.Server(getHorizonUrl(environment));
-      const transaction = TransactionBuilder.fromXDR(
-        signedTxXdr,
-        getNetworkPassphrase(environment)
-      );
-      await server.submitTransaction(transaction);
+        if (!buildData.xdr) {
+          setMissingAssets([]);
+          setIsDismissed(false);
+          return true;
+        }
 
-      await checkTrustlines();
-      setIsDismissed(false);
-      return true;
-    } catch (trustlineError) {
-      setError(formatHorizonSubmitError(trustlineError));
-      await checkTrustlines();
-      return false;
-    } finally {
-      setIsAdding(false);
-    }
-  }, [address, checkTrustlines, environment, trustlinesUrl]);
+        const { signedTxXdr } = await StellarWalletsKit.signTransaction(
+          buildData.xdr,
+          {
+            networkPassphrase: getNetworkPassphrase(environment),
+            address,
+          },
+        );
+
+        const server = new Horizon.Server(getHorizonUrl(environment));
+        const transaction = TransactionBuilder.fromXDR(
+          signedTxXdr,
+          getNetworkPassphrase(environment),
+        );
+        await server.submitTransaction(transaction);
+
+        await checkTrustlines(enabledMethodIds);
+        setIsDismissed(false);
+        return true;
+      } catch (trustlineError) {
+        setError(formatHorizonSubmitError(trustlineError));
+        await checkTrustlines(enabledMethodIds);
+        return false;
+      } finally {
+        setIsAdding(false);
+      }
+    },
+    [
+      address,
+      checkTrustlines,
+      environment,
+      organizationId,
+      requestBody,
+      trustlinesUrl,
+      useDefaultAssets,
+    ],
+  );
 
   const dismiss = useCallback(() => {
     setIsDismissed(true);
@@ -162,7 +210,11 @@ export function useTrustlineSetup({
   }, [address, checkTrustlines]);
 
   const hasMissing = missingAssets.length > 0;
-  const isDialogOpen = Boolean(address) && hasMissing && !isDismissed && enabled;
+  const isDialogOpen =
+    Boolean(address) &&
+    hasMissing &&
+    enabled &&
+    (required || !isDismissed);
 
   return {
     missingAssets,

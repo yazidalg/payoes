@@ -5,6 +5,8 @@ import { getMembershipForUser } from "@/lib/organizations/members";
 import {
   getOrganizationById,
   updateOrganization,
+  deleteOrganization,
+  getOrganizationsForUser,
 } from "@/lib/organizations/service";
 import { uploadOrganizationLogo } from "@/lib/storage/minio";
 import { uploadOrganizationLogoFromDataUrl } from "@/lib/storage/upload-organization-logo-from-data-url";
@@ -202,6 +204,76 @@ export async function PATCH(
           error instanceof Error
             ? error.message
             : "Unable to update organization",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+const deleteOrganizationSchema = z.object({
+  confirmName: z.string().min(1, "Organization name is required"),
+});
+
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  try {
+    const session = await auth();
+
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { id } = await params;
+    const membership = await getMembershipForUser(id, session.user.id);
+
+    if (!membership || membership.role !== "owner") {
+      return NextResponse.json(
+        { error: "Only the organization owner can delete this organization" },
+        { status: 403 },
+      );
+    }
+
+    const existing = await getOrganizationById(id);
+
+    if (!existing) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+
+    const body = await request.json();
+    const parsed = deleteOrganizationSchema.safeParse(body);
+
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: parsed.error.issues[0]?.message ?? "Invalid request" },
+        { status: 400 },
+      );
+    }
+
+    if (parsed.data.confirmName.trim() !== existing.name) {
+      return NextResponse.json(
+        { error: "Organization name does not match" },
+        { status: 400 },
+      );
+    }
+
+    await deleteOrganization(id);
+
+    const remainingOrganizations = await getOrganizationsForUser(session.user.id);
+
+    return NextResponse.json({
+      deleted: true,
+      nextOrganization: remainingOrganizations[0] ?? null,
+    });
+  } catch (error) {
+    console.error("Delete organization failed:", error);
+    return NextResponse.json(
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Unable to delete organization",
       },
       { status: 500 },
     );

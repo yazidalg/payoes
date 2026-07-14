@@ -1,16 +1,20 @@
 "use client";
 
-import { OrganizationMark } from "@/components/organizations/organization-mark";
 import type { Organization } from "@/lib/db/schema";
-import { getHubPathAfterOrganizationSwitch } from "@/lib/navigation/org-switch-redirect";
+import {
+  DROPDOWN_ORGANIZATION_LIMIT,
+  getPrioritizedOrganizations,
+} from "@/lib/organizations/list-utils";
+import { useOrganizationSwitch } from "@/hooks/use-organization-switch";
 import { useDashboardShell } from "@/ui/layout/dashboard-shell-context";
-import { Avatar, Button, Popover, useScrollProgress } from "@dub/ui";
-import { Check2, Gear, Plus, UserPlus } from "@dub/ui/icons";
+import { OrganizationListItem } from "@/ui/organizations/organization-list-item";
+import { Avatar, Button, Popover } from "@dub/ui";
+import { Gear, Plus, UserPlus } from "@dub/ui/icons";
 import { cn } from "@dub/utils";
 import { ChevronDown, TestTubeDiagonal } from "lucide-react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { toast } from "sonner";
 import { AppModal } from "@/ui/modals/app-modal";
 
@@ -63,7 +67,7 @@ export function OrgDropdown({ placement = "switcher" }: { placement?: "switcher"
             <div className="flex size-8 shrink-0 overflow-hidden rounded-full">
               <UserProfileMark user={user} className="size-full" />
             </div>
-            <div className="min-w-0 flex-1">
+            <div className="min-w-0 flex-1 text-left">
               <div className="truncate font-medium text-neutral-900">{getUserDisplayName(user)}</div>
               <div className="truncate text-xs text-neutral-500">{activeOrganization.name}</div>
             </div>
@@ -85,16 +89,31 @@ function OrgDropdownPlaceholder({ placement = "switcher" }: { placement?: "switc
   return <div className={cn("animate-pulse rounded-lg bg-neutral-300", placement === "sidebar-bottom" ? "h-12 w-full" : "size-11")} />;
 }
 
-function OrgList({ user, organizations, activeOrganization, setOpenPopover, onCreateOrganization }: { user: DashboardUser; organizations: Organization[]; activeOrganization: Organization; setOpenPopover: (open: boolean) => void; onCreateOrganization: () => void }) {
+function OrgList({
+  user,
+  organizations,
+  activeOrganization,
+  setOpenPopover,
+  onCreateOrganization,
+}: {
+  user: DashboardUser;
+  organizations: Organization[];
+  activeOrganization: Organization;
+  setOpenPopover: (open: boolean) => void;
+  onCreateOrganization: () => void;
+}) {
   const router = useRouter();
-  const pathname = usePathname();
-  const { setActiveOrganization } = useDashboardShell();
-  const [isSwitching, setIsSwitching] = useState(false);
+  const { switchOrganization, isSwitching } = useOrganizationSwitch();
   const [sandboxDialogOpen, setSandboxDialogOpen] = useState(false);
   const [isSwitchingToSandbox, setIsSwitchingToSandbox] = useState(false);
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const { scrollProgress, updateScrollProgress } = useScrollProgress(scrollRef);
+  const { setActiveOrganization } = useDashboardShell();
   const isProduction = activeOrganization.environment === "production";
+  const visibleOrganizations = getPrioritizedOrganizations(
+    organizations,
+    activeOrganization.id,
+    DROPDOWN_ORGANIZATION_LIMIT,
+  );
+  const hasMoreOrganizations = organizations.length > DROPDOWN_ORGANIZATION_LIMIT;
 
   async function handleSwitchToSandbox() {
     setIsSwitchingToSandbox(true);
@@ -128,106 +147,75 @@ function OrgList({ user, organizations, activeOrganization, setOpenPopover, onCr
   }
 
   async function selectOrganization(organization: Organization) {
-    if (organization.id === activeOrganization.id || isSwitching) {
-      return;
-    }
-
-    setIsSwitching(true);
-
-    try {
-      const response = await fetch("/api/session/active-organization", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ organizationId: organization.id }),
-      });
-
-      const data = (await response.json()) as {
-        organization?: Organization;
-        error?: string;
-      };
-
-      if (!response.ok || !data.organization) {
-        toast.error(data.error ?? "Unable to switch organization");
-        return;
-      }
-
-      setActiveOrganization(data.organization);
-      setOpenPopover(false);
-
-      const hubPath = getHubPathAfterOrganizationSwitch(pathname);
-      if (hubPath) {
-        router.push(hubPath);
-      }
-
-      router.refresh();
-    } catch {
-      toast.error("Unable to switch organization");
-    } finally {
-      setIsSwitching(false);
-    }
+    await switchOrganization(organization, {
+      onSuccess: () => setOpenPopover(false),
+    });
   }
 
   return (
     <>
-      <div className="relative w-full">
-        <div ref={scrollRef} onScroll={updateScrollProgress} className="w-xs max-h-84 relative w-full overflow-auto rounded-xl bg-white text-base sm:w-72 sm:text-sm">
-          <div className="flex flex-col gap-2.5 border-b border-neutral-200 px-3 pb-3 sm:p-3">
-            <div className="flex items-center gap-x-2.5">
-              <div className="flex size-9 shrink-0 overflow-hidden rounded-full sm:size-8">
-                <UserProfileMark user={user} className="size-full" />
-              </div>
-              <div className="min-w-0">
-                <div className="truncate text-base font-medium leading-5 text-neutral-900 sm:text-sm">{getUserDisplayName(user)}</div>
-                <div className="truncate text-sm leading-tight text-neutral-500 sm:text-xs">{activeOrganization.name}</div>
-              </div>
+      <div className="w-72 rounded-xl bg-white text-sm">
+        <div className="border-b border-neutral-200 px-3 py-3">
+          <div className="flex items-center gap-x-2.5 text-left">
+            <div className="flex size-8 shrink-0 overflow-hidden rounded-full">
+              <UserProfileMark user={user} className="size-full" />
             </div>
-
-            <div className="flex flex-row flex-wrap gap-1">
-              <Link href="/dashboard/settings/organization" className="flex items-center justify-start gap-x-2 rounded-lg border border-neutral-200 px-2 py-1 text-neutral-700 outline-none transition-all duration-75 hover:bg-neutral-100/50 focus-visible:ring-2 focus-visible:ring-primary/50 active:bg-neutral-200/80" onClick={() => setOpenPopover(false)}>
-                <Gear className="size-4 text-neutral-800" />
-                <span className="block truncate text-sm">Settings</span>
-              </Link>
-              <Link href="/dashboard/settings/team" className="flex items-center justify-start gap-x-2 rounded-lg border border-neutral-200 px-2 py-1 text-neutral-700 outline-none transition-all duration-75 hover:bg-neutral-100/50 focus-visible:ring-2 focus-visible:ring-primary/50 active:bg-neutral-200/80" onClick={() => setOpenPopover(false)}>
-                <UserPlus className="size-4 text-neutral-800" />
-                <span className="block truncate text-sm">Invite members</span>
-              </Link>
-              {isProduction ? (
-                <button type="button" className="flex items-center justify-start gap-x-2 rounded-lg border border-neutral-200 px-2 py-1 text-neutral-700 outline-none transition-all duration-75 hover:bg-neutral-100/50 focus-visible:ring-2 focus-visible:ring-primary/50 active:bg-neutral-200/80" onClick={() => setSandboxDialogOpen(true)}>
-                  <TestTubeDiagonal className="size-4 text-neutral-800" />
-                  <span className="block truncate text-sm">Switch to sandbox</span>
-                </button>
-              ) : null}
+            <div className="min-w-0 flex-1">
+              <div className="truncate font-medium text-neutral-900">{getUserDisplayName(user)}</div>
+              <div className="truncate text-xs text-neutral-500">{activeOrganization.name}</div>
             </div>
           </div>
 
-          <div className="p-1">
-            <p className="px-2 py-2 text-xs font-medium text-neutral-500">Organizations</p>
-            <div className="flex flex-col gap-0.5">
-              {organizations.map((organization) => {
-                const isActive = organization.id === activeOrganization.id;
-
-                return (
-                  <button key={organization.id} type="button" disabled={isSwitching} className={cn("relative flex w-full items-center gap-x-2 rounded-md px-2 py-2 transition-all duration-75", "hover:bg-neutral-200/50 active:bg-neutral-200/80", "outline-none focus-visible:ring-2 focus-visible:ring-primary/50", isActive && "bg-neutral-200/50")} onClick={() => void selectOrganization(organization)}>
-                    <div className="flex size-5 shrink-0 overflow-hidden rounded-full">
-                      <OrganizationMark organization={organization} className="size-full" />
-                    </div>
-                    <span className="block truncate text-base leading-5 text-neutral-900 sm:max-w-[140px] sm:text-sm">{organization.name}</span>
-                    {isActive ? (
-                      <span className="absolute inset-y-0 right-0 flex items-center pr-3 text-black">
-                        <Check2 className="size-4" aria-hidden="true" />
-                      </span>
-                    ) : null}
-                  </button>
-                );
-              })}
-              <button type="button" className="group flex w-full cursor-pointer items-center gap-x-2.5 rounded-md p-2 text-neutral-700 transition-all duration-75 hover:bg-neutral-200/50 active:bg-neutral-200/80" onClick={onCreateOrganization}>
-                <Plus className="ml-0.5 size-4 text-neutral-500" />
-                <span className="block truncate">Create organization</span>
+          <div className="mt-2 flex flex-col gap-0.5">
+            <Link href="/dashboard/settings/organization" className="flex items-center gap-2 rounded-md px-2 py-1.5 text-left text-neutral-700 outline-none transition-all duration-75 hover:bg-neutral-100 focus-visible:ring-2 focus-visible:ring-primary/50" onClick={() => setOpenPopover(false)}>
+              <Gear className="size-4 shrink-0 text-neutral-800" />
+              <span className="text-sm">Settings</span>
+            </Link>
+            <Link href="/dashboard/settings/team" className="flex items-center gap-2 rounded-md px-2 py-1.5 text-left text-neutral-700 outline-none transition-all duration-75 hover:bg-neutral-100 focus-visible:ring-2 focus-visible:ring-primary/50" onClick={() => setOpenPopover(false)}>
+              <UserPlus className="size-4 shrink-0 text-neutral-800" />
+              <span className="text-sm">Invite members</span>
+            </Link>
+            {isProduction ? (
+              <button type="button" className="flex items-center gap-2 rounded-md px-2 py-1.5 text-left text-neutral-700 outline-none transition-all duration-75 hover:bg-neutral-100 focus-visible:ring-2 focus-visible:ring-primary/50" onClick={() => setSandboxDialogOpen(true)}>
+                <TestTubeDiagonal className="size-4 shrink-0 text-neutral-800" />
+                <span className="text-sm">Switch to sandbox</span>
               </button>
-            </div>
+            ) : null}
           </div>
         </div>
-        <div className="pointer-events-none absolute -bottom-px left-0 h-16 w-full rounded-b-lg bg-gradient-to-t from-white sm:bottom-0" style={{ opacity: 1 - Math.pow(scrollProgress, 2) }} />
+
+        <div className="px-2 py-2">
+          <p className="px-2 pb-1 text-left text-xs font-medium text-neutral-500">
+            Organizations
+          </p>
+          <div className="flex flex-col gap-0.5">
+            {visibleOrganizations.map((organization) => (
+              <OrganizationListItem
+                key={organization.id}
+                organization={organization}
+                isActive={organization.id === activeOrganization.id}
+                disabled={isSwitching}
+                onSelect={() => void selectOrganization(organization)}
+              />
+            ))}
+            {hasMoreOrganizations ? (
+              <Link
+                href="/dashboard/organizations"
+                onClick={() => setOpenPopover(false)}
+                className="block rounded-md px-2 py-2 text-left text-sm font-medium text-primary hover:bg-neutral-100"
+              >
+                Show more
+              </Link>
+            ) : null}
+          </div>
+        </div>
+
+        <div className="border-t border-neutral-200 p-1.5">
+          <button type="button" className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-neutral-700 transition-all duration-75 hover:bg-neutral-200/50 active:bg-neutral-200/80" onClick={onCreateOrganization}>
+            <Plus className="size-4 shrink-0 text-neutral-500" />
+            <span className="text-sm">Create organization</span>
+          </button>
+        </div>
       </div>
 
       <AppModal

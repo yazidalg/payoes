@@ -1,9 +1,11 @@
+import { InfoTooltip } from "@dub/ui";
 import { cn } from "@dub/utils";
 import type { ReactNode } from "react";
 
 type SettingsSectionProps = {
   title: string;
   description: string;
+  titleTooltip?: string;
   children: ReactNode;
   helpText?: ReactNode;
   action?: ReactNode;
@@ -14,6 +16,7 @@ type SettingsSectionProps = {
 export function SettingsSection({
   title,
   description,
+  titleTooltip,
   children,
   helpText,
   action,
@@ -26,7 +29,10 @@ export function SettingsSection({
     <section className={cn("rounded-xl border border-neutral-200 bg-white", className)}>
       <div className={cn("relative flex flex-col space-y-6 p-6", bodyClassName)}>
         <div className="flex flex-col space-y-1">
-          <h2 className="text-base font-semibold">{title}</h2>
+          <div className="flex items-center gap-1.5">
+            <h2 className="text-base font-semibold">{title}</h2>
+            {titleTooltip ? <InfoTooltip content={titleTooltip} /> : null}
+          </div>
           <p className="text-sm text-neutral-500">{description}</p>
         </div>
         {children}

@@ -8,7 +8,6 @@ import {
   ArrowsOppositeDirectionX,
   BookOpen,
   Code,
-  Cube,
   Gauge6,
   Gear2,
   Globe2,
@@ -78,12 +77,6 @@ function getSettingsSubmenu(): SidebarSubmenu {
         name: "Settlement Wallet",
         icon: MoneyBill2,
         href: "/dashboard/settings/settlement-wallet",
-        isActive: (p, h) => isNavItemActive(p, h),
-      },
-      {
-        name: "Payment Methods",
-        icon: Cube,
-        href: "/dashboard/settings/payment-methods",
         isActive: (p, h) => isNavItemActive(p, h),
       },
       {

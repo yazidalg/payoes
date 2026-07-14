@@ -117,3 +117,12 @@ export async function updateOrganization(
 
   return organization;
 }
+
+export async function deleteOrganization(organizationId: string) {
+  const [organization] = await db
+    .delete(organizations)
+    .where(eq(organizations.id, organizationId))
+    .returning();
+
+  return organization ?? null;
+}

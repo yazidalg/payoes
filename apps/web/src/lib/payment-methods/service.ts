@@ -205,8 +205,8 @@ export async function addOfficialPaymentMethod(
       issuerAddress: null,
       displayName: official.displayName,
       isVerified: 1,
-      isEnabled: 1,
-      isDefault: existing.length === 0 ? 1 : 0,
+      isEnabled: 0,
+      isDefault: 0,
     })
     .returning();
 
@@ -247,8 +247,8 @@ export async function addCustomPaymentMethod(input: {
       issuerAddress: input.issuerAddress,
       displayName: validation.assetName,
       isVerified: 0,
-      isEnabled: 1,
-      isDefault: existing.length === 0 ? 1 : 0,
+      isEnabled: 0,
+      isDefault: 0,
     })
     .returning();
 

@@ -47,7 +47,7 @@ export function IdentityVerificationForm({
       data.organization.verificationStatus === "verified" &&
       !data.isExpired
     ) {
-      router.replace("/verification/go-live");
+      router.replace("/verification/settlement-wallet");
     }
 
     return data;
@@ -114,7 +114,7 @@ export function IdentityVerificationForm({
       !data.isExpired
     ) {
       toast.success("Identity verified");
-      router.push("/verification/go-live");
+      router.push("/verification/settlement-wallet");
     }
 
     return data;

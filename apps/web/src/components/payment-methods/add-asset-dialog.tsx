@@ -133,7 +133,7 @@ export function AddAssetDialog({
       return;
     }
 
-    toast.success(`${selectedOfficial.label} added`);
+    toast.success(`${selectedOfficial.label} added. Enable it in Accepted assets when ready.`);
     onAdded();
     handleOpenChange(false);
   }
@@ -165,7 +165,7 @@ export function AddAssetDialog({
       return;
     }
 
-    toast.success(`${assetCode.toUpperCase()} added`);
+    toast.success(`${assetCode.toUpperCase()} added. Enable it in Accepted assets when ready.`);
     onAdded();
     handleOpenChange(false);
   }

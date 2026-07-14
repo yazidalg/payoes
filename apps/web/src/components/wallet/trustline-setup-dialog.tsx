@@ -2,7 +2,6 @@
 
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
-import { STELLAR_TRUSTLINE_RESERVE_XLM } from "@/constants/stellar";
 import type { MissingTrustlineAsset } from "@/hooks/use-trustline-setup";
 import { AppModal } from "@/ui/modals/app-modal";
 
@@ -25,6 +24,10 @@ type TrustlineSetupDialogProps = {
   error: string | null;
   onConfirm: () => void;
   onDismiss: () => void;
+  onChangeWallet?: () => void;
+  onCancel?: () => void;
+  required?: boolean;
+  description?: string;
 };
 
 export function TrustlineSetupDialog({
@@ -34,37 +37,83 @@ export function TrustlineSetupDialog({
   error,
   onConfirm,
   onDismiss,
+  onChangeWallet,
+  onCancel,
+  required = false,
+  description,
 }: TrustlineSetupDialogProps) {
   return (
     <AppModal
       open={open}
       onOpenChange={(nextOpen) => {
         if (!nextOpen && !isAdding) {
-          onDismiss();
+          if (required && onCancel) {
+            onCancel();
+          } else if (!required) {
+            onDismiss();
+          }
         }
       }}
       title="Add trustlines to receive payments"
-      description="Your settlement wallet is missing trustlines for assets enabled in Settings → Payment Methods. Add them so customers can pay without errors."
-      preventDefaultClose={isAdding}
+      description={
+        description ??
+        (required
+          ? "Your settlement wallet must have trustlines for accepted payment assets before you can continue onboarding."
+          : "Your settlement wallet is missing trustlines for accepted payment assets. Add them so customers can pay without errors.")
+      }
+      preventDefaultClose={isAdding || (required && !onCancel)}
       footer={
-        <>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={onDismiss}
-            disabled={isAdding}
-          >
-            Skip for now
-          </Button>
-          <Button
-            type="button"
-            onClick={() => void onConfirm()}
-            isLoading={isAdding}
-            disabled={isAdding}
-          >
-            Add trustlines
-          </Button>
-        </>
+        required ? (
+          <>
+            {onCancel ? (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onCancel}
+                disabled={isAdding}
+              >
+                Cancel
+              </Button>
+            ) : null}
+            {onChangeWallet ? (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onChangeWallet}
+                disabled={isAdding}
+              >
+                Change wallet
+              </Button>
+            ) : null}
+            <Button
+              type="button"
+              onClick={() => void onConfirm()}
+              isLoading={isAdding}
+              disabled={isAdding}
+            >
+              Add trustlines
+            </Button>
+          </>
+        ) : (
+          <>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onDismiss}
+              disabled={isAdding}
+            >
+              Skip for now
+            </Button>
+            <Button
+              type="button"
+              onClick={() => void onConfirm()}
+              isLoading={isAdding}
+              disabled={isAdding}
+            >
+              Add trustlines
+            </Button>
+          </>
+        )
       }
     >
       <div className="space-y-3">
@@ -88,11 +137,6 @@ export function TrustlineSetupDialog({
             </li>
           ))}
         </ul>
-
-        <p className="text-xs text-muted-foreground">
-          Each trustline requires about {STELLAR_TRUSTLINE_RESERVE_XLM} XLM in
-          reserve. Your wallet must already be funded on this network.
-        </p>
 
         {error ? <AlertBlock type="error">{error}</AlertBlock> : null}
       </div>

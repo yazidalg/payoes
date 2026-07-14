@@ -3,7 +3,6 @@ import {
   ArrowLeftRight,
   BookOpen,
   Building2,
-  Coins,
   Code2,
   CreditCard,
   FileCode2,
@@ -97,11 +96,6 @@ export const dashboardNav: DashboardNavItem[] = [
         icon: Wallet,
       },
       {
-        title: "Payment Methods",
-        url: "/dashboard/settings/payment-methods",
-        icon: Coins,
-      },
-      {
         title: "Team Members",
         url: "/dashboard/settings/team",
         icon: Users,
@@ -141,9 +135,10 @@ const pageTitles: Record<string, string> = {
   "/dashboard/developers/documentation": "Documentation",
   "/dashboard/settings/organization": "Organization",
   "/dashboard/settings/settlement-wallet": "Settlement Wallet",
-  "/dashboard/settings/payment-methods": "Payment Methods",
-  "/dashboard/settings/assets": "Payment Methods",
+  "/dashboard/settings/payment-methods": "Settlement Wallet",
+  "/dashboard/settings/assets": "Settlement Wallet",
   "/dashboard/settings/team": "Team Members",
+  "/dashboard/organizations": "Organizations",
 };
 
 export function getDashboardPageTitle(pathname: string) {

@@ -1,12 +1,13 @@
 "use client";
 
 import { Logo } from "@/components/shared/logo";
+import { OrganizationMark } from "@/components/organizations/organization-mark";
 import { AcceptInviteButton } from "@/ui/invites/accept-invite-button";
 import { CloseInviteButton } from "@/ui/invites/close-invite-button";
 import type { MemberRole } from "@/lib/db/schema";
 import { Avatar, Button, Tooltip } from "@dub/ui";
 import { CircleCheck, CircleHalfDottedClock } from "@dub/ui/icons";
-import { OG_AVATAR_URL, cn } from "@dub/utils";
+import { cn } from "@dub/utils";
 import { signOut } from "next-auth/react";
 
 type InviteUser = {
@@ -19,11 +20,9 @@ type InviteUser = {
 type InviteOrganization = {
   name: string;
   logoUrl: string | null;
+  logoInitials?: string;
+  id?: string;
 };
-
-function getOrganizationLogoUrl(organization: InviteOrganization) {
-  return organization.logoUrl ?? `${OG_AVATAR_URL}${organization.name}`;
-}
 
 function roleLabel(role: MemberRole) {
   if (role === "admin") {
@@ -86,10 +85,9 @@ export function InviteHero({
           "animate-slide-up-fade motion-reduce:animate-fade-in [--offset:10px] [animation-delay:50ms] [animation-duration:0.5s] [animation-fill-mode:both]",
         )}
       >
-        <img
-          src={getOrganizationLogoUrl(organization)}
-          alt={organization.name}
-          className="z-10 size-20 rotate-[-15deg] rounded-full drop-shadow-md"
+        <OrganizationMark
+          organization={organization}
+          className="z-10 size-20 rotate-[-15deg] drop-shadow-md"
         />
         <Avatar
           imageUrl={user.image}

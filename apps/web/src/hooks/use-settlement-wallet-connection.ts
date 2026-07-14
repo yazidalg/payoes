@@ -119,6 +119,11 @@ export function useSettlementWalletConnection(
     setNetworkError(null);
   }, []);
 
+  const changeWallet = useCallback(async () => {
+    await clearWalletSession();
+    clearPending();
+  }, [clearPending]);
+
   return {
     pendingAddress,
     walletProvider,
@@ -128,6 +133,7 @@ export function useSettlementWalletConnection(
     isReady,
     connect,
     clearPending,
+    changeWallet,
     networkLabel: getNetworkLabel(environment),
   };
 }
