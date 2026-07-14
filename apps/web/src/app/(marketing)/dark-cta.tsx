@@ -70,13 +70,6 @@ export function DarkCta({
           >
             Start for free
           </ButtonLink>
-          <ButtonLink
-            variant="secondary"
-            href="/login"
-            className="border-neutral-700 bg-neutral-800 text-neutral-100 hover:bg-neutral-700"
-          >
-            Get a demo
-          </ButtonLink>
         </div>
         <Link
           href="/"

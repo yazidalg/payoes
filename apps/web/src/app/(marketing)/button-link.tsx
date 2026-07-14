@@ -9,7 +9,7 @@ export const buttonVariants = cva("transition-all", {
   variants: {
     variant: {
       primary:
-        "border-black bg-black text-white hover:bg-neutral-800 hover:ring-4 hover:ring-neutral-200",
+        "border-primary bg-primary text-primary-foreground hover:bg-primary/90 hover:ring-4 hover:ring-primary/20",
       secondary:
         "border-neutral-200 bg-white text-neutral-900 outline-none hover:bg-neutral-50 focus-visible:border-neutral-400 data-[state=open]:border-neutral-400 data-[state=open]:ring-4 data-[state=open]:ring-neutral-200",
       outline: "border-transparent text-neutral-600 hover:bg-neutral-900/5",

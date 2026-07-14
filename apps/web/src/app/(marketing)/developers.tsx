@@ -29,7 +29,7 @@ export function Developers() {
     <section id="developers" className="px-4 py-24">
       <div className="mx-auto grid w-full max-w-screen-lg items-center gap-12 lg:grid-cols-2">
         <div>
-          <div className="flex h-7 w-fit items-center rounded-full border border-neutral-200 bg-white px-4 text-xs text-neutral-800">
+          <div className="flex h-7 w-fit items-center rounded-full border border-primary/20 bg-primary/10 px-4 text-xs font-medium text-primary">
             Payoes API
           </div>
           <h2 className="font-display mt-3 text-balance text-3xl font-medium text-neutral-900 sm:text-4xl">
@@ -44,7 +44,7 @@ export function Developers() {
           <ul className="mt-8 flex flex-col gap-5">
             {BULLETS.map(({ title, description }) => (
               <li key={title} className="flex items-start gap-3">
-                <div className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white">
+                <div className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
                   <Check className="size-3" strokeWidth={3} />
                 </div>
                 <div>
@@ -58,7 +58,11 @@ export function Developers() {
           </ul>
 
           <div className="mt-8">
-            <ButtonLink variant="secondary" href="/developers">
+            <ButtonLink
+              variant="secondary"
+              href="/developers"
+              className="border-primary/30 text-primary hover:bg-primary/5 focus-visible:border-primary"
+            >
               Explore the developer platform
             </ButtonLink>
           </div>
