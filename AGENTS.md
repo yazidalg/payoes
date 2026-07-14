@@ -61,7 +61,7 @@ Blockchain specifics are in `src/lib/stellar/` (payment building/verification, t
 
 ## Git (this repository)
 
-- **Author name:** Payoes
+- **Author name:** Muhammad Bintang Al-Fath
 - **Author email:** alfathbintangmuhammad@gmail.com
 - Identity is configured in local `.git/config` for this repo only
 - Never update the user's global git config

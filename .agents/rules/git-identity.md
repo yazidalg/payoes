@@ -9,7 +9,7 @@ Use these settings for all git operations in this repository.
 
 ## Author
 
-- **Name:** Payoes
+- **Name:** Muhammad Bintang Al-Fath
 - **Email:** alfathbintangmuhammad@gmail.com
 
 ## Rules
