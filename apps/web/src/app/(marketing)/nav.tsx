@@ -11,16 +11,33 @@ import {
   X,
 } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { type ComponentType, useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
+import {
+  InvoiceGraphic,
+  PaymentLinksGraphic,
+  PaymentsGraphic,
+  QRGraphic,
+  WebhooksGraphic,
+} from "./feature-graphics";
 
-const PRODUCT_ITEMS = [
+type ProductItem = {
+  label: string;
+  description: string;
+  href: string;
+  iconClass: string;
+  icon: ComponentType<{ className?: string; strokeWidth?: number }>;
+  graphic: ComponentType;
+};
+
+const PRODUCT_ITEMS: ProductItem[] = [
   {
     label: "Crypto payments",
     description: "Accept USDC, XLM, and any Stellar asset",
     href: "/features/payments",
     iconClass: "bg-gradient-to-b from-violet-500 to-violet-600",
     icon: ArrowLeftRight,
+    graphic: PaymentsGraphic,
   },
   {
     label: "Checkout & payment links",
@@ -28,6 +45,7 @@ const PRODUCT_ITEMS = [
     href: "/features/checkout",
     iconClass: "bg-gradient-to-b from-emerald-500 to-emerald-600",
     icon: Link2,
+    graphic: PaymentLinksGraphic,
   },
   {
     label: "Invoicing",
@@ -35,6 +53,7 @@ const PRODUCT_ITEMS = [
     href: "/features/invoicing",
     iconClass: "bg-gradient-to-b from-orange-500 to-orange-600",
     icon: Receipt,
+    graphic: InvoiceGraphic,
   },
   {
     label: "QR code checkout",
@@ -42,6 +61,7 @@ const PRODUCT_ITEMS = [
     href: "/features/qr-checkout",
     iconClass: "bg-gradient-to-b from-blue-500 to-blue-600",
     icon: QrCode,
+    graphic: QRGraphic,
   },
   {
     label: "Webhooks",
@@ -49,6 +69,7 @@ const PRODUCT_ITEMS = [
     href: "/features/webhooks",
     iconClass: "bg-gradient-to-b from-rose-500 to-rose-600",
     icon: Webhook,
+    graphic: WebhooksGraphic,
   },
 ];
 
@@ -75,6 +96,72 @@ export function Nav() {
     return () =>
       document.removeEventListener("mousedown", handlePointerDown);
   }, [productOpen]);
+
+  function renderProductCard(
+    item: ProductItem,
+    index: number,
+    variant: "top" | "bottom",
+  ) {
+    const { label, description, href, icon: Icon, iconClass, graphic: Graphic } =
+      item;
+    return (
+      <Link
+        key={label}
+        href={href}
+        onClick={() => setProductOpen(false)}
+        style={{
+          transitionProperty: "opacity, transform, background-color",
+          transitionDuration: "300ms",
+          transitionTimingFunction: "ease-out",
+          // Stagger only the reveal; keep hover highlight instant.
+          transitionDelay: productOpen
+            ? `${index * 40}ms, ${index * 40}ms, 0ms`
+            : "0ms",
+        }}
+        className={cn(
+          "group/item flex flex-col overflow-hidden rounded-xl border border-neutral-200 bg-white transition-colors hover:bg-neutral-50",
+          variant === "top" ? "col-span-2" : "col-span-3",
+          productOpen
+            ? "translate-y-0 opacity-100"
+            : "-translate-y-1 opacity-0",
+        )}
+      >
+        <div className="flex items-start gap-3 p-4">
+          <div
+            className={cn(
+              "flex size-9 flex-none items-center justify-center rounded-lg text-white transition-transform duration-300 group-hover/item:scale-110",
+              iconClass,
+            )}
+          >
+            <Icon className="size-4" strokeWidth={1.75} />
+          </div>
+          <div>
+            <p className="text-sm font-medium text-neutral-900">{label}</p>
+            <p className="text-xs text-neutral-500">{description}</p>
+          </div>
+        </div>
+        <div
+          aria-hidden
+          className={cn(
+            "pointer-events-none relative overflow-hidden",
+            variant === "top" ? "h-36" : "h-28",
+          )}
+        >
+          {/* Graphics are authored for a ~520x302 container (feature pages).
+              Render them at that size, then scale each variant down to the
+              card width and clip with the fixed-height parent above. */}
+          <div
+            className={cn(
+              "absolute left-0 top-0 h-[302px] w-[520px] origin-top-left",
+              variant === "top" ? "scale-[0.585]" : "scale-[0.89]",
+            )}
+          >
+            <Graphic />
+          </div>
+        </div>
+      </Link>
+    );
+  }
 
   return (
     <header className="sticky inset-x-0 top-0 z-50 w-full border-b border-neutral-100 bg-white/80 backdrop-blur-lg">
@@ -107,53 +194,20 @@ export function Nav() {
             <div className="absolute left-1/2 top-full -translate-x-1/2 pt-1">
               <div
                 className={cn(
-                  "w-80 origin-top rounded-xl border border-neutral-200 bg-white p-2 shadow-lg transition-all duration-200 ease-out",
+                  "w-[960px] max-w-[calc(100vw-2rem)] origin-top rounded-2xl border border-neutral-200 bg-white p-3 shadow-xl transition-all duration-200 ease-out",
                   productOpen
                     ? "translate-y-0 scale-100 opacity-100"
                     : "pointer-events-none -translate-y-1 scale-95 opacity-0",
                 )}
               >
-                {PRODUCT_ITEMS.map(
-                  ({ label, description, href, icon: Icon, iconClass }, index) => (
-                    <Link
-                      key={label}
-                      href={href}
-                      onClick={() => setProductOpen(false)}
-                      style={{
-                        transitionProperty: "opacity, transform, background-color",
-                        transitionDuration: "300ms",
-                        transitionTimingFunction: "ease-out",
-                        // Stagger only the reveal; keep hover highlight instant.
-                        transitionDelay: productOpen
-                          ? `${index * 40}ms, ${index * 40}ms, 0ms`
-                          : "0ms",
-                      }}
-                      className={cn(
-                        "group/item flex items-start gap-3 rounded-lg p-2.5 hover:bg-neutral-50",
-                        productOpen
-                          ? "translate-y-0 opacity-100"
-                          : "-translate-y-1 opacity-0",
-                      )}
-                    >
-                      <div
-                        className={cn(
-                          "flex size-9 flex-none items-center justify-center rounded-lg text-white transition-transform duration-300 group-hover/item:scale-110",
-                          iconClass,
-                        )}
-                      >
-                        <Icon className="size-4" strokeWidth={1.75} />
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-neutral-900">
-                          {label}
-                        </p>
-                        <p className="text-xs text-neutral-500">
-                          {description}
-                        </p>
-                      </div>
-                    </Link>
-                  ),
-                )}
+                <div className="grid grid-cols-6 gap-3">
+                  {PRODUCT_ITEMS.slice(0, 3).map((item, index) =>
+                    renderProductCard(item, index, "top"),
+                  )}
+                  {PRODUCT_ITEMS.slice(3).map((item, index) =>
+                    renderProductCard(item, index + 3, "bottom"),
+                  )}
+                </div>
               </div>
             </div>
           </div>
