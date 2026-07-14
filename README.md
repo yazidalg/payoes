@@ -119,7 +119,7 @@ npm run db:migrate
 npm run dev              # http://localhost:3000
 ```
 
-For the full local setup (environment variables, docs server), see the [Getting started](docs/local-setup/getting-started.mdx) guide in `docs/`.
+For the full local setup (environment variables, docs server), see the [Getting started](apps/docs/local-setup/getting-started.mdx) guide in `apps/docs/`.
 
 ### Scripts
 
@@ -143,23 +143,23 @@ For the full local setup (environment variables, docs server), see the [Getting 
 ```text
 payoes/
 ├── apps/
-│   └── web/                    # Next.js app (marketing, auth, dashboard, API)
-│       ├── drizzle/            # SQL migrations
-│       ├── public/             # Static assets (logo, favicon)
-│       └── src/
-│           ├── app/
-│           │   ├── (marketing)/   # Public landing page
-│           │   ├── (auth)/          # Login, register, email verification
-│           │   ├── dashboard/       # Organization workspace
-│           │   ├── onboarding/      # Org and wallet setup
-│           │   └── api/             # REST routes (v1 + internal)
-│           ├── components/          # UI, sidebar, payment flows
-│           └── lib/                 # DB schema, auth, Stellar helpers
+│   ├── web/                    # Next.js app (marketing, auth, dashboard, API)
+│   │   ├── drizzle/            # SQL migrations
+│   │   ├── public/             # Static assets (logo, favicon)
+│   │   └── src/
+│   │       ├── app/
+│   │       │   ├── (marketing)/   # Public landing page
+│   │       │   ├── (auth)/          # Login, register, email verification
+│   │       │   ├── dashboard/       # Organization workspace
+│   │       │   ├── onboarding/      # Org and wallet setup
+│   │       │   └── api/             # REST routes (v1 + internal)
+│   │       ├── components/          # UI, sidebar, payment flows
+│   │       └── lib/                 # DB schema, auth, Stellar helpers
+│   └── docs/                   # Mintlify developer documentation
 ├── packages/
 │   ├── sdk/                    # @payoes/sdk (TypeScript client)
 │   ├── ui/                     # Shared UI primitives
 │   └── utils/                  # Shared utilities
-├── docs/                       # Mintlify developer documentation
 ├── docker-compose.yml          # PostgreSQL + MinIO for local dev
 ├── package.json                # npm workspaces root
 └── README.md
@@ -180,6 +180,7 @@ payoes/
 | Package        | Description                                      |
 | -------------- | ------------------------------------------------ |
 | `apps/web`     | Main Next.js application and API                 |
+| `apps/docs`    | Mintlify developer documentation                 |
 | `@payoes/sdk`  | Core TypeScript SDK (placeholder, in progress)   |
 | `@payoes/ui`   | Shared UI components                             |
 | `@payoes/utils`| Shared utility functions                         |

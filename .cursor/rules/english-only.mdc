@@ -9,7 +9,7 @@ All project-facing content must be written in **English**. This applies to every
 
 ## In scope
 
-- Documentation (`README.md`, `docs/**`, `AGENTS.md`, comments in markdown)
+- Documentation (`README.md`, `apps/docs/**`, `AGENTS.md`, comments in markdown)
 - UI copy (labels, headings, buttons, placeholders, error messages)
 - Code comments and JSDoc/TSDoc
 - Commit messages and PR descriptions

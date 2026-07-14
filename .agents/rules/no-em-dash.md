@@ -9,7 +9,7 @@ Do not use the em dash character (`—`) in project-facing text content.
 
 ## In scope
 
-- Documentation (`docs/**`, `README.md`, `AGENTS.md`)
+- Documentation (`apps/docs/**`, `README.md`, `AGENTS.md`)
 - UI copy (labels, headings, buttons, placeholders, error messages)
 - Code comments and JSDoc/TSDoc
 - Commit messages and PR descriptions

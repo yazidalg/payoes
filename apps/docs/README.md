@@ -5,7 +5,7 @@ Mintlify-powered developer documentation for the Payoes API.
 ## Structure
 
 ```
-docs/
+apps/docs/
 ├── docs.json              # Site entry point (theme, branding)
 ├── config/
 │   └── navigation.json    # Sidebar structure (tabs + groups)
@@ -48,7 +48,7 @@ mintlify dev
 
 1. Sign up at [dashboard.mintlify.com](https://dashboard.mintlify.com)
 2. Connect the `payoes` GitHub repository
-3. Enable **monorepo** mode with path `/docs`
+3. Enable **monorepo** mode with path `/apps/docs`
 4. Add custom domain (e.g. `docs.payoes.com`) in Mintlify dashboard
 5. Set `NEXT_PUBLIC_DOCS_URL` in the web app to the docs URL
 

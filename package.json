@@ -23,6 +23,6 @@
     "db:studio": "npm run db:studio --workspace=web",
     "soroban:deploy": "bash scripts/soroban-deploy-contract.sh",
     "email:dev": "npm run dev --workspace=@payoes/email",
-    "docs:dev": "cd docs && npx mintlify@latest dev --port 3001"
+    "docs:dev": "cd apps/docs && npx mintlify@latest dev --port 3001"
   }
 }

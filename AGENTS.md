@@ -5,7 +5,7 @@ Cross-tool rules for Claude Code, OpenAI Codex, Antigravity, and other AGENTS.md
 ## Project
 
 - Monorepo with npm workspaces; main app is `apps/web` (Next.js)
-- API docs live in `docs/` (Mintlify)
+- API docs live in `apps/docs/` (Mintlify)
 - Stellar payments platform for organizations
 
 ## Commands
@@ -23,7 +23,7 @@ Cross-tool rules for Claude Code, OpenAI Codex, Antigravity, and other AGENTS.md
 
 - `apps/web`: the entire application (Next.js 16 App Router, React 19, Tailwind CSS v4, shadcn/ui). Dashboard, hosted checkout, and the public REST API all live here.
 - `packages/sdk`: `@payoes/sdk`, currently a placeholder.
-- `docs/`: Mintlify API documentation. `docs/CONTEXT.md` describes the product vision and object model.
+- `apps/docs/`: Mintlify API documentation. `apps/docs/CONTEXT.md` describes the product vision and object model.
 
 Run all npm scripts from the repo root. Local infrastructure comes from `docker compose up -d` (or `npm run docker:up`): PostgreSQL on 5432 and MinIO (S3-compatible storage) on 9000/9001. Copy `apps/web/.env.example` to `apps/web/.env` for configuration. There is no test suite.
 
@@ -65,8 +65,8 @@ Blockchain specifics are in `src/lib/stellar/` (payment building/verification, t
 - **Author email:** alfathbintangmuhammad@gmail.com
 - Identity is configured in local `.git/config` for this repo only
 - Never update the user's global git config
-- SSH uses `~/.ssh/payoes_rsa` via `core.sshCommand` (GitHub account: payoesdev)
-- Remote: `git@github.com:payoes/payoes.git`
+- SSH uses `~/.ssh/id_fradium` via `core.sshCommand` (GitHub account: gavinalinski)
+- Remote: `git@github.com:payoesteam/payoes.git`
 - Only create commits or push when the user explicitly asks
 - Never force-push to `main` unless the user explicitly requests it
 

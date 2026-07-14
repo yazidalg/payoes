@@ -14,7 +14,7 @@ export const metadata: Metadata = {
     "Guides, quickstart, and API reference for accepting USDC and XLM payments on Stellar with Payoes.",
 };
 
-const DOCS_REPO_URL = "https://github.com/payoes/payoes/tree/main/docs";
+const DOCS_REPO_URL = "https://github.com/payoesteam/payoes/tree/main/apps/docs";
 
 const GUIDE_GROUPS = [
   {

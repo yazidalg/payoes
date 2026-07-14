@@ -15,7 +15,7 @@ export type DocSection = {
   articles: DocArticle[];
 };
 
-/* Content condensed from docs/ (Mintlify): introduction, quickstart,
+/* Content condensed from apps/docs (Mintlify): introduction, quickstart,
    guides/*, and local-setup/*. Keep in sync when those files change. */
 export const DOC_SECTIONS: Record<string, DocSection> = {
   "get-started": {
