@@ -28,6 +28,12 @@ type ProductItem = {
   iconClass: string;
   icon: ComponentType<{ className?: string; strokeWidth?: number }>;
   graphic: ComponentType;
+  /* Gradient wash revealed behind the card on hover (accent -> transparent). */
+  washClass: string;
+  /* Colored drop shadow on the icon tile on hover. */
+  glowClass: string;
+  /* Accent border color on hover. */
+  borderClass: string;
 };
 
 const PRODUCT_ITEMS: ProductItem[] = [
@@ -38,6 +44,9 @@ const PRODUCT_ITEMS: ProductItem[] = [
     iconClass: "bg-gradient-to-b from-violet-500 to-violet-600",
     icon: ArrowLeftRight,
     graphic: PaymentsGraphic,
+    washClass: "from-violet-500/[0.08] via-violet-500/[0.02]",
+    glowClass: "group-hover/item:shadow-violet-500/50",
+    borderClass: "group-hover/item:border-violet-200",
   },
   {
     label: "Checkout & payment links",
@@ -46,6 +55,9 @@ const PRODUCT_ITEMS: ProductItem[] = [
     iconClass: "bg-gradient-to-b from-emerald-500 to-emerald-600",
     icon: Link2,
     graphic: PaymentLinksGraphic,
+    washClass: "from-emerald-500/[0.08] via-emerald-500/[0.02]",
+    glowClass: "group-hover/item:shadow-emerald-500/50",
+    borderClass: "group-hover/item:border-emerald-200",
   },
   {
     label: "Invoicing",
@@ -54,6 +66,9 @@ const PRODUCT_ITEMS: ProductItem[] = [
     iconClass: "bg-gradient-to-b from-orange-500 to-orange-600",
     icon: Receipt,
     graphic: InvoiceGraphic,
+    washClass: "from-orange-500/[0.08] via-orange-500/[0.02]",
+    glowClass: "group-hover/item:shadow-orange-500/50",
+    borderClass: "group-hover/item:border-orange-200",
   },
   {
     label: "QR code checkout",
@@ -62,6 +77,9 @@ const PRODUCT_ITEMS: ProductItem[] = [
     iconClass: "bg-gradient-to-b from-blue-500 to-blue-600",
     icon: QrCode,
     graphic: QRGraphic,
+    washClass: "from-blue-500/[0.08] via-blue-500/[0.02]",
+    glowClass: "group-hover/item:shadow-blue-500/50",
+    borderClass: "group-hover/item:border-blue-200",
   },
   {
     label: "Webhooks",
@@ -70,6 +88,9 @@ const PRODUCT_ITEMS: ProductItem[] = [
     iconClass: "bg-gradient-to-b from-rose-500 to-rose-600",
     icon: Webhook,
     graphic: WebhooksGraphic,
+    washClass: "from-rose-500/[0.08] via-rose-500/[0.02]",
+    glowClass: "group-hover/item:shadow-rose-500/50",
+    borderClass: "group-hover/item:border-rose-200",
   },
 ];
 
@@ -102,35 +123,54 @@ export function Nav() {
     index: number,
     variant: "top" | "bottom",
   ) {
-    const { label, description, href, icon: Icon, iconClass, graphic: Graphic } =
-      item;
+    const {
+      label,
+      description,
+      href,
+      icon: Icon,
+      iconClass,
+      graphic: Graphic,
+      washClass,
+      glowClass,
+      borderClass,
+    } = item;
     return (
       <Link
         key={label}
         href={href}
         onClick={() => setProductOpen(false)}
         style={{
-          transitionProperty: "opacity, transform, background-color",
+          transitionProperty: "opacity, transform, border-color, box-shadow",
           transitionDuration: "300ms",
           transitionTimingFunction: "ease-out",
-          // Stagger only the reveal; keep hover highlight instant.
+          // Stagger only the reveal; keep hover feedback instant.
           transitionDelay: productOpen
-            ? `${index * 40}ms, ${index * 40}ms, 0ms`
+            ? `${index * 40}ms, ${index * 40}ms, 0ms, 0ms`
             : "0ms",
         }}
         className={cn(
-          "group/item flex flex-col overflow-hidden rounded-xl border border-neutral-200 bg-white transition-colors hover:bg-neutral-50",
+          "group/item relative flex flex-col overflow-hidden rounded-xl border border-neutral-200 bg-white hover:-translate-y-0.5 hover:shadow-lg hover:shadow-neutral-900/5",
+          borderClass,
           variant === "top" ? "col-span-2" : "col-span-3",
           productOpen
             ? "translate-y-0 opacity-100"
             : "-translate-y-1 opacity-0",
         )}
       >
-        <div className="flex items-start gap-3 p-4">
+        {/* Accent gradient wash, faded in on hover. */}
+        <div
+          aria-hidden
+          className={cn(
+            "absolute inset-0 z-0 bg-gradient-to-b to-transparent opacity-0 transition-opacity duration-300 group-hover/item:opacity-100",
+            washClass,
+          )}
+        />
+        <div className="relative z-10 flex items-start gap-3 p-4">
           <div
             className={cn(
-              "flex size-9 flex-none items-center justify-center rounded-lg text-white transition-transform duration-300 group-hover/item:scale-110",
+              "flex size-9 flex-none items-center justify-center rounded-lg text-white shadow-sm shadow-transparent transition-all duration-300 group-hover/item:-rotate-3 group-hover/item:scale-110 group-hover/item:shadow-lg",
               iconClass,
+              glowClass,
             )}
           >
             <Icon className="size-4" strokeWidth={1.75} />
@@ -143,7 +183,7 @@ export function Nav() {
         <div
           aria-hidden
           className={cn(
-            "pointer-events-none relative overflow-hidden",
+            "pointer-events-none relative z-10 overflow-hidden transition-transform duration-500 ease-out group-hover/item:scale-[1.03]",
             variant === "top" ? "h-36" : "h-28",
           )}
         >
