@@ -277,7 +277,7 @@ export function Nav() {
           </Link>
           <Link
             href="/register"
-            className="rounded-lg bg-black px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-neutral-800"
+            className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
           >
             Sign up
           </Link>
