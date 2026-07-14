@@ -97,7 +97,7 @@ const PRODUCT_ITEMS: ProductItem[] = [
 const NAV_LINKS: { label: string; href: string }[] = [
   { label: "Developers", href: "/developers" },
   { label: "Docs", href: "/docs" },
-  { label: "Ecosystem", href: "/#logos" },
+  { label: "Ecosystem", href: "/ecosystem" },
   { label: "Pricing", href: "/pricing" },
 ];
 

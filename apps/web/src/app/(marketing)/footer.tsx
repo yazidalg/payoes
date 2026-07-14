@@ -24,7 +24,7 @@ const FOOTER_COLUMNS: { title: string; links: { label: string; href: string }[] 
     links: [
       { label: "Docs", href: "/docs" },
       { label: "Pricing", href: "/pricing" },
-      { label: "Ecosystem", href: "/#logos" },
+      { label: "Ecosystem", href: "/ecosystem" },
     ],
   },
 ];
