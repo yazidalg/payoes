@@ -125,7 +125,7 @@ export default function DevelopersPage() {
       {/* Code example */}
       <section className="px-4">
         <div className="mx-auto w-full max-w-screen-md">
-          <h2 className="font-display animate-slide-up-fade text-center text-3xl font-medium text-neutral-900 [--offset:10px] [animation-duration:700ms] [animation-fill-mode:both]">
+          <h2 className="font-display animate-slide-up-fade text-center text-3xl font-medium text-neutral-900 mt-24 [--offset:10px] [animation-duration:700ms] [animation-fill-mode:both]">
             One request to get paid
           </h2>
           <p className="animate-slide-up-fade mx-auto mt-4 max-w-xl text-center text-neutral-500 [--offset:10px] [animation-delay:100ms] [animation-duration:700ms] [animation-fill-mode:both]">

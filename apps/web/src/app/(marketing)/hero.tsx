@@ -33,9 +33,6 @@ export function Hero() {
             <ButtonLink variant="primary" href="/register">
               Start for free
             </ButtonLink>
-            <ButtonLink variant="secondary" href="#cta">
-              Get a demo
-            </ButtonLink>
           </div>
 
       </div>

@@ -98,7 +98,7 @@ const NAV_LINKS: { label: string; href: string }[] = [
   { label: "Developers", href: "/developers" },
   { label: "Docs", href: "/docs" },
   { label: "Ecosystem", href: "/#logos" },
-  { label: "Pricing", href: "/#cta" },
+  { label: "Pricing", href: "/pricing" },
 ];
 
 export function Nav() {
@@ -214,7 +214,7 @@ export function Nav() {
         </Link>
 
         <nav className="hidden items-center gap-8 md:flex">
-          <div className="relative" ref={productRef}>
+          <div ref={productRef}>
             <button
               type="button"
               onClick={() => setProductOpen((prev) => !prev)}
@@ -231,7 +231,12 @@ export function Nav() {
               />
             </button>
 
-            <div className="absolute left-1/2 top-full -translate-x-1/2 pt-1">
+            <div
+              className={cn(
+                "absolute left-1/2 top-full -translate-x-1/2 pt-1",
+                !productOpen && "pointer-events-none",
+              )}
+            >
               <div
                 className={cn(
                   "w-[960px] max-w-[calc(100vw-2rem)] origin-top rounded-2xl border border-neutral-200 bg-white p-3 shadow-xl transition-all duration-200 ease-out",

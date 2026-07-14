@@ -56,9 +56,6 @@ export function CTA() {
           <ButtonLink variant="primary" href="/register">
             Start for free
           </ButtonLink>
-          <ButtonLink variant="secondary" href="/login">
-            Get a demo
-          </ButtonLink>
         </div>
       </div>
     </section>
