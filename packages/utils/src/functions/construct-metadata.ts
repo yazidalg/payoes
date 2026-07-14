@@ -3,26 +3,18 @@ import { Metadata } from "next";
 export function constructMetadata({
   title,
   fullTitle,
-  description = "Dub is the modern link attribution platform for short links, conversion tracking, and affiliate programs.",
-  image = "https://assets.dub.co/thumbnail.jpg",
+  description = "Payoes is the Stellar payment infrastructure and SDK for modern apps.",
+  image = "https://payoes.com/thumbnail.jpg",
   video,
   icons = [
     {
       rel: "apple-touch-icon",
-      sizes: "32x32",
-      url: "https://assets.dub.co/favicons/apple-touch-icon.png",
+      url: "/apple-icon.png",
     },
     {
       rel: "icon",
       type: "image/png",
-      sizes: "32x32",
-      url: "https://assets.dub.co/favicons/favicon-32x32.png",
-    },
-    {
-      rel: "icon",
-      type: "image/png",
-      sizes: "16x16",
-      url: "https://assets.dub.co/favicons/favicon-16x16.png",
+      url: "/icon.png",
     },
   ],
   url,
@@ -44,7 +36,7 @@ export function constructMetadata({
   return {
     title:
       fullTitle ||
-      (title ? `${title} | Dub` : "Dub - The Modern Link Attribution Platform"),
+      (title ? `${title} | Payoes` : "Payoes - Stellar payment infrastructure and SDK"),
     description,
     openGraph: {
       title,
@@ -67,10 +59,10 @@ export function constructMetadata({
       ...(video && {
         player: video,
       }),
-      creator: "@dubdotco",
+      creator: "@payoes",
     },
     icons,
-    metadataBase: new URL("https://dub.co"),
+    metadataBase: new URL("https://payoes.com"),
     ...((url || canonicalUrl) && {
       alternates: {
         canonical: url || canonicalUrl,

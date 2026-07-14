@@ -477,7 +477,7 @@ export function CheckoutView({
           </div>
 
           {/* Payment Section (Right) */}
-          <div className="relative flex-1 bg-white">
+          <div className="relative flex-1 bg-white flex flex-col justify-between">
             <div
               className={cn(
                 "relative z-10 px-6 py-8",
@@ -834,6 +834,20 @@ export function CheckoutView({
                   </div>
                 )}
               </div>
+            </div>
+
+            {/* Powered by Payoes Watermark */}
+            <div className={cn("mt-auto text-center", disabled ? "pb-3" : "pb-6")}>
+              <a
+                href="https://payoes.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 text-xs text-neutral-400 hover:text-neutral-600 transition-colors"
+              >
+                <span>Powered by</span>
+                <img src="/logo.svg" alt="Payoes logo" className="h-4 w-auto brightness-90" />
+                <span className="font-semibold text-neutral-500">Payoes</span>
+              </a>
             </div>
           </div>
         </div>

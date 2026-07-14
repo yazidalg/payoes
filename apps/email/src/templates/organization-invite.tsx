@@ -49,7 +49,7 @@ export default function OrganizationInvite({
       )}
       <Section className="mb-8 mt-8">
         <Link
-          className="rounded-lg bg-black px-6 py-3 text-center text-[12px] font-semibold text-white no-underline"
+          className="rounded-lg bg-[#054fbf] px-6 py-3 text-center text-[12px] font-semibold text-white no-underline"
           href={url}
         >
           Accept invitation
