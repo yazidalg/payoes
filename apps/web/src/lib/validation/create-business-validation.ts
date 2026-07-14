@@ -1,6 +1,6 @@
 import type { FieldValidator } from "./form-validation";
 
-export type CreateOrganizationFormValues = {
+export type CreateBusinessFormValues = {
   name: string;
   email: string;
   website: string;
@@ -10,12 +10,12 @@ export type CreateOrganizationFormValues = {
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const websitePattern = /^https?:\/\/.+/i;
 
-export const createOrganizationRequiredValidators: FieldValidator<CreateOrganizationFormValues>[] =
+export const createBusinessRequiredValidators: FieldValidator<CreateBusinessFormValues>[] =
   [
     {
       field: "name",
       validate: (values) =>
-        values.name.trim() ? null : "Organization name is required",
+        values.name.trim() ? null : "Business name is required",
     },
     {
       field: "email",
@@ -24,7 +24,7 @@ export const createOrganizationRequiredValidators: FieldValidator<CreateOrganiza
     },
   ];
 
-export const createOrganizationInlineValidators: FieldValidator<CreateOrganizationFormValues>[] =
+export const createBusinessInlineValidators: FieldValidator<CreateBusinessFormValues>[] =
   [
     {
       field: "name",
@@ -36,7 +36,7 @@ export const createOrganizationInlineValidators: FieldValidator<CreateOrganizati
         }
 
         if (name.length > 120) {
-          return "Organization name must be 120 characters or less";
+          return "Business name must be 120 characters or less";
         }
 
         return null;

@@ -35,9 +35,9 @@ export function UserDropdown() {
   const menuOptions = useMemo(
     () => [
       {
-        label: "Organization settings",
+        label: "Business settings",
         icon: Gear,
-        href: "/dashboard/settings/organization",
+        href: "/dashboard/settings/business",
         onClick: () => setOpenPopover(false),
       },
       {

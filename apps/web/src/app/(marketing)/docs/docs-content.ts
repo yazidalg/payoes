@@ -66,7 +66,7 @@ export const DOC_SECTIONS: Record<string, DocSection> = {
           "Five steps take a payment from creation to settlement, and Payoes handles everything between your API call and the webhook.",
         bullets: [
           {
-            label: "1. Set up your organization",
+            label: "1. Set up your business",
             text: "Connect a settlement wallet: the Stellar address that receives payments.",
           },
           {
@@ -203,7 +203,7 @@ export const DOC_SECTIONS: Record<string, DocSection> = {
           },
           {
             label: "Scoped per environment",
-            text: "A key belongs to one organization and one environment.",
+            text: "A key belongs to one business and one environment.",
           },
           {
             label: "Every request logged",
@@ -395,7 +395,7 @@ export const DOC_SECTIONS: Record<string, DocSection> = {
           },
           {
             label: "PostgreSQL and MinIO",
-            text: "docker compose up -d; MinIO console on :9001 for organization logos.",
+            text: "docker compose up -d; MinIO console on :9001 for business logos.",
           },
           {
             label: "Docs on :3001",
@@ -435,7 +435,7 @@ export const DOC_SECTIONS: Record<string, DocSection> = {
         bullets: [
           {
             label: "Onboarding flow",
-            text: "Sign in, create an organization, and connect a Testnet settlement wallet.",
+            text: "Sign in, create a business, and connect a Testnet settlement wallet.",
           },
           {
             label: "Verify end to end",

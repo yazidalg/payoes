@@ -5,7 +5,7 @@ import { Menu } from "lucide-react";
 import Link from "next/link";
 import { useKycSidebar } from "@/ui/kyc/kyc-sidebar-context";
 
-export function CreateOrganizationHeader() {
+export function CreateBusinessHeader() {
   const { isOpen, setIsOpen } = useKycSidebar();
 
   return (
@@ -15,7 +15,7 @@ export function CreateOrganizationHeader() {
           type="button"
           onClick={() => setIsOpen(!isOpen)}
           className="lg:hidden rounded-md p-1 hover:bg-neutral-100"
-          aria-label="Open organization steps"
+          aria-label="Open business steps"
         >
           <Menu className="size-5 text-neutral-600" />
         </button>
@@ -23,7 +23,7 @@ export function CreateOrganizationHeader() {
           <Wordmark className="h-7" />
         </Link>
         <h1 className="text-base font-semibold text-neutral-700">
-          Create organization
+          Create business
         </h1>
       </div>
     </div>

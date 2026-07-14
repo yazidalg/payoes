@@ -1,9 +1,9 @@
 "use client";
 
-import { CreateOrganizationContent } from "@/ui/organizations/create-organization-content";
+import { CreateBusinessContent } from "@/ui/business/create-business-content";
 import type { Organization } from "@/lib/db/schema";
 
-export function CreateOrganizationScreen({
+export function CreateBusinessScreen({
   defaultEmail,
   onSuccess,
   redirectTo = "/dashboard/payments",
@@ -19,7 +19,7 @@ export function CreateOrganizationScreen({
   closeHref?: string;
 }) {
   return (
-    <CreateOrganizationContent
+    <CreateBusinessContent
       defaultEmail={defaultEmail}
       onSuccess={onSuccess}
       redirectTo={redirectTo}

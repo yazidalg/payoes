@@ -5,15 +5,15 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { Organization } from "@/lib/db/schema";
 import { getPrioritizedOrganizations } from "@/lib/organizations/list-utils";
-import { useOrganizationSwitch } from "@/hooks/use-organization-switch";
+import { useBusinessSwitch } from "@/hooks/use-business-switch";
 import { Input } from "@/components/ui/input";
-import { OrganizationListItem } from "@/ui/organizations/organization-list-item";
+import { BusinessListItem } from "@/ui/business/business-list-item";
 import { useSetDashboardPageHeader } from "@/ui/layout/dashboard-page-header-context";
 import { Button } from "@dub/ui";
 import { Plus2 } from "@dub/ui/icons";
 import { Search } from "lucide-react";
 
-export function OrganizationsPage({
+export function BusinessesPage({
   organizations,
 }: {
   organizations: Organization[];
@@ -21,21 +21,21 @@ export function OrganizationsPage({
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const { activeOrganization, switchOrganization, isSwitching } =
-    useOrganizationSwitch();
+    useBusinessSwitch();
 
   const headerOverride = useMemo(
     () => ({
       titleInfo: {
-        title: "Switch between workspaces or create a new organization.",
+        title: "Switch between workspaces or create a new business.",
       },
       controls: (
         <Button
           type="button"
           variant="primary"
-          text="Create organization"
+          text="Create business"
           icon={<Plus2 className="size-4" />}
           className="h-9 w-fit"
-          onClick={() => router.push("/organizations/new")}
+          onClick={() => router.push("/business/new")}
         />
       ),
     }),
@@ -67,7 +67,7 @@ export function OrganizationsPage({
           type="search"
           value={searchQuery}
           onChange={(event) => setSearchQuery(event.target.value)}
-          placeholder="Search organizations"
+          placeholder="Search businesses"
           className="h-10 pl-9"
         />
       </div>
@@ -75,12 +75,12 @@ export function OrganizationsPage({
       <div className="overflow-hidden rounded-xl border border-neutral-200 bg-white">
         {filteredOrganizations.length === 0 ? (
           <p className="px-4 py-8 text-left text-sm text-neutral-500">
-            No organizations found.
+            No businesses found.
           </p>
         ) : (
           <div className="divide-y divide-neutral-200">
             {filteredOrganizations.map((organization) => (
-              <OrganizationListItem
+              <BusinessListItem
                 key={organization.id}
                 organization={organization}
                 isActive={organization.id === activeOrganization?.id}
@@ -100,10 +100,10 @@ export function OrganizationsPage({
       <p className="text-left text-sm text-neutral-500">
         Need another workspace?{" "}
         <Link
-          href="/organizations/new"
+          href="/business/new"
           className="font-medium text-primary hover:underline"
         >
-          Create organization
+          Create business
         </Link>
       </p>
     </div>

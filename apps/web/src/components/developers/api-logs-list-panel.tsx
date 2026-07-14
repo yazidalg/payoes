@@ -9,7 +9,7 @@ export function ApiLogsListPanel({ organizationId }: { organizationId: string })
     () => ({
       titleInfo: {
         title:
-          "View request logs for API calls made with your organization's API keys.",
+          "View request logs for API calls made with your business API keys.",
         href: "/dashboard/developers/documentation",
       },
     }),

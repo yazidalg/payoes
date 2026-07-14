@@ -66,7 +66,7 @@ export async function POST(
   );
 
   if (!organization) {
-    return NextResponse.json({ error: "Organization not found" }, { status: 404 });
+    return NextResponse.json({ error: "Business not found" }, { status: 404 });
   }
 
   const body = await request.json();

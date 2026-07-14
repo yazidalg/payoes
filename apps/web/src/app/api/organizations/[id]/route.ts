@@ -203,7 +203,7 @@ export async function PATCH(
         error:
           error instanceof Error
             ? error.message
-            : "Unable to update organization",
+            : "Unable to update business",
       },
       { status: 500 },
     );
@@ -211,7 +211,7 @@ export async function PATCH(
 }
 
 const deleteOrganizationSchema = z.object({
-  confirmName: z.string().min(1, "Organization name is required"),
+  confirmName: z.string().min(1, "Business name is required"),
 });
 
 export async function DELETE(
@@ -230,7 +230,7 @@ export async function DELETE(
 
     if (!membership || membership.role !== "owner") {
       return NextResponse.json(
-        { error: "Only the organization owner can delete this organization" },
+        { error: "Only the business owner can delete this business" },
         { status: 403 },
       );
     }
@@ -253,7 +253,7 @@ export async function DELETE(
 
     if (parsed.data.confirmName.trim() !== existing.name) {
       return NextResponse.json(
-        { error: "Organization name does not match" },
+        { error: "Business name does not match" },
         { status: 400 },
       );
     }
@@ -273,7 +273,7 @@ export async function DELETE(
         error:
           error instanceof Error
             ? error.message
-            : "Unable to delete organization",
+            : "Unable to delete business",
       },
       { status: 500 },
     );

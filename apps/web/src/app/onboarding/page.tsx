@@ -1,10 +1,10 @@
 import { auth } from "@/auth";
-import { CreateOrganizationScreen } from "@/components/onboarding/create-organization-screen";
+import { CreateBusinessScreen } from "@/components/onboarding/create-business-screen";
 
 export default async function OnboardingPage() {
   const session = await auth();
 
   return (
-    <CreateOrganizationScreen defaultEmail={session?.user?.email} />
+    <CreateBusinessScreen defaultEmail={session?.user?.email} />
   );
 }

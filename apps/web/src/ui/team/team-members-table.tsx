@@ -357,7 +357,7 @@ export function TeamMembersTable({
       ) : (
         <TableEmptyState
           title="No team members yet"
-          description="Invite teammates to collaborate on this organization."
+          description="Invite teammates to collaborate on this business."
           icon={<Users className="size-4 text-neutral-700" />}
           addButton={canManageTeam ? createButton : undefined}
         />

@@ -31,7 +31,7 @@ export async function POST(request: Request) {
 
   if (!membership) {
     return NextResponse.json(
-      { error: "You are not a member of this organization" },
+      { error: "You are not a member of this business" },
       { status: 403 }
     );
   }
@@ -44,7 +44,7 @@ export async function POST(request: Request) {
 
   if (!organization) {
     return NextResponse.json(
-      { error: "Organization not found" },
+      { error: "Business not found" },
       { status: 404 }
     );
   }

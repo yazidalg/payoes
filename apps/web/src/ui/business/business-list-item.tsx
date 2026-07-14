@@ -1,11 +1,11 @@
 "use client";
 
-import { OrganizationMark } from "@/components/organizations/organization-mark";
+import { BusinessMark } from "@/components/business/business-mark";
 import type { Organization } from "@/lib/db/schema";
 import { Check2 } from "@dub/ui/icons";
 import { cn } from "@dub/utils";
 
-export function OrganizationListItem({
+export function BusinessListItem({
   organization,
   isActive,
   disabled,
@@ -33,7 +33,7 @@ export function OrganizationListItem({
       )}
     >
       <div className="flex size-6 shrink-0 overflow-hidden rounded-full">
-        <OrganizationMark organization={organization} className="size-full" />
+        <BusinessMark organization={organization} className="size-full" />
       </div>
       <div className="min-w-0 flex-1 text-left">
         <p className="truncate text-sm font-medium text-neutral-900">

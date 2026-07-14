@@ -9,7 +9,7 @@ import { getAssetIconUrl } from "@/lib/assets/icons";
 import { getOfficialAsset } from "@/lib/payment-methods/official-assets";
 import { ConnectedWallet } from "@/ui/wallet/connected-wallet";
 import { CheckoutSandboxBanner } from "@/components/checkout/checkout-sandbox-banner";
-import { OrganizationMark } from "@/components/organizations/organization-mark";
+import { BusinessMark } from "@/components/business/business-mark";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { formatInvoiceAmount } from "@/lib/invoices/amount";
 import { formatAmountWithUnit, formatTokenWithAsset } from "@/lib/format/amount";
@@ -319,7 +319,7 @@ export function CheckoutView({
                 <div className="flex items-center gap-3">
                   {data.merchant ? (
                     <div className={cn("flex shrink-0 overflow-hidden rounded-full", disabled ? "size-7" : "size-8 @lg:size-10")}>
-                      <OrganizationMark
+                      <BusinessMark
                         organization={{
                           name: data.merchant.name,
                           logoUrl: data.merchant.logoUrl,

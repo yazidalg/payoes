@@ -3,7 +3,7 @@
 import { FullscreenPageShell } from "@/ui/transitions/fullscreen-page-shell";
 import type { ReactNode } from "react";
 
-export function CreateOrganizationShell({
+export function CreateBusinessShell({
   children,
   showCloseButton = false,
   onClose,

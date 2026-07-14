@@ -2,25 +2,25 @@
 
 import { cn } from "@dub/utils";
 import type { ReactNode } from "react";
-import type { CreateOrganizationStep } from "@/constants/organizations/create-steps";
+import type { CreateBusinessStep } from "@/constants/business/create-steps";
 import { KycSidebarProvider } from "@/ui/kyc/kyc-sidebar-context";
 import { FullscreenPageShell } from "@/ui/transitions/fullscreen-page-shell";
-import { CreateOrganizationHeader } from "./create-organization-header";
-import { CreateOrganizationSteps } from "./create-organization-steps";
+import { CreateBusinessHeader } from "./create-business-header";
+import { CreateBusinessSteps } from "./create-business-steps";
 
-export function CreateOrganizationLayout({
+export function CreateBusinessLayout({
   children,
   currentStep,
-  organizationComplete,
+  businessComplete,
   onStepChange,
   showCloseButton,
   onClose,
   closeHref,
 }: {
   children: ReactNode;
-  currentStep: CreateOrganizationStep;
-  organizationComplete: boolean;
-  onStepChange: (step: CreateOrganizationStep) => void;
+  currentStep: CreateBusinessStep;
+  businessComplete: boolean;
+  onStepChange: (step: CreateBusinessStep) => void;
   showCloseButton?: boolean;
   onClose?: () => void;
   closeHref?: string;
@@ -35,12 +35,12 @@ export function CreateOrganizationLayout({
         contentClassName="min-h-0 flex-1"
       >
         <div className="flex min-h-0 flex-1 flex-col">
-          <CreateOrganizationHeader />
+          <CreateBusinessHeader />
 
           <div className="flex flex-1 lg:grid lg:grid-cols-[240px_minmax(0,1fr)_240px]">
-            <CreateOrganizationSteps
+            <CreateBusinessSteps
               currentStep={currentStep}
-              organizationComplete={organizationComplete}
+              businessComplete={businessComplete}
               onStepChange={onStepChange}
             />
             <main

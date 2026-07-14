@@ -2,10 +2,10 @@
 
 import type { Organization } from "@/lib/db/schema";
 import {
-  createOrganizationInlineValidators,
-  createOrganizationRequiredValidators,
-  type CreateOrganizationFormValues,
-} from "@/lib/validation/create-organization-validation";
+  createBusinessInlineValidators,
+  createBusinessRequiredValidators,
+  type CreateBusinessFormValues,
+} from "@/lib/validation/create-business-validation";
 import {
   getVisibleInlineError,
   useSplitFormValidation,
@@ -15,20 +15,20 @@ import { FormFieldLabel } from "@/ui/forms/form-field-label";
 import { FormInput } from "@/ui/forms/form-input";
 import { FormTextarea } from "@/ui/forms/form-textarea";
 import { ValidatedSubmitButton } from "@/ui/forms/validated-submit-button";
-import { OrganizationDefaultLogo } from "@/components/organizations/organization-mark";
+import { BusinessDefaultLogo } from "@/components/business/business-mark";
 import { FileUpload, buttonVariants } from "@dub/ui";
 import { cn } from "@dub/utils";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
-type CreateOrganizationField = keyof CreateOrganizationFormValues;
+type CreateBusinessField = keyof CreateBusinessFormValues;
 
-export function CreateOrganizationForm({
+export function CreateBusinessForm({
   defaultEmail,
   onSuccess,
   className,
   redirectTo,
-  submitLabel = "Create organization",
+  submitLabel = "Create business",
   onStepComplete,
 }: {
   defaultEmail?: string | null;
@@ -46,7 +46,7 @@ export function CreateOrganizationForm({
   const [logoPreview, setLogoPreview] = useState<string | undefined>();
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const { touched, touch } = useTouchedFields<CreateOrganizationField>();
+  const { touched, touch } = useTouchedFields<CreateBusinessField>();
 
   useEffect(() => {
     if (defaultEmail) {
@@ -54,7 +54,7 @@ export function CreateOrganizationForm({
     }
   }, [defaultEmail]);
 
-  const formValues = useMemo<CreateOrganizationFormValues>(
+  const formValues = useMemo<CreateBusinessFormValues>(
     () => ({
       name,
       email,
@@ -71,12 +71,12 @@ export function CreateOrganizationForm({
     isValid,
   } = useSplitFormValidation(
     formValues,
-    createOrganizationRequiredValidators,
-    createOrganizationInlineValidators,
+    createBusinessRequiredValidators,
+    createBusinessInlineValidators,
   );
 
   function handleFieldChange(
-    field: CreateOrganizationField,
+    field: CreateBusinessField,
     value: string,
     setter: (value: string) => void,
   ) {
@@ -127,7 +127,7 @@ export function CreateOrganizationForm({
 
       if (!response.ok || !payload.organization) {
         setError(
-          payload.error ?? "Unable to create organization. Please try again.",
+          payload.error ?? "Unable to create business. Please try again.",
         );
         setIsLoading(false);
         return;
@@ -139,10 +139,10 @@ export function CreateOrganizationForm({
         return;
       }
 
-      toast.success("Organization created successfully");
+      toast.success("Business created successfully");
       window.location.assign(redirectTo ?? "/dashboard/payments");
     } catch {
-      setError("Failed to create organization");
+      setError("Failed to create business");
       setIsLoading(false);
     }
   }
@@ -172,11 +172,11 @@ export function CreateOrganizationForm({
       {error ? <p className="text-xs font-medium text-red-600">{error}</p> : null}
 
       <div className="space-y-2">
-        <FormFieldLabel htmlFor="create-organization-name" required>
-          Organization name
+        <FormFieldLabel htmlFor="create-business-name" required>
+          Business name
         </FormFieldLabel>
         <FormInput
-          id="create-organization-name"
+          id="create-business-name"
           autoComplete="organization"
           placeholder="Acme Payments"
           value={name}
@@ -188,11 +188,11 @@ export function CreateOrganizationForm({
       </div>
 
       <div className="space-y-2">
-        <FormFieldLabel htmlFor="create-organization-email" required>
+        <FormFieldLabel htmlFor="create-business-email" required>
           Business email
         </FormFieldLabel>
         <FormInput
-          id="create-organization-email"
+          id="create-business-email"
           type="email"
           autoComplete="email"
           placeholder="billing@company.com"
@@ -205,11 +205,11 @@ export function CreateOrganizationForm({
       </div>
 
       <div className="space-y-2">
-        <FormFieldLabel htmlFor="create-organization-website">
+        <FormFieldLabel htmlFor="create-business-website">
           Business website
         </FormFieldLabel>
         <FormInput
-          id="create-organization-website"
+          id="create-business-website"
           type="url"
           autoComplete="url"
           placeholder="https://company.com"
@@ -222,11 +222,11 @@ export function CreateOrganizationForm({
       </div>
 
       <div className="space-y-2">
-        <FormFieldLabel htmlFor="create-organization-description">
+        <FormFieldLabel htmlFor="create-business-description">
           Business description
         </FormFieldLabel>
         <FormTextarea
-          id="create-organization-description"
+          id="create-business-description"
           rows={4}
           placeholder="What does your business do?"
           value={description}
@@ -239,7 +239,7 @@ export function CreateOrganizationForm({
 
       <div>
         <p className="block text-sm font-medium text-neutral-700">
-          Organization logo
+          Business logo
         </p>
         <div className="mt-1.5 flex items-center gap-5">
           <FileUpload
@@ -250,7 +250,7 @@ export function CreateOrganizationForm({
             variant="plain"
             imageSrc={logoPreview}
             placeholder={
-              <OrganizationDefaultLogo className="size-full" />
+              <BusinessDefaultLogo className="size-full" />
             }
             readFile
             onChange={({ file, src }) => {

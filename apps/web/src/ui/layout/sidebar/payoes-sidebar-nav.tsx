@@ -68,9 +68,9 @@ function getSettingsSubmenu(): SidebarSubmenu {
     backHref: "/dashboard",
     items: [
       {
-        name: "Organization",
+        name: "Business",
         icon: Globe2,
-        href: "/dashboard/settings/organization",
+        href: "/dashboard/settings/business",
         isActive: (p, h) => isNavItemActive(p, h),
       },
       {
@@ -131,7 +131,7 @@ function getMainNavItems(): NavItemType[] {
     {
       name: "Settings",
       icon: Gear2,
-      href: "/dashboard/settings/organization",
+      href: "/dashboard/settings/business",
       submenuId: SETTINGS_SUBMENU_ID,
       isActive: (p) => p.startsWith("/dashboard/settings"),
     },

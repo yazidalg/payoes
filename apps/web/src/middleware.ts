@@ -17,6 +17,7 @@ export default auth((req) => {
   if (
     (pathname.startsWith("/dashboard") ||
       pathname.startsWith("/onboarding") ||
+      pathname.startsWith("/business") ||
       pathname.startsWith("/organizations")) &&
     !isLoggedIn
   ) {
@@ -53,6 +54,8 @@ export const config = {
     "/dashboard/:path*",
     "/onboarding/:path*",
     "/onboarding",
+    "/business/:path*",
+    "/business",
     "/organizations/:path*",
     "/organizations",
     "/login",

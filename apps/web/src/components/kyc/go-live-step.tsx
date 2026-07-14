@@ -93,10 +93,10 @@ export function GoLiveStep({
     return (
       <KycStepPage
         title="Go live"
-        description="Only the organization owner can enable production mode."
+        description="Only the business owner can enable production mode."
       >
         <p className="text-sm text-neutral-500">
-          Ask your organization owner to complete this step.
+          Ask your business owner to complete this step.
         </p>
       </KycStepPage>
     );

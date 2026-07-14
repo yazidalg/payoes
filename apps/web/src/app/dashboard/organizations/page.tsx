@@ -1,10 +1,5 @@
-import { OrganizationsPage } from "@/components/organizations/organizations-page";
-import { getDashboardUserId } from "@/lib/dashboard/get-organization";
-import { getOrganizationsForUser } from "@/lib/organizations/service";
+import { redirect } from "next/navigation";
 
-export default async function DashboardOrganizationsPage() {
-  const userId = await getDashboardUserId();
-  const organizations = await getOrganizationsForUser(userId);
-
-  return <OrganizationsPage organizations={organizations} />;
+export default function OrganizationsRedirectPage() {
+  redirect("/dashboard/businesses");
 }

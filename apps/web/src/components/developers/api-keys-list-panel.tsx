@@ -53,7 +53,7 @@ export function ApiKeysListPanel({ organizationId }: { organizationId: string })
     () => ({
       titleInfo: {
         title:
-          "These API keys allow other apps to access your organization. Use them with caution: do not share your API key with others, or expose it in the browser or other client-side code.",
+          "These API keys allow other apps to access your business. Use them with caution: do not share your API key with others, or expose it in the browser or other client-side code.",
         href: "/dashboard/developers/documentation",
       },
       controls: (

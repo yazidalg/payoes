@@ -2,6 +2,7 @@ const ALLOWED_POST_AUTH_PREFIXES = [
   "/invite/",
   "/onboarding",
   "/dashboard",
+  "/business/",
   "/organizations/",
 ] as const;
 

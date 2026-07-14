@@ -30,7 +30,7 @@ export async function InvitePageContent({ token }: { token: string }) {
         <EmptyState
           icon={LinkBroken}
           title="Invalid Invite Link"
-          description="The invite link you are trying to use is invalid. Please contact the organization owner for more information."
+          description="The invite link you are trying to use is invalid. Please contact the business owner for more information."
         />
       </div>
     );

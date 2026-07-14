@@ -1,23 +1,23 @@
 "use client";
 
 import {
-  CREATE_ORGANIZATION_STEPS,
-  type CreateOrganizationStep,
-} from "@/constants/organizations/create-steps";
+  CREATE_BUSINESS_STEPS,
+  type CreateBusinessStep,
+} from "@/constants/business/create-steps";
 import { Button, useMediaQuery } from "@dub/ui";
 import { cn } from "@dub/utils";
 import { Check, X } from "lucide-react";
 import { useEffect } from "react";
 import { useKycSidebar } from "@/ui/kyc/kyc-sidebar-context";
 
-export function CreateOrganizationSteps({
+export function CreateBusinessSteps({
   currentStep,
-  organizationComplete,
+  businessComplete,
   onStepChange,
 }: {
-  currentStep: CreateOrganizationStep;
-  organizationComplete: boolean;
-  onStepChange: (step: CreateOrganizationStep) => void;
+  currentStep: CreateBusinessStep;
+  businessComplete: boolean;
+  onStepChange: (step: CreateBusinessStep) => void;
 }) {
   const { isDesktop } = useMediaQuery();
   const { isOpen, setIsOpen } = useKycSidebar();
@@ -58,14 +58,14 @@ export function CreateOrganizationSteps({
             />
           </div>
           <nav className="space-y-1">
-            {CREATE_ORGANIZATION_STEPS.map(({ step, label, stepNumber }) => {
+            {CREATE_BUSINESS_STEPS.map(({ step, label, stepNumber }) => {
               const current = currentStep === step;
               const completed =
-                step === "organization"
-                  ? organizationComplete
-                  : organizationComplete && currentStep === "settlement-wallet";
+                step === "business"
+                  ? businessComplete
+                  : businessComplete && currentStep === "settlement-wallet";
               const isDisabled =
-                step === "settlement-wallet" && !organizationComplete;
+                step === "settlement-wallet" && !businessComplete;
 
               if (isDisabled) {
                 return (

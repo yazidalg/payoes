@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
 
 export default function BillingPage() {
-  redirect("/dashboard/settings/organization");
+  redirect("/dashboard/settings/business");
 }

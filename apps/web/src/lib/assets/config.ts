@@ -54,7 +54,7 @@ export async function resolveAssetConfig(input: {
   const settlementKey = `${settlement.asset_code}:${settlement.issuer_address ?? ""}`;
 
   if (!enabledKeys.has(settlementKey)) {
-    throw new Error("Settlement asset is not enabled for this organization");
+    throw new Error("Settlement asset is not enabled for this business");
   }
 
   const allowed = input.allowedAssets?.length
@@ -68,7 +68,7 @@ export async function resolveAssetConfig(input: {
   for (const asset of allowed) {
     const key = `${asset.asset_code}:${asset.issuer_address ?? ""}`;
     if (!enabledKeys.has(key)) {
-      throw new Error(`Asset ${asset.asset_code} is not enabled for this organization`);
+      throw new Error(`Asset ${asset.asset_code} is not enabled for this business`);
     }
   }
 

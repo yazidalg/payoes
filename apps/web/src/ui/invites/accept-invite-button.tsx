@@ -31,7 +31,7 @@ export function AcceptInviteButton() {
 
       toast.success(
         data.alreadyMember
-          ? "You are already a member of this organization"
+          ? "You are already a member of this business"
           : "You now are a part of this workspace!",
       );
       router.replace("/dashboard/payments");

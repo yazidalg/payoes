@@ -4,7 +4,7 @@ import { cn } from "@dub/utils";
 import { ReactNode, useMemo, useState } from "react";
 import { Button } from "@dub/ui";
 
-type OrganizationFieldFormProps = {
+type BusinessFieldFormProps = {
   title: string;
   description: string;
   name: string;
@@ -18,7 +18,7 @@ type OrganizationFieldFormProps = {
   handleSubmit: (data: Record<string, string>) => Promise<void>;
 };
 
-export function OrganizationFieldForm({
+export function BusinessFieldForm({
   title,
   description,
   name,
@@ -30,7 +30,7 @@ export function OrganizationFieldForm({
   multiline = false,
   maxLength,
   handleSubmit,
-}: OrganizationFieldFormProps) {
+}: BusinessFieldFormProps) {
   const [value, setValue] = useState(defaultValue);
   const [saving, setSaving] = useState(false);
 

@@ -4,15 +4,15 @@ import { useRouter } from "next/navigation";
 import { Form } from "@dub/ui";
 import { toast } from "sonner";
 import type { MemberRole, Organization } from "@/lib/db/schema";
-import { OrganizationDetailsCard } from "@/ui/organizations/organization-details-card";
-import { OrganizationFieldForm } from "@/ui/organizations/organization-field-form";
-import { UploadOrganizationLogo } from "@/ui/organizations/upload-organization-logo";
-import { DeleteOrganizationSection } from "@/components/settings/delete-organization-section";
+import { BusinessDetailsCard } from "@/ui/business/business-details-card";
+import { BusinessFieldForm } from "@/ui/business/business-field-form";
+import { UploadBusinessLogo } from "@/ui/business/upload-business-logo";
+import { DeleteBusinessSection } from "@/components/settings/delete-business-section";
 
 function getPermissionsError(canEdit: boolean) {
   return canEdit
     ? undefined
-    : "Only organization owners and admins can update organization settings.";
+    : "Only business owners and admins can update business settings.";
 }
 
 async function patchOrganization(
@@ -30,11 +30,11 @@ async function patchOrganization(
   const result = (await response.json()) as { error?: string };
 
   if (!response.ok) {
-    throw new Error(result.error ?? "Unable to update organization");
+    throw new Error(result.error ?? "Unable to update business");
   }
 }
 
-export function OrganizationSettingsPanel({
+export function BusinessSettingsPanel({
   organization,
   viewerRole,
 }: {
@@ -56,7 +56,7 @@ export function OrganizationSettingsPanel({
       router.refresh();
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : "Unable to update organization",
+        error instanceof Error ? error.message : "Unable to update business",
       );
     }
   }
@@ -65,7 +65,7 @@ export function OrganizationSettingsPanel({
     <div className="mb-6 space-y-6" key={formKey}>
       <Form
         title="Business Name"
-        description="This is the name of your organization on Payoes."
+        description="This is the name of your business on Payoes."
         inputAttrs={{
           name: "name",
           defaultValue: organization.name,
@@ -95,7 +95,7 @@ export function OrganizationSettingsPanel({
         }
       />
 
-      <OrganizationFieldForm
+      <BusinessFieldForm
         title="Business Website"
         description="Optional website URL shown on checkout pages and payment links."
         name="website"
@@ -109,7 +109,7 @@ export function OrganizationSettingsPanel({
         }
       />
 
-      <OrganizationFieldForm
+      <BusinessFieldForm
         title="Business Description"
         description="Optional summary of what your business does."
         name="description"
@@ -124,11 +124,11 @@ export function OrganizationSettingsPanel({
         }
       />
 
-      <UploadOrganizationLogo organization={organization} canEdit={canEdit} />
+      <UploadBusinessLogo organization={organization} canEdit={canEdit} />
 
-      <OrganizationDetailsCard organization={organization} />
+      <BusinessDetailsCard organization={organization} />
 
-      <DeleteOrganizationSection
+      <DeleteBusinessSection
         organization={organization}
         isOwner={viewerRole === "owner"}
       />

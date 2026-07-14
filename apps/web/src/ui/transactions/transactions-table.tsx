@@ -304,7 +304,7 @@ export function TransactionsTable({
         <TableEmptyState
           title="No confirmed transactions yet"
           isFiltered={isFiltered}
-          description="Completed blockchain payments for your organization will appear here."
+          description="Completed blockchain payments for your business will appear here."
           icon={<CircleCheck className="size-4 text-neutral-700" />}
         />
       )}

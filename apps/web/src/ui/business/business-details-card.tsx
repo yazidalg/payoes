@@ -8,7 +8,7 @@ function formatDate(value: Date | string) {
   });
 }
 
-export function OrganizationDetailsCard({
+export function BusinessDetailsCard({
   organization,
 }: {
   organization: Organization;
@@ -17,15 +17,15 @@ export function OrganizationDetailsCard({
     <div className="rounded-xl border border-neutral-200 bg-white">
       <div className="flex flex-col space-y-6 p-6">
         <div className="flex flex-col space-y-1">
-          <h2 className="text-base font-semibold">Organization details</h2>
+          <h2 className="text-base font-semibold">Business details</h2>
           <p className="text-sm text-neutral-500">
-            Read-only identifiers for this organization.
+            Read-only identifiers for this business.
           </p>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <p className="text-sm font-medium text-neutral-900">Organization ID</p>
+            <p className="text-sm font-medium text-neutral-900">Business ID</p>
             <p className="mt-1 font-mono text-xs text-neutral-500">
               {organization.id}
             </p>

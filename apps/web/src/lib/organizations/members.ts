@@ -11,7 +11,7 @@ import {
 import { sendOrganizationInviteEmail } from "@/lib/email/send-organization-invite";
 import { findUserByEmail } from "@/lib/auth/users";
 
-import { INVITE_TTL_DAYS } from "@/constants/organizations/invites";
+import { INVITE_TTL_DAYS } from "@/constants/business/invites";
 
 export class MembersServiceError extends Error {
   constructor(
@@ -548,7 +548,7 @@ export async function removeOrganizationMember(input: {
   }
 
   if (target.role === "owner") {
-    throw new MembersServiceError("Cannot remove the organization owner", "forbidden");
+    throw new MembersServiceError("Cannot remove the business owner", "forbidden");
   }
 
   if (target.userId === input.actorUserId) {

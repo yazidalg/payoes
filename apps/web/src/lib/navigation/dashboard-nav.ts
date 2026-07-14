@@ -82,12 +82,12 @@ export const dashboardNav: DashboardNavItem[] = [
   },
   {
     title: "Settings",
-    url: "/dashboard/settings/organization",
+    url: "/dashboard/settings/business",
     icon: Settings,
     items: [
       {
-        title: "Organization",
-        url: "/dashboard/settings/organization",
+        title: "Business",
+        url: "/dashboard/settings/business",
         icon: Building2,
       },
       {
@@ -133,12 +133,14 @@ const pageTitles: Record<string, string> = {
   "/dashboard/developers/webhooks": "Webhooks",
   "/dashboard/developers/api-logs": "API Logs",
   "/dashboard/developers/documentation": "Documentation",
-  "/dashboard/settings/organization": "Organization",
+  "/dashboard/settings/business": "Business",
+  "/dashboard/settings/organization": "Business",
   "/dashboard/settings/settlement-wallet": "Settlement Wallet",
   "/dashboard/settings/payment-methods": "Settlement Wallet",
   "/dashboard/settings/assets": "Settlement Wallet",
   "/dashboard/settings/team": "Team Members",
-  "/dashboard/organizations": "Organizations",
+  "/dashboard/businesses": "Businesses",
+  "/dashboard/organizations": "Businesses",
 };
 
 export function getDashboardPageTitle(pathname: string) {

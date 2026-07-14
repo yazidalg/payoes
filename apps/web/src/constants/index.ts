@@ -38,7 +38,7 @@ export {
   PLACEHOLDER_PRICING_PAYMENT_AMOUNT,
 } from "./payments/defaults";
 
-export { INVITE_TTL_DAYS } from "./organizations/invites";
+export { INVITE_TTL_DAYS } from "./business/invites";
 
 export {
   VERIFICATION_VALIDITY_DAYS,

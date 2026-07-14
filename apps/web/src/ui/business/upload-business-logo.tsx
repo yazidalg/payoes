@@ -1,13 +1,13 @@
 "use client";
 
 import type { Organization } from "@/lib/db/schema";
-import { OrganizationMark } from "@/components/organizations/organization-mark";
+import { BusinessMark } from "@/components/business/business-mark";
 import { Button, FileUpload } from "@dub/ui";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
-export function UploadOrganizationLogo({
+export function UploadBusinessLogo({
   organization,
   canEdit,
 }: {
@@ -24,7 +24,7 @@ export function UploadOrganizationLogo({
 
   const permissionsError = canEdit
     ? undefined
-    : "Only organization owners and admins can change the organization logo.";
+    : "Only business owners and admins can change the business logo.";
 
   return (
     <form
@@ -43,12 +43,12 @@ export function UploadOrganizationLogo({
         const data = (await response.json()) as { error?: string };
 
         if (!response.ok) {
-          toast.error(data.error ?? "Unable to upload organization logo");
+          toast.error(data.error ?? "Unable to upload business logo");
           setUploading(false);
           return;
         }
 
-        toast.success("Successfully uploaded organization logo!");
+        toast.success("Successfully uploaded business logo!");
         router.refresh();
         setUploading(false);
       }}
@@ -56,9 +56,9 @@ export function UploadOrganizationLogo({
     >
       <div className="flex flex-col items-start justify-between gap-4 p-6 sm:flex-row sm:justify-between">
         <div className="flex flex-col space-y-1">
-          <h2 className="text-base font-semibold">Organization Logo</h2>
+          <h2 className="text-base font-semibold">Business logo</h2>
           <p className="text-sm text-neutral-500">
-            This is your organization logo on Payoes.
+            This is your business logo on Payoes.
           </p>
           <p className="text-sm text-neutral-500">
             Click the logo to upload a new image.
@@ -72,7 +72,7 @@ export function UploadOrganizationLogo({
             variant="plain"
             imageSrc={image}
             placeholder={
-              <OrganizationMark organization={organization} className="size-full" />
+              <BusinessMark organization={organization} className="size-full" />
             }
             readFile
             onChange={({ src }) => setImage(src)}

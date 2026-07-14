@@ -1,7 +1,7 @@
 "use client";
 
 import { Logo } from "@/components/shared/logo";
-import { OrganizationMark } from "@/components/organizations/organization-mark";
+import { BusinessMark } from "@/components/business/business-mark";
 import { AcceptInviteButton } from "@/ui/invites/accept-invite-button";
 import { CloseInviteButton } from "@/ui/invites/close-invite-button";
 import type { MemberRole } from "@/lib/db/schema";
@@ -38,14 +38,14 @@ function roleLabel(role: MemberRole) {
 
 function roleTooltip(role: MemberRole) {
   if (role === "admin") {
-    return "You can manage team members and organization settings.";
+    return "You can manage team members and business settings.";
   }
 
   if (role === "owner") {
-    return "You have full access to this organization.";
+    return "You have full access to this business.";
   }
 
-  return "You have limited organization permissions.";
+  return "You have limited business permissions.";
 }
 
 function roleArticle(role: MemberRole) {
@@ -85,7 +85,7 @@ export function InviteHero({
           "animate-slide-up-fade motion-reduce:animate-fade-in [--offset:10px] [animation-delay:50ms] [animation-duration:0.5s] [animation-fill-mode:both]",
         )}
       >
-        <OrganizationMark
+        <BusinessMark
           organization={organization}
           className="z-10 size-20 rotate-[-15deg] drop-shadow-md"
         />
@@ -144,7 +144,7 @@ export function InviteHero({
           ) : (
             <>
               {inviteStatus === "accepted" || inviteStatus === "revoked"
-                ? "Please contact the organization owner if you need access."
+                ? "Please contact the business owner if you need access."
                 : "Please contact the owner to request another invite."}
             </>
           )}

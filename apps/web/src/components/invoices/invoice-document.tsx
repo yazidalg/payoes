@@ -1,6 +1,6 @@
 "use client";
 
-import { OrganizationMark } from "@/components/organizations/organization-mark";
+import { BusinessMark } from "@/components/business/business-mark";
 import { formatInvoiceAmount, calculateTotalQuantity } from "@/lib/invoices/amount";
 import type { InvoicePresentation } from "@/lib/invoices/presentation";
 import { cn } from "@/lib/utils";
@@ -51,7 +51,7 @@ export function InvoiceDocument({
               {presentation.environmentLabel ?? "Payoes merchant"}
             </p>
           </div>
-          <OrganizationMark
+          <BusinessMark
             organization={presentation.organization}
             className="size-10"
           />

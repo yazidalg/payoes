@@ -233,10 +233,10 @@ export function IdentityVerificationForm({
     return (
       <KycStepPage
         title="Verify identity"
-        description="Only the organization owner can complete identity verification."
+        description="Only the business owner can complete identity verification."
       >
         <AlertBlock type="info">
-          Ask your organization owner to complete verification before going live.
+          Ask your business owner to complete verification before going live.
         </AlertBlock>
       </KycStepPage>
     );

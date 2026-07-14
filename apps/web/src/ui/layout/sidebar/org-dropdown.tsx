@@ -5,9 +5,9 @@ import {
   DROPDOWN_ORGANIZATION_LIMIT,
   getPrioritizedOrganizations,
 } from "@/lib/organizations/list-utils";
-import { useOrganizationSwitch } from "@/hooks/use-organization-switch";
+import { useBusinessSwitch } from "@/hooks/use-business-switch";
 import { useDashboardShell } from "@/ui/layout/dashboard-shell-context";
-import { OrganizationListItem } from "@/ui/organizations/organization-list-item";
+import { BusinessListItem } from "@/ui/business/business-list-item";
 import { Avatar, Button, Popover } from "@dub/ui";
 import { Gear, Plus, UserPlus } from "@dub/ui/icons";
 import { cn } from "@dub/utils";
@@ -52,9 +52,9 @@ export function OrgDropdown({ placement = "switcher" }: { placement?: "switcher"
             organizations={organizations}
             activeOrganization={activeOrganization}
             setOpenPopover={setOpenPopover}
-            onCreateOrganization={() => {
+            onCreateBusiness={() => {
               setOpenPopover(false);
-              router.push("/organizations/new");
+              router.push("/business/new");
             }}
           />
         }
@@ -94,16 +94,16 @@ function OrgList({
   organizations,
   activeOrganization,
   setOpenPopover,
-  onCreateOrganization,
+  onCreateBusiness,
 }: {
   user: DashboardUser;
   organizations: Organization[];
   activeOrganization: Organization;
   setOpenPopover: (open: boolean) => void;
-  onCreateOrganization: () => void;
+  onCreateBusiness: () => void;
 }) {
   const router = useRouter();
-  const { switchOrganization, isSwitching } = useOrganizationSwitch();
+  const { switchOrganization, isSwitching } = useBusinessSwitch();
   const [sandboxDialogOpen, setSandboxDialogOpen] = useState(false);
   const [isSwitchingToSandbox, setIsSwitchingToSandbox] = useState(false);
   const { setActiveOrganization } = useDashboardShell();
@@ -167,7 +167,7 @@ function OrgList({
           </div>
 
           <div className="mt-2 flex flex-col gap-0.5">
-            <Link href="/dashboard/settings/organization" className="flex items-center gap-2 rounded-md px-2 py-1.5 text-left text-neutral-700 outline-none transition-all duration-75 hover:bg-neutral-100 focus-visible:ring-2 focus-visible:ring-primary/50" onClick={() => setOpenPopover(false)}>
+            <Link href="/dashboard/settings/business" className="flex items-center gap-2 rounded-md px-2 py-1.5 text-left text-neutral-700 outline-none transition-all duration-75 hover:bg-neutral-100 focus-visible:ring-2 focus-visible:ring-primary/50" onClick={() => setOpenPopover(false)}>
               <Gear className="size-4 shrink-0 text-neutral-800" />
               <span className="text-sm">Settings</span>
             </Link>
@@ -186,11 +186,11 @@ function OrgList({
 
         <div className="px-2 py-2">
           <p className="px-2 pb-1 text-left text-xs font-medium text-neutral-500">
-            Organizations
+            Businesses
           </p>
           <div className="flex flex-col gap-0.5">
             {visibleOrganizations.map((organization) => (
-              <OrganizationListItem
+              <BusinessListItem
                 key={organization.id}
                 organization={organization}
                 isActive={organization.id === activeOrganization.id}
@@ -200,7 +200,7 @@ function OrgList({
             ))}
             {hasMoreOrganizations ? (
               <Link
-                href="/dashboard/organizations"
+                href="/dashboard/businesses"
                 onClick={() => setOpenPopover(false)}
                 className="block rounded-md px-2 py-2 text-left text-sm font-medium text-primary hover:bg-neutral-100"
               >
@@ -211,9 +211,9 @@ function OrgList({
         </div>
 
         <div className="border-t border-neutral-200 p-1.5">
-          <button type="button" className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-neutral-700 transition-all duration-75 hover:bg-neutral-200/50 active:bg-neutral-200/80" onClick={onCreateOrganization}>
+          <button type="button" className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-neutral-700 transition-all duration-75 hover:bg-neutral-200/50 active:bg-neutral-200/80" onClick={onCreateBusiness}>
             <Plus className="size-4 shrink-0 text-neutral-500" />
-            <span className="text-sm">Create organization</span>
+            <span className="text-sm">Create business</span>
           </button>
         </div>
       </div>

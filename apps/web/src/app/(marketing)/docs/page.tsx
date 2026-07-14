@@ -101,7 +101,7 @@ const GUIDE_GROUPS = [
       },
       {
         name: "KYC verification",
-        description: "Wire up Persona for organization verification.",
+        description: "Wire up Persona for business verification.",
       },
     ],
   },

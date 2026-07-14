@@ -74,7 +74,7 @@ export async function startVerification(input: {
   const membership = await getMembershipForUser(input.organizationId, input.userId);
 
   if (!membership || membership.role !== "owner") {
-    throw new KycServiceError("Only the organization owner can start verification", "forbidden");
+    throw new KycServiceError("Only the business owner can start verification", "forbidden");
   }
 
   const organization = await db.query.organizations.findFirst({
@@ -82,13 +82,13 @@ export async function startVerification(input: {
   });
 
   if (!organization) {
-    throw new KycServiceError("Organization not found", "not_found");
+    throw new KycServiceError("Business not found", "not_found");
   }
 
   const existing = await getVerificationApplicationForOrganization(input.organizationId);
 
   if (existing?.providerStatus === "approved") {
-    throw new KycServiceError("This organization is already verified", "conflict");
+    throw new KycServiceError("This business is already verified", "conflict");
   }
 
   if (existing?.providerInquiryId) {
@@ -282,7 +282,7 @@ export async function getVerificationSummary(organizationId: string) {
   });
 
   if (!organization) {
-    throw new KycServiceError("Organization not found", "not_found");
+    throw new KycServiceError("Business not found", "not_found");
   }
 
   const application = await getVerificationApplicationForOrganization(organizationId);
@@ -309,7 +309,7 @@ export async function assertOrganizationProductionReady(organizationId: string) 
   });
 
   if (!organization) {
-    throw new KycServiceError("Organization not found", "not_found");
+    throw new KycServiceError("Business not found", "not_found");
   }
 
   if (organization.verificationStatus !== "verified") {

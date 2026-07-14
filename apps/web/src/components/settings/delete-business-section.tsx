@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { AppModal } from "@/ui/modals/app-modal";
 import { SettingsSection } from "@/ui/settings/settings-section";
 
-export function DeleteOrganizationSection({
+export function DeleteBusinessSection({
   organization,
   isOwner,
 }: {
@@ -49,12 +49,12 @@ export function DeleteOrganizationSection({
       };
 
       if (!response.ok) {
-        toast.error(data.error ?? "Unable to delete organization");
+        toast.error(data.error ?? "Unable to delete business");
         setIsDeleting(false);
         return;
       }
 
-      toast.success("Organization deleted");
+      toast.success("Business deleted");
       setDialogOpen(false);
       setConfirmName("");
 
@@ -70,7 +70,7 @@ export function DeleteOrganizationSection({
 
       window.location.assign("/onboarding");
     } catch {
-      toast.error("Unable to delete organization");
+      toast.error("Unable to delete business");
       setIsDeleting(false);
     }
   }
@@ -82,25 +82,27 @@ export function DeleteOrganizationSection({
   return (
     <>
       <SettingsSection
-        title="Delete organization"
-        description="Permanently remove this organization and all of its data. This action cannot be undone."
-        helpText="Payments, customers, API keys, and team access for this organization will be deleted."
+        title="Delete business"
+        description="Permanently remove this business and all of its data. This action cannot be undone."
+        helpText="Payments, customers, API keys, and team access for this business will be deleted."
         action={
           <Button
             type="button"
             variant="danger"
-            text="Delete organization"
+            text="Delete business"
             className="h-9 w-fit"
             onClick={() => setDialogOpen(true)}
           />
         }
-      />
+      >
+        <></>
+      </SettingsSection>
 
       <AppModal
         open={dialogOpen}
         onOpenChange={handleOpenChange}
-        title="Delete organization?"
-        description="This permanently deletes the organization and all related data."
+        title="Delete business?"
+        description="This permanently deletes the business and all related data."
         onClose={() => setConfirmName("")}
         footer={
           <>
@@ -114,7 +116,7 @@ export function DeleteOrganizationSection({
             <Button
               type="button"
               variant="danger"
-              text="Delete organization"
+              text="Delete business"
               loading={isDeleting}
               disabled={!nameMatches}
               className="h-9 w-fit"
@@ -134,7 +136,7 @@ export function DeleteOrganizationSection({
             onChange={(event) => setConfirmName(event.target.value)}
             placeholder={organization.name}
             autoComplete="off"
-            aria-label="Organization name confirmation"
+            aria-label="Business name confirmation"
           />
         </div>
       </AppModal>

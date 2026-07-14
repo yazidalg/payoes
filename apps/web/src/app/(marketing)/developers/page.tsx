@@ -76,7 +76,7 @@ const TOOLING = [
   {
     title: "Free sandbox",
     description:
-      "A full Testnet environment for every organization. Test the entire payment flow end to end before going live.",
+      "A full Testnet environment for every business. Test the entire payment flow end to end before going live.",
   },
   {
     title: "Open source",

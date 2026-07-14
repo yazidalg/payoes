@@ -7,7 +7,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
 
-export function useOrganizationSwitch() {
+export function useBusinessSwitch() {
   const router = useRouter();
   const pathname = usePathname();
   const { activeOrganization, setActiveOrganization } = useDashboardShell();
@@ -43,7 +43,7 @@ export function useOrganizationSwitch() {
         };
 
         if (!response.ok || !data.organization) {
-          toast.error(data.error ?? "Unable to switch organization");
+          toast.error(data.error ?? "Unable to switch business");
           return false;
         }
 
@@ -58,7 +58,7 @@ export function useOrganizationSwitch() {
         router.refresh();
         return true;
       } catch {
-        toast.error("Unable to switch organization");
+        toast.error("Unable to switch business");
         return false;
       } finally {
         setIsSwitching(false);

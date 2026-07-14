@@ -4,7 +4,7 @@ import { StellarWalletsKit } from "@creit.tech/stellar-wallets-kit/sdk";
 import { Horizon } from "@stellar/stellar-sdk";
 import { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import { CheckoutSandboxBanner } from "@/components/checkout/checkout-sandbox-banner";
-import { OrganizationMark } from "@/components/organizations/organization-mark";
+import { BusinessMark } from "@/components/business/business-mark";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { useStellarWallet } from "@/hooks/use-stellar-wallet";
 import { usePaymentQuoteCountdown } from "@/hooks/use-payment-quote-countdown";

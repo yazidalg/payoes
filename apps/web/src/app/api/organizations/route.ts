@@ -104,7 +104,7 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error("Create organization failed:", error);
     return NextResponse.json(
-      { error: "Unable to create organization" },
+      { error: "Unable to create business" },
       { status: 500 }
     );
   }

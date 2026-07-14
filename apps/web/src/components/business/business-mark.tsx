@@ -2,7 +2,7 @@ import type { Organization } from "@/lib/db/schema";
 import { cn } from "@/lib/utils";
 import { Building2 } from "lucide-react";
 
-export type OrganizationLogoProps = {
+export type BusinessLogoProps = {
   organization: Pick<Organization, "name" | "logoUrl"> & {
     logoInitials?: string;
     id?: string;
@@ -11,7 +11,7 @@ export type OrganizationLogoProps = {
   iconClassName?: string;
 };
 
-export function OrganizationDefaultLogo({
+export function BusinessDefaultLogo({
   className,
   iconClassName,
 }: {
@@ -35,11 +35,11 @@ export function OrganizationDefaultLogo({
   );
 }
 
-export function OrganizationMark({
+export function BusinessMark({
   organization,
   className,
   iconClassName,
-}: OrganizationLogoProps) {
+}: BusinessLogoProps) {
   if (organization.logoUrl) {
     return (
       <img
@@ -51,6 +51,6 @@ export function OrganizationMark({
   }
 
   return (
-    <OrganizationDefaultLogo className={className} iconClassName={iconClassName} />
+    <BusinessDefaultLogo className={className} iconClassName={iconClassName} />
   );
 }

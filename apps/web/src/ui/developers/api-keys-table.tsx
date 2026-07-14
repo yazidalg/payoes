@@ -123,7 +123,7 @@ export function ApiKeysTable({ organizationId, refreshKey = 0, onCreateClick, on
 
   const hasKeys = (keys?.length ?? 0) > 0;
 
-  return <div className="grid grid-cols-1">{isLoading ? <ApiKeysTableSkeleton /> : hasKeys ? <Table {...tableProps} table={table} /> : <TableEmptyState title="No API keys found" description="No API keys have been created for this organization yet." icon={<DatabaseKey className="size-4 text-neutral-700" />} />}</div>;
+  return <div className="grid grid-cols-1">{isLoading ? <ApiKeysTableSkeleton /> : hasKeys ? <Table {...tableProps} table={table} /> : <TableEmptyState title="No API keys found" description="No API keys have been created for this business yet." icon={<DatabaseKey className="size-4 text-neutral-700" />} />}</div>;
 }
 
 function RowMenuButton({ row, organizationId, onEdit, onRevoked }: { row: Row<ApiKeyRow>; organizationId: string; onEdit?: (apiKey: ApiKeyRow) => void; onRevoked: () => void }) {

@@ -162,10 +162,10 @@ export function SettlementWalletStep({
     return (
       <KycStepPage
         title="Settlement wallet"
-        description="Only the organization owner can configure the production wallet."
+        description="Only the business owner can configure the production wallet."
       >
         <p className="text-sm text-neutral-500">
-          Ask your organization owner to complete this step.
+          Ask your business owner to complete this step.
         </p>
       </KycStepPage>
     );

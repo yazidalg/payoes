@@ -16,7 +16,7 @@ export function TransactionsListPanel({
     () => ({
       titleInfo: {
         title:
-          "Confirmed blockchain payments for your organization.",
+          "Confirmed blockchain payments for your business.",
         href: "/dashboard/developers/documentation",
       },
     }),

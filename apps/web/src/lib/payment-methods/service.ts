@@ -161,7 +161,7 @@ export async function assertEnabledPaymentMethod(
   const method = findMatchingMethod(methods, assetCode, issuerAddress);
 
   if (!method) {
-    throw new Error(`Asset ${assetCode} is not configured for this organization`);
+    throw new Error(`Asset ${assetCode} is not configured for this business`);
   }
 
   if (!method.isEnabled) {

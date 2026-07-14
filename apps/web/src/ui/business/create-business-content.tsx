@@ -1,7 +1,7 @@
-import { CreateOrganizationWizard } from "@/ui/organizations/create-organization-wizard";
+import { CreateBusinessWizard } from "@/ui/business/create-business-wizard";
 import type { Organization } from "@/lib/db/schema";
 
-export function CreateOrganizationContent({
+export function CreateBusinessContent({
   defaultEmail,
   onSuccess,
   redirectTo,
@@ -17,7 +17,7 @@ export function CreateOrganizationContent({
   closeHref?: string;
 }) {
   return (
-    <CreateOrganizationWizard
+    <CreateBusinessWizard
       defaultEmail={defaultEmail}
       onSuccess={onSuccess}
       redirectTo={redirectTo}

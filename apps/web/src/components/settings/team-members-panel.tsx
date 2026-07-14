@@ -29,7 +29,7 @@ export function TeamMembersPanel({
     () => ({
       titleInfo: {
         title:
-          "Manage who can access this organization and their permissions.",
+          "Manage who can access this business and their permissions.",
       },
       controls: canManageTeam ? (
         <Button

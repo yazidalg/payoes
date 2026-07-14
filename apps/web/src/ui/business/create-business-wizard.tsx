@@ -1,19 +1,19 @@
 "use client";
 
-import type { CreateOrganizationStep } from "@/constants/organizations/create-steps";
+import type { CreateBusinessStep } from "@/constants/business/create-steps";
 import type { Organization } from "@/lib/db/schema";
-import { CreateOrganizationForm } from "@/components/organizations/create-organization-form";
+import { CreateBusinessForm } from "@/components/business/create-business-form";
 import { TrustlineSetupDialog } from "@/components/wallet/trustline-setup-dialog";
 import { useSettlementWalletConnection } from "@/hooks/use-settlement-wallet-connection";
 import { useTrustlineSetup } from "@/hooks/use-trustline-setup";
-import { CreateOrganizationLayout } from "@/ui/organizations/create-organization-layout";
+import { CreateBusinessLayout } from "@/ui/business/create-business-layout";
 import { KycStepPage } from "@/ui/kyc/kyc-step-page";
 import { SettlementWalletSetup } from "@/ui/wallet/settlement-wallet-setup";
 import { ValidatedSubmitButton } from "@/ui/forms/validated-submit-button";
 import { useState } from "react";
 import { toast } from "sonner";
 
-export function CreateOrganizationWizard({
+export function CreateBusinessWizard({
   defaultEmail,
   onSuccess,
   redirectTo = "/dashboard/payments",
@@ -29,8 +29,8 @@ export function CreateOrganizationWizard({
   closeHref?: string;
 }) {
   const [currentStep, setCurrentStep] =
-    useState<CreateOrganizationStep>("organization");
-  const [organizationComplete, setOrganizationComplete] = useState(false);
+    useState<CreateBusinessStep>("business");
+  const [businessComplete, setBusinessComplete] = useState(false);
   const [pendingOrganization, setPendingOrganization] = useState<FormData | null>(
     null,
   );
@@ -66,10 +66,10 @@ export function CreateOrganizationWizard({
     required: true,
   });
 
-  async function handleOrganizationContinue(formData: FormData) {
+  async function handleBusinessContinue(formData: FormData) {
     setSubmitError(null);
     setPendingOrganization(formData);
-    setOrganizationComplete(true);
+    setBusinessComplete(true);
     setCurrentStep("settlement-wallet");
   }
 
@@ -131,7 +131,7 @@ export function CreateOrganizationWizard({
 
       if (!response.ok || !payload.organization) {
         setSubmitError(
-          payload.error ?? "Unable to create organization. Please try again.",
+          payload.error ?? "Unable to create business. Please try again.",
         );
         setIsFinishing(false);
         return;
@@ -155,7 +155,7 @@ export function CreateOrganizationWizard({
       if (!walletResponse.ok) {
         setSubmitError(
           walletPayload.error ??
-            "Organization created, but the settlement wallet could not be saved.",
+            "Business created, but the settlement wallet could not be saved.",
         );
         setIsFinishing(false);
         return;
@@ -167,7 +167,7 @@ export function CreateOrganizationWizard({
         return;
       }
 
-      toast.success("Organization created successfully");
+      toast.success("Business created successfully");
       window.location.assign(redirectTo);
     } catch {
       setSubmitError("Failed to complete onboarding");
@@ -184,26 +184,26 @@ export function CreateOrganizationWizard({
         : null;
 
   return (
-    <CreateOrganizationLayout
+    <CreateBusinessLayout
       currentStep={currentStep}
-      organizationComplete={organizationComplete}
+      businessComplete={businessComplete}
       onStepChange={setCurrentStep}
       showCloseButton={showCloseButton}
       onClose={onClose}
       closeHref={closeHref}
     >
-      {currentStep === "organization" ? (
+      {currentStep === "business" ? (
         <KycStepPage
-          title="Organization details"
+          title="Business details"
           description="Set up your workspace name and business profile."
         >
           {submitError ? (
             <p className="mb-4 text-sm text-red-600">{submitError}</p>
           ) : null}
-          <CreateOrganizationForm
+          <CreateBusinessForm
             defaultEmail={defaultEmail}
             submitLabel="Continue"
-            onStepComplete={handleOrganizationContinue}
+            onStepComplete={handleBusinessContinue}
           />
         </KycStepPage>
       ) : (
@@ -260,6 +260,6 @@ export function CreateOrganizationWizard({
           </div>
         </KycStepPage>
       )}
-    </CreateOrganizationLayout>
+    </CreateBusinessLayout>
   );
 }
