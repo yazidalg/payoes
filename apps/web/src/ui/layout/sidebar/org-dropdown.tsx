@@ -11,9 +11,10 @@ import { BusinessListItem } from "@/ui/business/business-list-item";
 import { Avatar, Button, Popover } from "@dub/ui";
 import { Gear, Plus, UserPlus } from "@dub/ui/icons";
 import { cn } from "@dub/utils";
-import { ChevronDown, TestTubeDiagonal } from "lucide-react";
+import { ChevronDown, LogOut, TestTubeDiagonal } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { signOut } from "next-auth/react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { AppModal } from "@/ui/modals/app-modal";
@@ -214,6 +215,17 @@ function OrgList({
           <button type="button" className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-neutral-700 transition-all duration-75 hover:bg-neutral-200/50 active:bg-neutral-200/80" onClick={onCreateBusiness}>
             <Plus className="size-4 shrink-0 text-neutral-500" />
             <span className="text-sm">Create business</span>
+          </button>
+          <button
+            type="button"
+            className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-neutral-700 transition-all duration-75 hover:bg-neutral-200/50 active:bg-neutral-200/80"
+            onClick={() => {
+              setOpenPopover(false);
+              void signOut({ callbackUrl: "/login" });
+            }}
+          >
+            <LogOut className="size-4 shrink-0 text-neutral-500" />
+            <span className="text-sm">Log out</span>
           </button>
         </div>
       </div>
