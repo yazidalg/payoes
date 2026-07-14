@@ -2,9 +2,9 @@ import { Check } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ButtonLink } from "../button-link";
-import { CodeTabs } from "../code-tabs";
 import { DarkCta } from "../dark-cta";
 import { Grid } from "../grid";
+import { StepFlow } from "../step-flow";
 
 const ACCENT = "bg-gradient-to-b from-indigo-500 to-indigo-600";
 
@@ -134,7 +134,7 @@ export default function DevelopersPage() {
             you.
           </p>
           <div className="animate-slide-up-fade mt-10 [--offset:15px] [animation-delay:200ms] [animation-duration:700ms] [animation-fill-mode:both]">
-            <CodeTabs />
+            <StepFlow />
           </div>
         </div>
       </section>

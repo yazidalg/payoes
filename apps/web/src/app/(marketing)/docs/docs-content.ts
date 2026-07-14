@@ -3,7 +3,7 @@ export type DocArticle = {
   title: string;
   intro: string;
   bullets?: { label: string; text: string }[];
-  code?: { label: string; snippet: string };
+  flow?: { title?: string; steps: { title: string; description: string }[] };
 };
 
 export type DocSection = {
@@ -92,22 +92,25 @@ export const DOC_SECTIONS: Record<string, DocSection> = {
         title: "Quickstart: first payment on Testnet",
         intro:
           "Create a sandbox API key under Developers, then API Keys (it uses the pk_test_ prefix and is shown once), create a payment, open the checkout URL with a Testnet wallet, and watch the status flip to completed.",
-        code: {
-          label: "Create a payment",
-          snippet: `curl -X POST https://payoes.com/api/v1/payments \\
-  -H "Authorization: Bearer pk_test_YOUR_KEY" \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "amount": "2",
-    "asset": "XLM",
-    "description": "Quickstart payment"
-  }'
-
-# => {
-#   "id": "pay_nLU2gUDk-v3tdyd6",
-#   "status": "pending",
-#   "checkout_url": "https://payoes.com/c/pay_..."
-# }`,
+        flow: {
+          title: "Create a payment",
+          steps: [
+            {
+              title: "Send the request",
+              description:
+                "POST to /api/v1/payments with an amount, an asset like XLM, and a description, authorized by your pk_test_ key.",
+            },
+            {
+              title: "Read the response",
+              description:
+                "You get back a payment ID (pay_...), a pending status, and a checkout_url on the /c/ path.",
+            },
+            {
+              title: "Open the checkout URL",
+              description:
+                "Pay with a Testnet wallet and watch the status flip to completed.",
+            },
+          ],
         },
         bullets: [
           {
@@ -173,13 +176,25 @@ export const DOC_SECTIONS: Record<string, DocSection> = {
         title: "Authentication",
         intro:
           "All REST API requests carry a Bearer API key. The full key is shown only once at creation; Payoes stores a hash and cannot recover it. To rotate, create a new key, update your configuration, then revoke the old one: revoked keys stop working immediately.",
-        code: {
-          label: "Authenticated request",
-          snippet: `curl https://payoes.com/api/v1/payments \\
-  -H "Authorization: Bearer pk_test_YOUR_KEY"
-
-# Missing or invalid keys return 401
-# { "error": "Unauthorized" }`,
+        flow: {
+          title: "Authenticated request",
+          steps: [
+            {
+              title: "Attach the Bearer key",
+              description:
+                "Send every request with an Authorization: Bearer header carrying your pk_test_ or pk_live_ key.",
+            },
+            {
+              title: "Keep it server-side",
+              description:
+                "The full key is shown once at creation and stored only as a hash, so keep it out of browser and mobile code.",
+            },
+            {
+              title: "Handle 401s",
+              description:
+                "A missing or invalid key returns 401 Unauthorized; rotate by creating a new key, then revoking the old one.",
+            },
+          ],
         },
         bullets: [
           {
@@ -257,27 +272,25 @@ export const DOC_SECTIONS: Record<string, DocSection> = {
         title: "Hosted checkout",
         intro:
           "Every payment includes a checkout_url at /c/{id}. The page loads the amount, allowed assets, and your branding; the customer connects a wallet (Freighter, xBull, and more), approves, and Payoes verifies the transaction on Horizon.",
-        code: {
-          label: "Integration pattern",
-          snippet: `// 1. Create a payment on your server
-const payment = await fetch(
-  "https://payoes.example.com/api/v1/payments",
-  {
-    method: "POST",
-    headers: {
-      Authorization: \`Bearer \${process.env.PAYOES_API_KEY}\`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      amount: "25",
-      description: "Pro plan (monthly)",
-      metadata: { user_id: "usr_123" },
-    }),
-  },
-).then((r) => r.json());
-
-// 2. Redirect the customer to checkout
-return Response.redirect(payment.checkout_url);`,
+        flow: {
+          title: "Integration pattern",
+          steps: [
+            {
+              title: "Create the payment server-side",
+              description:
+                "Call POST /api/v1/payments from your backend with the amount, description, and any metadata like a user_id.",
+            },
+            {
+              title: "Redirect to the checkout_url",
+              description:
+                "Send the customer to the checkout_url from the response; the hosted page loads the amount, assets, and your branding.",
+            },
+            {
+              title: "Let Payoes verify",
+              description:
+                "The customer connects a wallet and approves, and Payoes confirms the transaction on Horizon.",
+            },
+          ],
         },
         bullets: [
           {
@@ -399,16 +412,25 @@ return Response.redirect(payment.checkout_url);`,
         title: "Getting started",
         intro:
           "From clone to a working dashboard in a handful of commands: install, start the containers, configure the environment, migrate, and sign in.",
-        code: {
-          label: "First run",
-          snippet: `git clone git@github.com:payoes/payoes.git && cd payoes
-npm install
-
-docker compose up -d        # PostgreSQL + MinIO
-cp apps/web/.env.example apps/web/.env
-
-npm run db:migrate          # apply the schema
-npm run dev                 # web app on :3000`,
+        flow: {
+          title: "First run",
+          steps: [
+            {
+              title: "Clone and install",
+              description:
+                "Clone the payoes repository and run npm install from the repo root.",
+            },
+            {
+              title: "Start services and configure",
+              description:
+                "Bring up PostgreSQL and MinIO with docker compose, then copy apps/web/.env.example to apps/web/.env.",
+            },
+            {
+              title: "Migrate and run",
+              description:
+                "Apply the schema with npm run db:migrate, then start the web app with npm run dev on port 3000.",
+            },
+          ],
         },
         bullets: [
           {

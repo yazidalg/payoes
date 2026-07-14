@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { ButtonLink } from "../../button-link";
 import { DarkCta } from "../../dark-cta";
 import { Grid } from "../../grid";
+import { StepFlow } from "../../step-flow";
 import { FEATURES } from "../feature-content";
 
 export function generateStaticParams() {
@@ -142,17 +143,15 @@ export default async function FeaturePage({
         </div>
       </section>
 
-      {/* Code example */}
-      {feature.code && (
+      {/* API flow */}
+      {feature.flow && (
         <section className="px-4 py-20">
           <div className="mx-auto w-full max-w-screen-md">
             <h2 className="font-display animate-slide-up-fade text-center text-3xl font-medium text-neutral-900 [--offset:10px] [animation-duration:700ms] [animation-fill-mode:both]">
-              {feature.code.title}
+              {feature.flow.title}
             </h2>
-            <div className="animate-slide-up-fade mt-10 overflow-hidden rounded-2xl border border-neutral-800 bg-neutral-950 shadow-xl transition-shadow duration-300 [--offset:15px] [animation-duration:700ms] [animation-fill-mode:both] hover:shadow-2xl">
-              <pre className="overflow-x-auto p-5 font-mono text-[13px] leading-6 text-neutral-200">
-                {feature.code.snippet}
-              </pre>
+            <div className="animate-slide-up-fade mt-10 [--offset:15px] [animation-duration:700ms] [animation-fill-mode:both]">
+              <StepFlow title={null} steps={feature.flow.steps} />
             </div>
           </div>
         </section>

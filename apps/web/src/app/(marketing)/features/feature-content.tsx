@@ -19,7 +19,7 @@ export type Feature = {
   graphic: ComponentType;
   steps: { title: string; description: string }[];
   benefits: { title: string; description: string }[];
-  code?: { title: string; snippet: string };
+  flow?: { title?: string; steps: { title: string; description: string }[] };
 };
 
 export const FEATURES: Record<string, Feature> = {
@@ -82,18 +82,25 @@ export const FEATURES: Record<string, Feature> = {
           "Every payment stores the transaction hash, sender, receiver, asset, amount, and network.",
       },
     ],
-    code: {
+    flow: {
       title: "Create a payment",
-      snippet: `curl -X POST https://payoes.com/api/v1/payments \\
-  -H "Authorization: Bearer pk_test_..." \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "amount": "49.99",
-    "settlement_asset": "USDC",
-    "metadata": { "order_id": "1042" }
-  }'
-
-# => { "id": "pay_...", "checkout_url": "https://payoes.com/c/..." }`,
+      steps: [
+        {
+          title: "Send one request",
+          description:
+            "POST to /v1/payments with an amount, a settlement asset, and any metadata like an order_id.",
+        },
+        {
+          title: "Get a checkout URL back",
+          description:
+            "The response returns a payment ID (pay_...) and a hosted checkout_url.",
+        },
+        {
+          title: "Send your customer there",
+          description:
+            "Payoes handles wallet connection, on-chain verification, and settlement.",
+        },
+      ],
     },
   },
 
@@ -156,23 +163,25 @@ export const FEATURES: Record<string, Feature> = {
           "Add products with quantities and prices, and optionally collect customer details at checkout.",
       },
     ],
-    code: {
+    flow: {
       title: "Create a payment link",
-      snippet: `curl -X POST https://payoes.com/api/v1/payment-links \\
-  -H "Authorization: Bearer pk_test_..." \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "items": [
-      {
-        "description": "Pro plan",
-        "quantity": "1",
-        "unit_amount": "49.99"
-      }
-    ],
-    "settlement_asset": "USDC"
-  }'
-
-# => { "id": "plink_...", "url": "https://payoes.com/c/plink_..." }`,
+      steps: [
+        {
+          title: "Create the link",
+          description:
+            "POST to /v1/payment-links with your line items and a settlement asset.",
+        },
+        {
+          title: "Get a shareable URL",
+          description:
+            "The response returns a link ID (plink_...) and a hosted URL on the /l/ path.",
+        },
+        {
+          title: "Share it anywhere",
+          description:
+            "Every visit spins up a fresh checkout session and its own payment record.",
+        },
+      ],
     },
   },
 
@@ -230,22 +239,25 @@ export const FEATURES: Record<string, Feature> = {
           "Recurring billing generates a finalized invoice each period; the period advances when it is paid.",
       },
     ],
-    code: {
+    flow: {
       title: "Create and finalize an invoice",
-      snippet: `curl -X POST https://payoes.com/api/v1/invoices \\
-  -H "Authorization: Bearer pk_test_..." \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "amount": "116.00",
-    "customer_id": "cus_...",
-    "description": "Pro plan, July",
-    "due_in_days": 14
-  }'
-
-curl -X POST https://payoes.com/api/v1/invoices/inv_.../finalize \\
-  -H "Authorization: Bearer pk_test_..."
-
-# => { "id": "inv_...", "status": "open", "hosted_invoice_url": "..." }`,
+      steps: [
+        {
+          title: "Draft the invoice",
+          description:
+            "POST to /v1/invoices with an amount, a customer_id, a description, and a due date.",
+        },
+        {
+          title: "Finalize it",
+          description:
+            "A second call to /finalize turns the draft (inv_...) into an open invoice with a hosted_invoice_url.",
+        },
+        {
+          title: "Get paid on-chain",
+          description:
+            "The invoice flips to paid the moment the payment confirms, and your webhook fires.",
+        },
+      ],
     },
   },
 
@@ -354,22 +366,25 @@ curl -X POST https://payoes.com/api/v1/invoices/inv_.../finalize \\
           "Send a webhook.test event from the dashboard to verify your integration before going live.",
       },
     ],
-    code: {
+    flow: {
       title: "Example event delivery",
-      snippet: `POST https://acme.co/webhooks
-Payoes-Event: payment.completed
-Payoes-Signature: t=1721001600,v1=5f8c2a...
-Payoes-Delivery-ID: whd_...
-
-{
-  "event": "payment.completed",
-  "data": {
-    "id": "pay_9tK4mQx8",
-    "amount": "49.99",
-    "settlement_asset": "USDC",
-    "metadata": { "order_id": "1042" }
-  }
-}`,
+      steps: [
+        {
+          title: "Payoes POSTs to your endpoint",
+          description:
+            "Each delivery carries Payoes-Event, Payoes-Signature, Payoes-Timestamp, and Payoes-Delivery-ID headers.",
+        },
+        {
+          title: "Read the payload",
+          description:
+            "The body includes the event name, like payment.completed, and the full payment object.",
+        },
+        {
+          title: "Verify, then react",
+          description:
+            "Check the HMAC-SHA256 signature with your whsec_ secret, then update orders, send emails, or unlock access.",
+        },
+      ],
     },
   },
 };

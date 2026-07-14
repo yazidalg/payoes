@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ButtonLink } from "../button-link";
 import { DarkCta } from "../dark-cta";
 import { Grid } from "../grid";
+import { StepFlow } from "../step-flow";
 
 const ACCENT = "bg-gradient-to-b from-amber-500 to-amber-600";
 
@@ -164,13 +165,23 @@ const QUICKSTART_STEPS = [
   },
 ];
 
-const QUICKSTART_SNIPPET = `curl -X POST https://payoes.com/api/v1/payments \\
-  -H "Authorization: Bearer pk_test_YOUR_KEY" \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "amount": "10.00",
-    "settlement_asset": "USDC"
-  }'`;
+const QUICKSTART_REQUEST_STEPS = [
+  {
+    title: "Send the request",
+    description:
+      "POST to /api/v1/payments with an amount and a settlement asset, authorized by your pk_test_ key.",
+  },
+  {
+    title: "Get a payment back",
+    description:
+      "The response returns a payment ID (pay_...), a pending status, and a hosted checkout_url.",
+  },
+  {
+    title: "Share the checkout URL",
+    description:
+      "Send your customer there. Payoes handles wallet connection and on-chain verification.",
+  },
+];
 
 export default function DocsPage() {
   return (
@@ -242,13 +253,11 @@ export default function DocsPage() {
             </ol>
           </div>
 
-          <div className="animate-slide-up-fade overflow-hidden rounded-2xl border border-neutral-800 bg-neutral-950 shadow-xl transition-shadow duration-300 [--offset:15px] [animation-delay:200ms] [animation-duration:700ms] [animation-fill-mode:both] hover:shadow-2xl">
-            <div className="border-b border-neutral-800 px-5 py-3 font-mono text-xs text-neutral-400">
-              Create a sandbox payment
-            </div>
-            <pre className="overflow-x-auto p-5 font-mono text-[13px] leading-6 text-neutral-200">
-              {QUICKSTART_SNIPPET}
-            </pre>
+          <div className="animate-slide-up-fade [--offset:15px] [animation-delay:200ms] [animation-duration:700ms] [animation-fill-mode:both]">
+            <StepFlow
+              title="Create a sandbox payment"
+              steps={QUICKSTART_REQUEST_STEPS}
+            />
           </div>
         </div>
       </section>

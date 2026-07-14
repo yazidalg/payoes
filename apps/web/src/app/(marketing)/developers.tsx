@@ -1,6 +1,6 @@
 import { Check } from "lucide-react";
 import { ButtonLink } from "./button-link";
-import { CodeTabs } from "./code-tabs";
+import { StepFlow } from "./step-flow";
 
 const BULLETS = [
   {
@@ -68,7 +68,7 @@ export function Developers() {
           </div>
         </div>
 
-        <CodeTabs />
+        <StepFlow />
       </div>
     </section>
   );

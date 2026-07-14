@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { DarkCta } from "../../dark-cta";
 import { Grid } from "../../grid";
+import { StepFlow } from "../../step-flow";
 import { DOC_SECTION_ORDER, DOC_SECTIONS } from "../docs-content";
 
 export function generateStaticParams() {
@@ -87,7 +88,7 @@ export default async function DocsSectionPage({
       </section>
 
       {/* Articles: alternating bands, each with its own entrance animation */}
-      {doc.articles.map(({ id, title, intro, bullets, code }, idx) => (
+      {doc.articles.map(({ id, title, intro, bullets, flow }, idx) => (
         <section
           key={id}
           id={id}
@@ -115,14 +116,9 @@ export default async function DocsSectionPage({
             </div>
             <p className="mt-4 text-pretty text-neutral-600">{intro}</p>
 
-            {code && (
-              <div className="mt-8 overflow-hidden rounded-2xl border border-neutral-800 bg-neutral-950 shadow-xl transition-shadow duration-300 hover:shadow-2xl">
-                <div className="border-b border-neutral-800 px-5 py-3 font-mono text-xs text-neutral-400">
-                  {code.label}
-                </div>
-                <pre className="overflow-x-auto p-5 font-mono text-[13px] leading-6 text-neutral-200">
-                  {code.snippet}
-                </pre>
+            {flow && (
+              <div className="mt-8">
+                <StepFlow title={flow.title} steps={flow.steps} />
               </div>
             )}
 
