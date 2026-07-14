@@ -7,7 +7,7 @@ function readEnv(name: string) {
 
 /**
  * Single Stellar operator keypair per network.
- * Used for Soroban authorization, classic escrow deposits, and sandbox simulation.
+ * Used for Soroban authorization, escrow contract deposits, and sandbox simulation.
  */
 export function getStellarOperatorSecret(
   environment: Organization["environment"]

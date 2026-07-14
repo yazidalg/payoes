@@ -68,9 +68,19 @@ S3_REGION=us-east-1
 
 # Docs link in dashboard
 NEXT_PUBLIC_DOCS_URL=http://localhost:3001
+
+# Soroban escrow (required before creating payments)
+# Run: ./scripts/soroban-deploy-contract.sh --operator-account payoes-operator --source-account payoes-operator
+# STELLAR_TESTNET_OPERATOR_SECRET=S...
+# SOROBAN_TESTNET_RPC_URL=https://soroban-testnet.stellar.org
+# SOROBAN_TESTNET_CONTRACT_ID=C...
 ```
 
 Leave SMTP and Persona variables empty for now. You can add them later.
+
+<Warning>
+  Payments and checkout require Soroban escrow configuration. See [Soroban escrow setup](/local-setup/soroban-escrow-setup) before creating payments.
+</Warning>
 
 ## 4. Run database migrations
 
@@ -102,7 +112,24 @@ Open [http://localhost:3000](http://localhost:3000).
 
 You should land on the dashboard with sandbox mode enabled.
 
-## 7. Verify the setup works
+## 7. Deploy the Soroban escrow contract
+
+Payments require a deployed contract. From the repository root:
+
+```bash
+stellar keys generate --global payoes-operator
+curl "https://friendbot.stellar.org?addr=$(stellar keys address payoes-operator)"
+
+./scripts/soroban-deploy-contract.sh \
+  --operator-account payoes-operator \
+  --source-account payoes-operator
+```
+
+Copy `CONTRACT_ID` and `OPERATOR_SECRET` from the output into `apps/web/.env.local`, then restart `npm run dev`.
+
+See [Soroban escrow setup](/local-setup/soroban-escrow-setup) for separate funder accounts, other networks, and troubleshooting.
+
+## 8. Verify the setup works
 
 Run a quick smoke test:
 
@@ -127,7 +154,7 @@ Run a quick smoke test:
 
 If payment status becomes `completed`, your local stack is working.
 
-## 8. Preview the docs site
+## 9. Preview the docs site
 
 In a second terminal, from the repository root:
 
@@ -160,6 +187,11 @@ Open [http://localhost:3001](http://localhost:3001) to preview this documentatio
     - Check `S3_*` variables match `docker-compose.yml`
     - Open [http://localhost:9001](http://localhost:9001) and verify bucket `payoes-uploads` exists
   </Accordion>
+  <Accordion title="Payment or checkout setup errors">
+    - Run the Soroban deploy script: [Soroban escrow setup](/local-setup/soroban-escrow-setup)
+    - Confirm `STELLAR_TESTNET_OPERATOR_SECRET` and `SOROBAN_TESTNET_CONTRACT_ID` are set in `.env.local`
+    - Restart the dev server after changing env vars
+  </Accordion>
   <Accordion title="Build fails">
     ```bash
     npm run build
@@ -178,12 +210,16 @@ Open [http://localhost:3001](http://localhost:3001) to preview this documentatio
 | `npm run docker:down` | Stop Docker services |
 | `npm run db:migrate` | Apply database migrations |
 | `npm run db:studio` | Open Drizzle Studio (database GUI) |
+| `npm run soroban:deploy` | Deploy and initialize the Soroban escrow contract |
 | `npm run docs:dev` | Preview Mintlify docs on port 3001 |
 | `npm run lint` | Lint `apps/web` |
 
 ## Next steps
 
 <CardGroup cols={2}>
+  <Card title="Soroban escrow setup" icon="cube" href="/local-setup/soroban-escrow-setup">
+    Deploy the contract and configure checkout payments.
+  </Card>
   <Card title="Environment variables" icon="sliders" href="/local-setup/environment-variables">
     Full reference for OAuth, SMTP, Stellar, and Persona KYC settings.
   </Card>

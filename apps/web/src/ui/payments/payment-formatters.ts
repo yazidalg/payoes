@@ -7,6 +7,7 @@ import {
   type PaymentLinkRow,
   type PaymentRow,
 } from "@/lib/payments/types";
+import { getInvoiceDisplayStatus } from "@/lib/invoices/status";
 
 export function getPaymentStatusVariant(status: string) {
   switch (status) {
@@ -106,11 +107,21 @@ export function getInvoiceStatusVariant(status: string) {
       return "success" as const;
     case "open":
       return "pending" as const;
+    case "overdue":
+      return "error" as const;
     case "void":
       return "error" as const;
     default:
       return "neutral" as const;
   }
+}
+
+export function getInvoiceRowStatusVariant(invoice: InvoiceRow) {
+  return getInvoiceStatusVariant(getInvoiceDisplayStatus(invoice));
+}
+
+export function getInvoiceRowStatusLabel(invoice: InvoiceRow) {
+  return getInvoiceDisplayStatus(invoice);
 }
 
 export function getPaymentLinkStatusVariant(active: boolean) {

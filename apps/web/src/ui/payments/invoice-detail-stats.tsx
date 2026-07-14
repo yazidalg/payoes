@@ -5,7 +5,8 @@ import { cn } from "@dub/utils";
 import type { CSSProperties } from "react";
 import {
   formatInvoiceAmount,
-  getInvoiceStatusVariant,
+  getInvoiceRowStatusLabel,
+  getInvoiceRowStatusVariant,
 } from "./payment-formatters";
 
 function formatDueLabel(invoice: InvoiceRow) {
@@ -38,8 +39,8 @@ export function InvoiceDetailStats({
     {
       label: "Status",
       value: invoice ? (
-        <StatusBadge variant={getInvoiceStatusVariant(invoice.status)} icon={null}>
-          {invoice.status}
+        <StatusBadge variant={getInvoiceRowStatusVariant(invoice)} icon={null}>
+          {getInvoiceRowStatusLabel(invoice)}
         </StatusBadge>
       ) : undefined,
     },

@@ -289,12 +289,12 @@ function RowMenuButton({ row }: { row: Row<PaymentLinkRow> }) {
               icon={Copy}
               onSelect={() => {
                 toast.promise(copyToClipboard(row.original.url), {
-                  success: "Copied payment link URL",
+                  success: "Checkout link copied",
                 });
                 setIsOpen(false);
               }}
             >
-              Copy payment link URL
+              Copy checkout link
             </MenuItem>
           </Command.List>
         </Command>

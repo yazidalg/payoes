@@ -2,7 +2,6 @@ import { auth } from "@/auth";
 import { NextResponse } from "next/server";
 import { buildInvoiceActivity } from "@/lib/invoices/activity";
 import { getInvoiceDetail, markInvoiceAsPaid, serializeInvoice } from "@/lib/invoices/service";
-import { getHostedInvoiceUrl } from "@/lib/invoices/url";
 import { getOrganizationForMember } from "@/lib/organizations/settlement-wallet";
 
 export async function POST(
@@ -45,7 +44,6 @@ export async function POST(
         checkoutUrl: detail.checkoutUrl,
         checkoutSessionPublicId: detail.checkoutSessionPublicId,
         items: detail.items,
-        hostedInvoiceUrl: getHostedInvoiceUrl(detail.invoice.publicId),
         customerName: detail.customerName,
         customerEmail: detail.customerEmail,
       }

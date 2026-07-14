@@ -30,7 +30,7 @@ export function getHubPathAfterOrganizationSwitch(pathname: string): string | nu
   }
 
   if (/^\/dashboard\/payments\/checkout-sessions\/[^/]+$/.test(pathname)) {
-    return "/dashboard/payments?tab=checkout-sessions";
+    return "/dashboard/payments";
   }
 
   if (/^\/dashboard\/developers\/webhooks\/[^/]+$/.test(pathname)) {

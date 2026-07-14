@@ -119,7 +119,6 @@ const API_GROUPS = [
     name: "Checkout sessions",
     endpoints: [
       "GET /checkout-sessions",
-      "POST /checkout-sessions",
       "GET /checkout-sessions/{id}",
     ],
   },

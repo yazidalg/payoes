@@ -125,7 +125,6 @@ export type InvoiceRow = {
   customer_email: string | null;
   checkout_session_id: string | null;
   checkout_url: string | null;
-  hosted_invoice_url: string | null;
   items: InvoiceLineItemRow[];
   activity: InvoiceActivityRow[];
   due_at: string | null;

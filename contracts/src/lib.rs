@@ -29,6 +29,7 @@ pub enum PaymentStatus {
     Registered = 0,
     Settled = 1,
     Refunded = 2,
+    DepositReceived = 3,
 }
 
 #[contracttype]
@@ -58,6 +59,7 @@ struct PaymentRecord {
     settlement_amount: i128,
     platform_fee: i128,
     expires_at: u64,
+    held_amount: i128,
     status: PaymentStatus,
 }
 
@@ -82,6 +84,17 @@ pub struct PaymentSettled {
     pub token: Address,
     pub gross_amount: i128,
     pub platform_fee_amount: i128,
+}
+
+#[contractevent(topics = ["payoes", "payment_deposit_received"])]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PaymentDepositReceived {
+    #[topic]
+    pub payment_id: BytesN<32>,
+    #[topic]
+    pub payer: Address,
+    pub paid_token: Address,
+    pub amount: i128,
 }
 
 #[contractevent(topics = ["payoes", "payment_refunded"])]
@@ -217,7 +230,9 @@ impl Payoes {
             .persistent()
             .get::<DataKey, PaymentRecord>(&payment_key)
         {
-            if existing.status != PaymentStatus::Registered {
+            if existing.status != PaymentStatus::Registered
+                && existing.status != PaymentStatus::Refunded
+            {
                 panic_with_error!(&env, Error::PaymentAlreadyFinalized);
             }
         }
@@ -232,6 +247,7 @@ impl Payoes {
                 settlement_amount,
                 platform_fee,
                 expires_at,
+                held_amount: 0,
                 status: PaymentStatus::Registered,
             },
         );
@@ -276,6 +292,7 @@ impl Payoes {
             );
 
             record.status = PaymentStatus::Refunded;
+            record.held_amount = 0;
             env.storage().persistent().set(&payment_key, &record);
 
             PaymentRefunded {
@@ -290,11 +307,46 @@ impl Payoes {
             return 0;
         }
 
+        record.status = PaymentStatus::DepositReceived;
+        record.held_amount = amount;
+        env.storage().persistent().set(&payment_key, &record);
+
+        PaymentDepositReceived {
+            payment_id: payment_id.clone(),
+            payer: payer.clone(),
+            paid_token: record.paid_token.clone(),
+            amount,
+        }
+        .publish(&env);
+
+        0
+    }
+
+    pub fn settle_same_asset_deposit(
+        env: Env,
+        payment_id: BytesN<32>,
+        payer: Address,
+    ) -> i128 {
+        let config = load_config(&env);
+        if config.paused {
+            panic_with_error!(&env, Error::Paused);
+        }
+
+        config.authorization_signer.require_auth();
+
+        let payment_key = DataKey::Payment(payment_id.clone());
+        let mut record = load_payment(&env, &payment_key);
+        ensure_deposit_received(&env, &record);
+
         if record.paid_token != record.settlement_token {
             panic_with_error!(&env, Error::InvalidAmount);
         }
 
+        let gross_amount = record.held_amount;
         let merchant_amount = record.settlement_amount - record.platform_fee;
+        let contract = env.current_contract_address();
+        let token_client = token::TokenClient::new(&env, &record.paid_token);
+
         token_client.transfer(
             &contract,
             &MuxedAddress::from(record.merchant.clone()),
@@ -310,19 +362,92 @@ impl Payoes {
         }
 
         record.status = PaymentStatus::Settled;
+        record.held_amount = 0;
         env.storage().persistent().set(&payment_key, &record);
 
         PaymentSettled {
             payment_id,
-            payer: payer.clone(),
+            payer,
             merchant: record.merchant.clone(),
             token: record.paid_token.clone(),
-            gross_amount: amount,
+            gross_amount,
             platform_fee_amount: record.platform_fee,
         }
         .publish(&env);
 
         merchant_amount
+    }
+
+    pub fn release_deposit_to_operator(env: Env, payment_id: BytesN<32>) -> i128 {
+        let config = load_config(&env);
+        if config.paused {
+            panic_with_error!(&env, Error::Paused);
+        }
+
+        config.authorization_signer.require_auth();
+
+        let payment_key = DataKey::Payment(payment_id.clone());
+        let record = load_payment(&env, &payment_key);
+        ensure_deposit_received(&env, &record);
+
+        if record.held_amount <= 0 {
+            panic_with_error!(&env, Error::InvalidAmount);
+        }
+
+        let contract = env.current_contract_address();
+        let token_client = token::TokenClient::new(&env, &record.paid_token);
+        token_client.transfer(
+            &contract,
+            &MuxedAddress::from(config.authorization_signer.clone()),
+            &record.held_amount,
+        );
+
+        record.held_amount
+    }
+
+    pub fn refund_held_deposit(
+        env: Env,
+        payment_id: BytesN<32>,
+        payer: Address,
+        reason: u32,
+    ) {
+        let config = load_config(&env);
+        if config.paused {
+            panic_with_error!(&env, Error::Paused);
+        }
+
+        config.authorization_signer.require_auth();
+
+        let payment_key = DataKey::Payment(payment_id.clone());
+        let mut record = load_payment(&env, &payment_key);
+        ensure_deposit_received(&env, &record);
+
+        if record.held_amount <= 0 {
+            panic_with_error!(&env, Error::InvalidAmount);
+        }
+
+        let contract = env.current_contract_address();
+        let token_client = token::TokenClient::new(&env, &record.paid_token);
+        let amount = record.held_amount;
+
+        token_client.transfer(
+            &contract,
+            &MuxedAddress::from(payer.clone()),
+            &amount,
+        );
+
+        record.status = PaymentStatus::Refunded;
+        record.held_amount = 0;
+        env.storage().persistent().set(&payment_key, &record);
+
+        PaymentRefunded {
+            payment_id,
+            payer,
+            token: record.paid_token,
+            amount,
+            reason,
+        }
+        .publish(&env);
     }
 
     pub fn record_settlement(
@@ -337,9 +462,10 @@ impl Payoes {
 
         let payment_key = DataKey::Payment(payment_id.clone());
         let mut record = load_payment(&env, &payment_key);
-        ensure_registered(&env, &record);
+        ensure_settleable(&env, &record);
 
         record.status = PaymentStatus::Settled;
+        record.held_amount = 0;
         env.storage().persistent().set(&payment_key, &record);
 
         let platform_fee = gross_amount - merchant_amount;
@@ -367,9 +493,10 @@ impl Payoes {
 
         let payment_key = DataKey::Payment(payment_id.clone());
         let mut record = load_payment(&env, &payment_key);
-        ensure_registered(&env, &record);
+        ensure_refundable(&env, &record);
 
         record.status = PaymentStatus::Refunded;
+        record.held_amount = 0;
         env.storage().persistent().set(&payment_key, &record);
 
         PaymentRefunded {
@@ -424,6 +551,26 @@ fn load_payment(env: &Env, payment_key: &DataKey) -> PaymentRecord {
 
 fn ensure_registered(env: &Env, record: &PaymentRecord) {
     if record.status != PaymentStatus::Registered {
+        panic_with_error!(env, Error::PaymentAlreadyFinalized);
+    }
+}
+
+fn ensure_deposit_received(env: &Env, record: &PaymentRecord) {
+    if record.status != PaymentStatus::DepositReceived {
+        panic_with_error!(env, Error::PaymentAlreadyFinalized);
+    }
+}
+
+fn ensure_settleable(env: &Env, record: &PaymentRecord) {
+    if record.status != PaymentStatus::Registered && record.status != PaymentStatus::DepositReceived
+    {
+        panic_with_error!(env, Error::PaymentAlreadyFinalized);
+    }
+}
+
+fn ensure_refundable(env: &Env, record: &PaymentRecord) {
+    if record.status != PaymentStatus::Registered && record.status != PaymentStatus::DepositReceived
+    {
         panic_with_error!(env, Error::PaymentAlreadyFinalized);
     }
 }

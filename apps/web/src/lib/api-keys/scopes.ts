@@ -50,7 +50,7 @@ export const API_KEY_RESOURCES: {
   {
     key: "checkout_sessions",
     name: "Checkout sessions",
-    description: "Create and manage checkout sessions.",
+    description: "Read checkout sessions created from invoices and payment links.",
   },
 ];
 

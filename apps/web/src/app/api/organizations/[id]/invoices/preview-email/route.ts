@@ -36,7 +36,6 @@ const presentationSchema = z.object({
     }),
   ),
   allowedAssets: z.array(z.string()).optional(),
-  hostedInvoiceUrl: z.string().nullable().optional(),
   checkoutUrl: z.string().nullable().optional(),
 });
 

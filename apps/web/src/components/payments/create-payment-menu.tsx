@@ -2,23 +2,15 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { CreateCheckoutSessionDialog } from "@/components/payments/create-checkout-session-dialog";
 import { CreatePaymentDialog } from "@/components/payments/create-payment-dialog";
 import { Button, Popover } from "@dub/ui";
-import {
-  CreditCard,
-  Hyperlink,
-  InvoiceDollar,
-  Plus2,
-  Receipt2,
-} from "@dub/ui/icons";
+import { CreditCard, Hyperlink, InvoiceDollar, Plus2 } from "@dub/ui/icons";
 import { ChevronDown } from "lucide-react";
 import type { ComponentType, ReactNode, SVGProps } from "react";
 
 type CreatePaymentMenuProps = {
   organizationId: string;
   onCreated?: () => void;
-  includeCheckoutSession?: boolean;
   buttonText?: string;
   buttonIcon?: ReactNode;
 };
@@ -28,11 +20,11 @@ type CreateOption = {
   label: string;
   description: string;
   icon: ComponentType<SVGProps<SVGSVGElement>>;
-  action: "navigate" | "checkout-session" | "manual-payment";
+  action: "navigate" | "manual-payment";
   href?: string;
 };
 
-const baseCreateOptions: CreateOption[] = [
+const createOptions: CreateOption[] = [
   {
     id: "invoices",
     label: "Invoice",
@@ -58,34 +50,15 @@ const baseCreateOptions: CreateOption[] = [
   },
 ];
 
-const checkoutSessionOption: CreateOption = {
-  id: "checkout-sessions",
-  label: "Checkout session",
-  description: "Create a hosted checkout session with a payment intent.",
-  icon: Receipt2,
-  action: "checkout-session",
-};
-
 export function CreatePaymentMenu({
   organizationId,
   onCreated,
-  includeCheckoutSession = false,
   buttonText = "Create payment",
   buttonIcon = <Plus2 className="size-4" />,
 }: CreatePaymentMenuProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [paymentOpen, setPaymentOpen] = useState(false);
-  const [checkoutSessionOpen, setCheckoutSessionOpen] = useState(false);
-
-  const createOptions = includeCheckoutSession
-    ? [
-        baseCreateOptions[0]!,
-        baseCreateOptions[1]!,
-        checkoutSessionOption,
-        baseCreateOptions[2]!,
-      ]
-    : baseCreateOptions;
 
   function handleCreated(detailPath: string) {
     onCreated?.();
@@ -110,11 +83,6 @@ export function CreatePaymentMenu({
 
                   if (option.action === "navigate" && option.href) {
                     router.push(option.href);
-                    return;
-                  }
-
-                  if (option.action === "checkout-session") {
-                    setCheckoutSessionOpen(true);
                     return;
                   }
 
@@ -157,23 +125,6 @@ export function CreatePaymentMenu({
           }
         }}
       />
-
-      {includeCheckoutSession ? (
-        <CreateCheckoutSessionDialog
-          organizationId={organizationId}
-          open={checkoutSessionOpen}
-          onOpenChange={setCheckoutSessionOpen}
-          onCreated={(sessionId) => {
-            if (sessionId) {
-              handleCreated(
-                `/dashboard/payments/checkout-sessions/${sessionId}`,
-              );
-            } else {
-              onCreated?.();
-            }
-          }}
-        />
-      ) : null}
     </>
   );
 }

@@ -233,13 +233,6 @@ export async function assertAssetTrustlines(input: {
     environment: input.environment,
     party: "customer",
   });
-
-  await assertAccountTrustsAsset({
-    accountId: input.destinationPublicKey,
-    asset: input.asset,
-    environment: input.environment,
-    party: "merchant",
-  });
 }
 
 /** @deprecated Use assertAssetTrustlines */

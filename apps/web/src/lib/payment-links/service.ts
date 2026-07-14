@@ -8,7 +8,6 @@ import {
   type Organization,
   type PaymentLink,
 } from "@/lib/db/schema";
-import { DEFAULT_AUTH_URL } from "@/constants/app";
 import type { AllowedAsset } from "@/lib/assets/types";
 import { resolveAssetConfig } from "@/lib/assets/config";
 import {
@@ -43,8 +42,7 @@ function createLinkPublicId() {
 }
 
 export function getPaymentLinkUrl(publicId: string) {
-  const baseUrl = process.env.AUTH_URL ?? DEFAULT_AUTH_URL;
-  return `${baseUrl}/l/${publicId}`;
+  return getCheckoutUrl(publicId);
 }
 
 function serializeLineItems(
@@ -143,11 +141,23 @@ function buildCustomerMetadata(
   return Object.keys(metadata).length > 0 ? metadata : undefined;
 }
 
+function hasProvidedCustomerInput(input: PaymentLinkCustomerInput | undefined) {
+  if (!input) {
+    return false;
+  }
+
+  return Object.values(input).some((value) => value?.trim());
+}
+
 function validateCustomerInput(
   input: PaymentLinkCustomerInput | undefined,
   collection: PaymentLinkCustomerCollection
 ) {
   if (!hasCustomerCollection(collection)) {
+    return;
+  }
+
+  if (!hasProvidedCustomerInput(input)) {
     return;
   }
 

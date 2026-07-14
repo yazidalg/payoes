@@ -13,7 +13,8 @@ import type { HTMLProps } from "react";
 import { SmoothSkeleton } from "@/ui/shared/smooth-skeleton";
 import {
   formatInvoiceAmount,
-  getInvoiceStatusVariant,
+  getInvoiceRowStatusLabel,
+  getInvoiceRowStatusVariant,
 } from "./payment-formatters";
 
 export function InvoiceDetailsColumn({
@@ -141,10 +142,10 @@ export function InvoiceDetailsColumn({
         <div className="flex flex-col gap-2 p-4">
           {invoice ? (
             <StatusBadge
-              variant={getInvoiceStatusVariant(invoice.status)}
+              variant={getInvoiceRowStatusVariant(invoice)}
               icon={null}
             >
-              {invoice.status}
+              {getInvoiceRowStatusLabel(invoice)}
             </StatusBadge>
           ) : null}
 

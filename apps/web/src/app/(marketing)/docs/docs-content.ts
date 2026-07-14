@@ -148,11 +148,11 @@ export const DOC_SECTIONS: Record<string, DocSection> = {
           },
           {
             label: "Checkout session (cs_)",
-            text: "A hosted checkout flow that creates an underlying payment intent.",
+            text: "A hosted checkout flow spawned from an invoice or payment link visit.",
           },
           {
             label: "Payment link (plink_)",
-            text: "Reusable link at /l/... where every visit starts a new checkout session.",
+            text: "Reusable checkout entry at /c/plink_...; each visit starts a new checkout session.",
           },
           {
             label: "Invoice (inv_)",

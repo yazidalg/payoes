@@ -1,9 +1,8 @@
 "use client";
 
 import { StellarWalletsKit } from "@creit.tech/stellar-wallets-kit/sdk";
-import { Horizon, TransactionBuilder } from "@stellar/stellar-sdk";
+import { Horizon } from "@stellar/stellar-sdk";
 import { useCallback, useEffect, useMemo, useState, useRef } from "react";
-import { AnimatePresence, motion } from "motion/react";
 import { CheckoutSandboxBanner } from "@/components/checkout/checkout-sandbox-banner";
 import { OrganizationMark } from "@/components/organizations/organization-mark";
 import { AlertBlock } from "@/components/shared/alert-block";
@@ -21,7 +20,9 @@ import { Check2 } from "@dub/ui/icons";
 import { getAssetIconUrl } from "@/lib/assets/icons";
 import { getOfficialAsset } from "@/lib/payment-methods/official-assets";
 
-import type { AllowedAsset, PaymentQuote, CheckoutData } from "./checkout-types";
+import type { PaymentLinkCustomerInput } from "@/lib/payment-links/types";
+import { getPaymentLinkCustomerInputError } from "@/lib/payment-links/validate-customer-input";
+import type { AllowedAsset, CheckoutData, PaymentQuote } from "./checkout-types";
 import { CheckoutView } from "./checkout-view";
 
 function assetKey(asset: AllowedAsset) {
@@ -103,8 +104,6 @@ function CheckoutLoadingState() {
 }
 
 
-import { ConnectedWallet } from "@/ui/wallet/connected-wallet";
-
 export function CheckoutClient({ paymentId }: { paymentId: string }) {
   const [data, setData] = useState<CheckoutData | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -121,6 +120,9 @@ export function CheckoutClient({ paymentId }: { paymentId: string }) {
   const [pendingTxHash, setPendingTxHash] = useState<string | null>(() =>
     getStoredCheckoutTxHash(paymentId),
   );
+  const [isConfirming, setIsConfirming] = useState(false);
+  const [confirmExhausted, setConfirmExhausted] = useState(false);
+  const [customerInput, setCustomerInput] = useState<PaymentLinkCustomerInput>({});
   const [restoredPaymentId, setRestoredPaymentId] = useState(paymentId);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const loadQuoteInFlightRef = useRef(false);
@@ -140,6 +142,7 @@ export function CheckoutClient({ paymentId }: { paymentId: string }) {
   if (restoredPaymentId !== paymentId) {
     setRestoredPaymentId(paymentId);
     setPendingTxHash(getStoredCheckoutTxHash(paymentId));
+    setConfirmExhausted(false);
   }
 
   const environment = data?.payment.environment ?? "sandbox";
@@ -278,7 +281,7 @@ export function CheckoutClient({ paymentId }: { paymentId: string }) {
     const pollAddress =
       data?.payment.deposit_address ?? data?.payment.receiving_address;
 
-    if (isPayCompleted || isPayExpired || !pollAddress || !data?.payment.memo) {
+    if (isPayCompleted || isPayExpired || !data?.payment.memo) {
       return;
     }
 
@@ -305,21 +308,23 @@ export function CheckoutClient({ paymentId }: { paymentId: string }) {
           }
         }
 
-        const horizonUrl = getHorizonUrl(data.payment.environment);
-        const server = new Horizon.Server(horizonUrl);
-        const response = await server
-          .transactions()
-          .forAccount(pollAddress)
-          .order("desc")
-          .limit(10)
-          .call();
+        if (data.payment.payment_flow !== "escrow" && pollAddress) {
+          const horizonUrl = getHorizonUrl(data.payment.environment);
+          const server = new Horizon.Server(horizonUrl);
+          const response = await server
+            .transactions()
+            .forAccount(pollAddress)
+            .order("desc")
+            .limit(10)
+            .call();
 
-        for (const tx of response.records) {
-          if (tx.memo === data.payment.memo && tx.successful) {
-            const verified = await confirmPayment(tx.hash);
-            if (verified) {
-              clearInterval(interval);
-              break;
+          for (const tx of response.records) {
+            if (tx.memo === data.payment.memo && tx.successful) {
+              const verified = await confirmPayment(tx.hash);
+              if (verified) {
+                clearInterval(interval);
+                break;
+              }
             }
           }
         }
@@ -351,7 +356,7 @@ export function CheckoutClient({ paymentId }: { paymentId: string }) {
     data?.payment.settlement_asset.asset_code ??
     "XLM";
 
-  async function reloadCheckoutData() {
+  const reloadCheckoutData = useCallback(async () => {
     const response = await fetch(`/api/checkout/${paymentId}`);
     const json = (await response.json()) as CheckoutData & { error?: string };
 
@@ -360,67 +365,143 @@ export function CheckoutClient({ paymentId }: { paymentId: string }) {
     }
 
     return json;
-  }
+  }, [paymentId]);
 
-  async function confirmPayment(txHash: string, paymentType?: string) {
-    const isSoroban = data?.payment.payment_flow === "soroban";
-    const isEscrowContractDeposit = paymentType === "escrow_contract_deposit";
+  const confirmPayment = useCallback(
+    async (txHash: string) => {
+      const confirmResponse = await fetch(`/api/checkout/${paymentId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "confirm_escrow_contract",
+          txHash,
+          payerAddress: address,
+        }),
+      });
 
-    const confirmResponse = await fetch(`/api/checkout/${paymentId}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(
-        isSoroban
-          ? { action: "confirm_soroban", txHash, payerAddress: address }
-          : isEscrowContractDeposit
-            ? { action: "confirm_escrow_contract", txHash, payerAddress: address }
-            : { txHash },
-      ),
-    });
+      const confirmData = (await confirmResponse.json().catch(() => ({}))) as {
+        status?: string;
+        error?: string;
+        setup?: string[];
+      };
 
-    const confirmData = (await confirmResponse.json().catch(() => ({}))) as {
-      status?: string;
-      error?: string;
-    };
+      if (confirmResponse.status === 202) {
+        setPendingTxHash(txHash);
+        sessionStorage.setItem(`payoes:checkout-tx:${paymentId}`, txHash);
+        setData((current) =>
+          current
+            ? { ...current, payment: { ...current.payment, status: "processing" } }
+            : current,
+        );
+        return false;
+      }
 
-    if (confirmResponse.status === 202) {
-      setPendingTxHash(txHash);
-      sessionStorage.setItem(`payoes:checkout-tx:${paymentId}`, txHash);
+      if (!confirmResponse.ok) {
+        setPendingTxHash(null);
+        sessionStorage.removeItem(`payoes:checkout-tx:${paymentId}`);
+        const setupHint =
+          confirmData.setup && confirmData.setup.length > 0
+            ? ` ${confirmData.setup.join(" ")}`
+            : "";
+        setError((confirmData.error ?? "Payment verification failed") + setupHint);
+        await reloadCheckoutData();
+        return false;
+      }
+
+      setPendingTxHash(null);
+      setConfirmExhausted(false);
+      sessionStorage.removeItem(`payoes:checkout-tx:${paymentId}`);
       setData((current) =>
         current
-          ? { ...current, payment: { ...current.payment, status: "processing" } }
+          ? {
+              ...current,
+              payment: {
+                ...current.payment,
+                status: confirmData.status ?? "completed",
+              },
+            }
           : current,
       );
-      return false;
+
+      return true;
+    },
+    [address, paymentId, reloadCheckoutData],
+  );
+
+  useEffect(() => {
+    if (
+      !pendingTxHash ||
+      !address ||
+      data?.payment.status === "completed" ||
+      data?.payment.status === "expired"
+    ) {
+      return;
     }
 
-    if (!confirmResponse.ok) {
-      setPendingTxHash(null);
-      sessionStorage.removeItem(`payoes:checkout-tx:${paymentId}`);
-      setError(confirmData.error ?? "Payment verification failed");
-      await reloadCheckoutData();
-      return false;
+    let cancelled = false;
+
+    async function pollConfirmation() {
+      setIsConfirming(true);
+      setConfirmExhausted(false);
+
+      for (let attempt = 0; attempt < 30 && !cancelled; attempt += 1) {
+        if (attempt > 0) {
+          await new Promise((resolve) => setTimeout(resolve, 2000));
+        }
+
+        const confirmed = await confirmPayment(pendingTxHash!);
+        if (confirmed || cancelled) {
+          setIsConfirming(false);
+          return;
+        }
+
+        const refreshed = await reloadCheckoutData();
+        if (cancelled) {
+          return;
+        }
+
+        if (refreshed.payment?.status === "completed") {
+          setPendingTxHash(null);
+          setConfirmExhausted(false);
+          sessionStorage.removeItem(`payoes:checkout-tx:${paymentId}`);
+          setIsConfirming(false);
+          return;
+        }
+      }
+
+      if (!cancelled) {
+        setIsConfirming(false);
+        setConfirmExhausted(true);
+      }
     }
 
-    setPendingTxHash(null);
-    sessionStorage.removeItem(`payoes:checkout-tx:${paymentId}`);
-    setData((current) =>
-      current
-        ? {
-            ...current,
-            payment: {
-              ...current.payment,
-              status: confirmData.status ?? "completed",
-            },
-          }
-        : current,
-    );
+    void pollConfirmation();
 
-    return true;
-  }
+    return () => {
+      cancelled = true;
+      setIsConfirming(false);
+    };
+  }, [
+    address,
+    confirmPayment,
+    data?.payment.status,
+    paymentId,
+    pendingTxHash,
+    reloadCheckoutData,
+  ]);
 
   async function handlePay() {
     if (!data || !address || !selectedPaidAsset) {
+      return;
+    }
+
+    const customerInputError = getPaymentLinkCustomerInputError(
+      customerInput,
+      data.customer_collection,
+    );
+
+    if (customerInputError) {
+      setError(customerInputError);
       return;
     }
 
@@ -451,10 +532,15 @@ export function CheckoutClient({ paymentId }: { paymentId: string }) {
         xdr?: string;
         payment_type?: string;
         error?: string;
+        setup?: string[];
       };
 
       if (!buildResponse.ok || !buildData.xdr) {
-        setError(buildData.error ?? "Unable to build transaction");
+        const setupHint =
+          buildData.setup && buildData.setup.length > 0
+            ? ` ${buildData.setup.join(" ")}`
+            : "";
+        setError((buildData.error ?? "Unable to build transaction") + setupHint);
         setIsPaying(false);
         return;
       }
@@ -467,45 +553,36 @@ export function CheckoutClient({ paymentId }: { paymentId: string }) {
         },
       );
 
-      const usesSorobanSubmit =
-        data.payment.payment_flow === "soroban" ||
-        buildData.payment_type === "escrow_contract_deposit";
+      const submitResult = await (async () => {
+        const response = await fetch(`/api/checkout/${paymentId}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "submit_soroban",
+            signedXdr: signedTxXdr,
+          }),
+        });
+        const payload = (await response.json()) as {
+          tx_hash?: string;
+          error?: string;
+          setup?: string[];
+        };
 
-      const submitResult = usesSorobanSubmit
-          ? await (async () => {
-              const response = await fetch(`/api/checkout/${paymentId}`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  action: "submit_soroban",
-                  signedXdr: signedTxXdr,
-                }),
-              });
-              const payload = (await response.json()) as { tx_hash?: string; error?: string };
+        if (!response.ok || !payload.tx_hash) {
+          const setupHint =
+            payload.setup && payload.setup.length > 0
+              ? ` ${payload.setup.join(" ")}`
+              : "";
+          throw new Error(
+            (payload.error ?? "Unable to submit Soroban payment") + setupHint,
+          );
+        }
 
-              if (!response.ok || !payload.tx_hash) {
-                throw new Error(payload.error ?? "Unable to submit Soroban payment");
-              }
+        return { hash: payload.tx_hash };
+      })();
 
-              return { hash: payload.tx_hash };
-            })()
-          : await (async () => {
-              const server = new Horizon.Server(getHorizonUrl(data.payment.environment));
-              const transaction = TransactionBuilder.fromXDR(
-                signedTxXdr,
-                getNetworkPassphrase(data.payment.environment),
-              );
-              return server.submitTransaction(transaction);
-            })();
-
-      const confirmed = await confirmPayment(
-        submitResult.hash,
-        buildData.payment_type,
-      );
-      if (!confirmed) {
-        setIsPaying(false);
-        return;
-      }
+      setPendingTxHash(submitResult.hash);
+      sessionStorage.setItem(`payoes:checkout-tx:${paymentId}`, submitResult.hash);
     } catch (payError) {
       setError(formatHorizonSubmitError(payError));
     } finally {
@@ -626,6 +703,8 @@ export function CheckoutClient({ paymentId }: { paymentId: string }) {
       address={address}
       pendingTxHash={pendingTxHash}
       isPaying={isPaying}
+      isConfirming={isConfirming}
+      confirmExhausted={confirmExhausted}
       isConnecting={isConnecting}
       paymentBlocked={paymentBlocked}
       quoteError={quoteError}
@@ -638,11 +717,14 @@ export function CheckoutClient({ paymentId }: { paymentId: string }) {
       onConnectWallet={() => void connect()}
       onPay={() => void handlePay()}
       onRetryConfirm={() => {
-        setIsPaying(true);
+        setConfirmExhausted(false);
+        setIsConfirming(true);
         void confirmPayment(pendingTxHash!).finally(() => {
-          setIsPaying(false);
+          setIsConfirming(false);
         });
       }}
+      customerInput={customerInput}
+      onCustomerInputChange={setCustomerInput}
     />
   );
 }

@@ -109,9 +109,9 @@ export const FEATURES: Record<string, Feature> = {
     graphic: PaymentLinksGraphic,
     steps: [
       {
-        title: "Create a link or session",
+        title: "Create a link or invoice",
         description:
-          "Spin up a reusable payment link or a one-off checkout session from the API or dashboard.",
+          "Spin up a reusable payment link or finalize an invoice from the API or dashboard.",
       },
       {
         title: "Share it anywhere",
@@ -172,7 +172,7 @@ export const FEATURES: Record<string, Feature> = {
     "settlement_asset": "USDC"
   }'
 
-# => { "id": "plink_...", "url": "https://payoes.com/l/plink_..." }`,
+# => { "id": "plink_...", "url": "https://payoes.com/c/plink_..." }`,
     },
   },
 

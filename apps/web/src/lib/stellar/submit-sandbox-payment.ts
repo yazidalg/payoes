@@ -1,17 +1,14 @@
-import {
-  Horizon,
-  Networks,
-  TransactionBuilder,
-} from "@stellar/stellar-sdk";
+import { Horizon, TransactionBuilder } from "@stellar/stellar-sdk";
 import type { Payment } from "@/lib/db/schema";
-import type { AllowedAsset } from "@/lib/assets/types";
-import { applySendMaxBuffer, assetsMatch } from "@/lib/pricing/quotes";
-import { getHorizonUrl } from "@/lib/stellar/network";
+import { processEscrowSettlement } from "@/lib/payments/settlement/escrow";
+import { getNetworkPassphrase, getHorizonUrl } from "@/lib/stellar/network";
 import { getStellarOperatorKeypair } from "@/lib/stellar/operator";
 import {
-  buildPathPaymentStrictReceiveXdr,
-  buildPaymentTransactionXdr,
-} from "@/lib/stellar/payments";
+  buildEscrowDepositTransaction,
+  confirmEscrowContractDeposit,
+  registerEscrowPaymentOnContract,
+} from "@/lib/soroban/escrow-contract";
+import { submitSorobanPaymentTransaction } from "@/lib/soroban/payment-router";
 
 const FRIENDBOT_URL = "https://friendbot.stellar.org";
 
@@ -47,70 +44,51 @@ export async function submitSandboxPaymentTransaction(payment: Payment) {
     throw new Error("Sandbox simulation is only available in sandbox mode");
   }
 
-  const paidAssetCode = payment.paidAsset ?? payment.settlementAsset;
-  const paidAssetIssuer = payment.paidAsset
-    ? payment.paidAssetIssuer
-    : payment.settlementAssetIssuer;
-
-  const paidAsset: AllowedAsset = {
-    asset_code: paidAssetCode,
-    issuer_address: paidAssetIssuer,
-  };
-
-  const settlementAsset: AllowedAsset = {
-    asset_code: payment.settlementAsset,
-    issuer_address: payment.settlementAssetIssuer,
-  };
-
   const keypair = getStellarOperatorKeypair("sandbox");
   await ensureTestnetAccountFunded(keypair.publicKey());
 
   const amount = payment.quotedPaidAmount ?? payment.amount;
-  const destinationPublicKey =
-    payment.paymentFlow === "escrow" && payment.depositAddress
-      ? payment.depositAddress
-      : payment.receivingAddress;
-  const requiresPathPayment =
-    payment.paymentFlow !== "escrow" &&
-    Boolean(payment.quotedSettlementAmount) &&
-    !assetsMatch(paidAsset, settlementAsset);
 
-  const xdr = requiresPathPayment
-    ? await buildPathPaymentStrictReceiveXdr({
-        sourcePublicKey: keypair.publicKey(),
-        destinationPublicKey,
-        sendAsset: {
-          assetCode: paidAsset.asset_code,
-          issuerAddress: paidAsset.issuer_address,
-        },
-        sendMax: applySendMaxBuffer(amount),
-        destAsset: {
-          assetCode: settlementAsset.asset_code,
-          issuerAddress: settlementAsset.issuer_address,
-        },
-        destAmount: payment.quotedSettlementAmount!,
-        environment: payment.environment,
-        memo: payment.memo,
-      })
-    : await buildPaymentTransactionXdr({
-        sourcePublicKey: keypair.publicKey(),
-        destinationPublicKey,
-        amount,
-        asset: {
-          assetCode: paidAsset.asset_code,
-          issuerAddress: paidAsset.issuer_address,
-        },
-        environment: payment.environment,
-        memo: payment.memo,
-      });
+  await registerEscrowPaymentOnContract(payment);
+  const built = await buildEscrowDepositTransaction({
+    payment,
+    payerAddress: keypair.publicKey(),
+    amount,
+  });
 
-  const server = new Horizon.Server(getHorizonUrl(payment.environment));
-  const transaction = TransactionBuilder.fromXDR(xdr, Networks.TESTNET);
+  const transaction = TransactionBuilder.fromXDR(
+    built.xdr,
+    getNetworkPassphrase(payment.environment),
+  );
   transaction.sign(keypair);
-  const submitResult = await server.submitTransaction(transaction);
+
+  const submitResult = await submitSorobanPaymentTransaction({
+    payment,
+    signedXdr: transaction.toXDR(),
+  });
+
+  if (!submitResult.hash) {
+    throw new Error("Sandbox Soroban escrow deposit was rejected");
+  }
+
+  const confirmResult = await confirmEscrowContractDeposit({
+    payment,
+    txHash: submitResult.hash,
+    payerAddress: keypair.publicKey(),
+    amount,
+  });
+
+  if (!confirmResult.completed) {
+    throw new Error("Sandbox Soroban escrow deposit is still processing");
+  }
+
+  void processEscrowSettlement(confirmResult.payment).catch((error) => {
+    console.error("Merchant settlement failed after sandbox deposit:", error);
+  });
 
   return {
     txHash: submitResult.hash,
     payerAddress: keypair.publicKey(),
+    payment: confirmResult.payment,
   };
 }

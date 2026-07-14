@@ -36,6 +36,7 @@
             "local-setup/overview",
             "local-setup/getting-started",
             "local-setup/environment-variables",
+            "local-setup/soroban-escrow-setup",
             "local-setup/webhook-retry-worker",
             "local-setup/kyc-verification"
           ]
@@ -72,7 +73,6 @@
           "openapi": "openapi/v1.yaml",
           "pages": [
             "GET /checkout-sessions",
-            "POST /checkout-sessions",
             "GET /checkout-sessions/{id}"
           ]
         },

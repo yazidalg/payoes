@@ -28,6 +28,10 @@ import { formatDate } from "@dub/utils";
 import type { Row, Table as TableType } from "@tanstack/react-table";
 import { Command } from "cmdk";
 import { toast } from "sonner";
+import {
+  getInvoiceRowStatusLabel,
+  getInvoiceRowStatusVariant,
+} from "@/ui/payments/payment-formatters";
 
 type InvoicesListResponse = {
   invoices: InvoiceRow[];
@@ -40,19 +44,6 @@ const invoiceColumns = {
   all: ["invoice", "amount", "customer", "status", "dueAt", "createdAt"],
   defaultVisible: ["invoice", "amount", "customer", "status", "dueAt", "createdAt"],
 };
-
-function getInvoiceStatusVariant(status: string) {
-  switch (status) {
-    case "paid":
-      return "success" as const;
-    case "open":
-      return "pending" as const;
-    case "void":
-      return "error" as const;
-    default:
-      return "neutral" as const;
-  }
-}
 
 export function InvoicesTable({
   organizationId,
@@ -156,10 +147,10 @@ export function InvoicesTable({
         minSize: 110,
         cell: ({ row }: { row: Row<InvoiceRow> }) => (
           <StatusBadge
-            variant={getInvoiceStatusVariant(row.original.status)}
+            variant={getInvoiceRowStatusVariant(row.original)}
             icon={null}
           >
-            {row.original.status}
+            {getInvoiceRowStatusLabel(row.original)}
           </StatusBadge>
         ),
       },
@@ -310,21 +301,6 @@ function RowMenuButton({ row }: { row: Row<InvoiceRow> }) {
                 }}
               >
                 Copy checkout URL
-              </MenuItem>
-            ) : null}
-            {row.original.hosted_invoice_url ? (
-              <MenuItem
-                as={Command.Item}
-                icon={Link4}
-                onSelect={() => {
-                  toast.promise(
-                    copyToClipboard(row.original.hosted_invoice_url!),
-                    { success: "Copied hosted invoice URL" },
-                  );
-                  setIsOpen(false);
-                }}
-              >
-                Copy hosted invoice URL
               </MenuItem>
             ) : null}
             {row.original.customer_id ? (

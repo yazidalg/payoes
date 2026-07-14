@@ -1,6 +1,9 @@
 import { and, eq, inArray } from "drizzle-orm";
 import { findAllowedAsset } from "@/lib/assets/types";
 import type { AllowedAsset } from "@/lib/assets/types";
+import {
+  calculateMerchantSettlementAmount,
+} from "@/constants/payments/defaults";
 import { db } from "@/lib/db";
 import { payments, type Payment } from "@/lib/db/schema";
 import {
@@ -23,19 +26,20 @@ import {
   submitEscrowPathPayment,
   submitEscrowPayment,
 } from "@/lib/stellar/escrow/submit";
-import { verifyEscrowDepositByMemo } from "@/lib/stellar/payments";
+import {
+  isEscrowDepositAlreadyReleasedError,
+  isLiquiditySettlementError,
+} from "@/lib/stellar/errors";
 import { isSorobanConfigured } from "@/lib/soroban/config";
 import {
-  ensureEscrowPaymentRegistered,
   recordEscrowRefundOnContract,
   recordEscrowSettlementOnContract,
+  refundHeldEscrowDepositOnContract,
+  releaseEscrowDepositToOperator,
+  settleSameAssetEscrowDepositOnContract,
 } from "@/lib/soroban/escrow-contract";
 import { dispatchWebhookEvent } from "@/lib/webhooks/delivery";
 import { isPaymentSessionExpired } from "@/lib/payments/quote-service";
-import {
-  isRetryableFailedPayment,
-  resetPaymentForRetry,
-} from "@/lib/payments/retry";
 
 function settlementAsset(payment: Payment): AllowedAsset {
   return {
@@ -177,6 +181,23 @@ async function executeRefund(
   });
 
   try {
+    if (requiresCrossAssetSettlement(refunding)) {
+      await refundHeldEscrowDepositOnContract({
+        payment: refunding,
+        payerAddress,
+        reason,
+      });
+
+      const refunded = await patchPayment(refunding, {
+        status: "refunded",
+        refundTxHash: refunding.depositTxHash,
+        txHash: refunding.depositTxHash,
+      });
+
+      await dispatchEscrowWebhook(refunded, "payment.refunded");
+      return refunded;
+    }
+
     const result = await submitEscrowPayment({
       keypair: escrow.keypair,
       destinationPublicKey: payerAddress,
@@ -237,16 +258,91 @@ function isWrongAsset(payment: Payment, received: AllowedAsset) {
   return !assetsMatch(received, expected);
 }
 
+async function releaseEscrowDepositIfNeeded(payment: Payment) {
+  try {
+    await releaseEscrowDepositToOperator(payment);
+  } catch (error) {
+    if (isEscrowDepositAlreadyReleasedError(error)) {
+      return;
+    }
+
+    throw error;
+  }
+}
+
+async function settleCrossAssetEscrowPayment(input: {
+  settling: Payment;
+  escrow: ReturnType<typeof getEscrowConfig>;
+  receivedAsset: AllowedAsset;
+  receivedAmount: string;
+}) {
+  const { settling, escrow, receivedAsset, receivedAmount } = input;
+
+  await releaseEscrowDepositIfNeeded(settling);
+
+  const paidAssetInput = {
+    assetCode: receivedAsset.asset_code,
+    issuerAddress: receivedAsset.issuer_address,
+  };
+
+  try {
+    const result = await submitEscrowPathPayment({
+      keypair: escrow.keypair,
+      destinationPublicKey: settling.receivingAddress,
+      sendAsset: paidAssetInput,
+      sendMax: applySendMaxBuffer(receivedAmount),
+      destAsset: {
+        assetCode: settling.settlementAsset,
+        issuerAddress: settling.settlementAssetIssuer,
+      },
+      destAmount: settling.quotedSettlementAmount!,
+      environment: settling.environment,
+      memo: settling.memo,
+    });
+
+    return {
+      result,
+      grossAmount: receivedAmount,
+      merchantAmount:
+        settling.quotedSettlementAmount ??
+        calculateMerchantSettlementAmount(receivedAmount),
+    };
+  } catch (pathError) {
+    if (!isLiquiditySettlementError(pathError)) {
+      throw pathError;
+    }
+
+    const merchantAmount =
+      settling.merchantSettlementAmount ??
+      calculateMerchantSettlementAmount(receivedAmount);
+
+    const result = await submitEscrowPayment({
+      keypair: escrow.keypair,
+      destinationPublicKey: settling.receivingAddress,
+      amount: merchantAmount,
+      asset: paidAssetInput,
+      environment: settling.environment,
+      memo: settling.memo,
+    });
+
+    return {
+      result,
+      grossAmount: receivedAmount,
+      merchantAmount,
+    };
+  }
+}
+
 export async function processEscrowSettlement(payment: Payment) {
   if (payment.paymentFlow !== "escrow") {
     return payment;
   }
 
-  if (
-    payment.status === "completed" ||
-    payment.status === "refunded" ||
-    payment.status === "expired"
-  ) {
+  if (payment.status === "refunded" || payment.status === "expired") {
+    return payment;
+  }
+
+  if (payment.status === "completed" && payment.settlementTxHash) {
     return payment;
   }
 
@@ -285,7 +381,10 @@ export async function processEscrowSettlement(payment: Payment) {
     );
   }
 
-  const settling = await patchPayment(payment, { status: "settling" });
+  const settling =
+    payment.status === "completed"
+      ? payment
+      : await patchPayment(payment, { status: "settling" });
   const escrow = getEscrowConfig(payment.environment);
   const merchantAmount =
     payment.merchantSettlementAmount ??
@@ -295,62 +394,52 @@ export async function processEscrowSettlement(payment: Payment) {
 
   try {
     if (requiresCrossAssetSettlement(settling)) {
-      const result = await submitEscrowPathPayment({
-        keypair: escrow.keypair,
-        destinationPublicKey: settling.receivingAddress,
-        sendAsset: {
-          assetCode: receivedAsset.asset_code,
-          issuerAddress: receivedAsset.issuer_address,
-        },
-        sendMax: applySendMaxBuffer(receivedAmount),
-        destAsset: {
-          assetCode: settling.settlementAsset,
-          issuerAddress: settling.settlementAssetIssuer,
-        },
-        destAmount: settling.quotedSettlementAmount!,
-        environment: settling.environment,
-        memo: settling.memo,
+      const settlement = await settleCrossAssetEscrowPayment({
+        settling,
+        escrow,
+        receivedAsset,
+        receivedAmount,
       });
 
-      const completed = await updatePaymentStatus(settling, "completed", {
-        txHash: result.hash,
-        confirmedAt: new Date(),
-        payerAddress,
-        paidAsset: receivedAsset,
-      });
+      const completed =
+        settling.status === "completed"
+          ? settling
+          : await updatePaymentStatus(settling, "completed", {
+              txHash: settling.depositTxHash ?? settling.txHash ?? undefined,
+              confirmedAt: settling.confirmedAt ?? new Date(),
+              payerAddress,
+              paidAsset: receivedAsset,
+            });
 
       const finalized = await patchPayment(completed, {
-        settlementTxHash: result.hash,
+        settlementTxHash: settlement.result.hash,
+        txHash: settlement.result.hash,
       });
 
       await syncEscrowContractSettlement(
         finalized,
         payerAddress,
-        receivedAmount,
-        settling.quotedSettlementAmount ?? merchantAmount
+        settlement.grossAmount,
+        settlement.merchantAmount
       );
 
       return finalized;
     }
 
-    const result = await submitEscrowPayment({
-      keypair: escrow.keypair,
-      destinationPublicKey: settling.receivingAddress,
-      amount: merchantAmount,
-      asset: {
-        assetCode: settling.settlementAsset,
-        issuerAddress: settling.settlementAssetIssuer,
-      },
-      environment: settling.environment,
-      memo: settling.memo,
+    const result = await settleSameAssetEscrowDepositOnContract({
+      payment: settling,
+      payerAddress,
     });
 
-    const completed = await updatePaymentStatus(settling, "completed", {
-      txHash: result.hash,
-      confirmedAt: new Date(),
-      payerAddress,
-      paidAsset: receivedAsset,
-    });
+    const completed =
+      settling.status === "completed"
+        ? settling
+        : await updatePaymentStatus(settling, "completed", {
+            txHash: settling.depositTxHash ?? settling.txHash ?? undefined,
+            confirmedAt: settling.confirmedAt ?? new Date(),
+            payerAddress,
+            paidAsset: receivedAsset,
+          });
 
     const finalized = await patchPayment(completed, {
       settlementTxHash: result.hash,
@@ -367,19 +456,19 @@ export async function processEscrowSettlement(payment: Payment) {
   } catch (error) {
     const reason =
       error instanceof Error &&
-      (error.message.includes("No liquidity path") ||
-        error.message.includes("liquidity"))
+      isLiquiditySettlementError(error)
         ? REFUND_REASONS.no_liquidity
         : REFUND_REASONS.settle_failed;
 
     const failed = await patchPayment(settling, {
-      status: "settlement_failed",
-      refundReason: reason,
+      ...(settling.status === "completed"
+        ? { refundReason: reason }
+        : { status: "settlement_failed", refundReason: reason }),
     });
 
     await dispatchEscrowWebhook(failed, "payment.settlement_failed");
 
-    return executeRefund(failed, reason, receivedAmount, payerAddress);
+    return failed;
   }
 }
 
@@ -394,91 +483,21 @@ export async function confirmEscrowDepositWithTxHash(
   }
 
   if (payment.paymentFlow !== "escrow") {
-    return { ok: false as const, error: "Payment is not an escrow payment" };
+    return {
+      ok: false as const,
+      error: "This payment uses a deprecated flow. Create a new payment to continue.",
+    };
   }
 
   if (payment.status === "completed") {
     return { ok: true as const, payment };
   }
 
-  if (isRetryableFailedPayment(payment)) {
-    if (isPaymentSessionExpired(payment)) {
-      return {
-        ok: false as const,
-        error:
-          "This payment session has expired. Ask the merchant to send a new invoice link.",
-      };
-    }
-
-    payment = await resetPaymentForRetry(payment);
-  }
-
-  const depositAddress = payment.depositAddress;
-  if (!depositAddress) {
-    return { ok: false as const, error: "Escrow deposit address is missing" };
-  }
-
-  await ensureEscrowPaymentRegistered(payment);
-
-  const verification = await verifyEscrowDepositByMemo({
-    txHash,
-    destination: depositAddress,
-    environment: payment.environment,
-    memo: payment.memo ?? payment.publicId,
-  });
-
-  if (!verification.valid) {
-    if (verification.reason === "Transaction was not successful") {
-      await updatePaymentStatus(payment, "failed");
-    }
-
-    return { ok: false as const, error: verification.reason };
-  }
-
-  const updated = await registerEscrowDeposit({
-    payment,
-    depositTxHash: txHash,
-    payerAddress: verification.payerAddress,
-    receivedAmount: verification.receivedAmount,
-    paidAsset: verification.paidAsset,
-  });
-
-  if (updated.status === "refunded") {
-    return {
-      ok: false as const,
-      error: updated.refundReason ?? "Payment was refunded",
-      payment: updated,
-    };
-  }
-
-  if (
-    updated.status === "deposit_received" ||
-    updated.status === "settling" ||
-    updated.status === "refunding"
-  ) {
-    return {
-      ok: true as const,
-      payment: updated,
-    };
-  }
-
-  if (updated.status === "settlement_failed") {
-    return {
-      ok: false as const,
-      error: updated.refundReason ?? "Settlement failed",
-      payment: updated,
-    };
-  }
-
-  if (updated.status !== "completed") {
-    return {
-      ok: false as const,
-      error: "Payment is still processing",
-      payment: updated,
-    };
-  }
-
-  return { ok: true as const, payment: updated };
+  return {
+    ok: false as const,
+    error:
+      "Classic escrow deposit confirmation is no longer supported. Complete checkout through the Soroban escrow contract.",
+  };
 }
 
 export async function processPendingEscrowSettlements() {
@@ -492,6 +511,7 @@ export async function processPendingEscrowSettlements() {
           "deposit_received",
           "settling",
           "settlement_failed",
+          "completed",
         ])
       )
     );
@@ -499,6 +519,10 @@ export async function processPendingEscrowSettlements() {
   let processed = 0;
 
   for (const payment of pending) {
+    if (payment.status === "completed" && payment.settlementTxHash) {
+      continue;
+    }
+
     await processEscrowSettlement(payment);
     processed += 1;
   }
@@ -507,73 +531,9 @@ export async function processPendingEscrowSettlements() {
 }
 
 export async function detectEscrowDepositsFromHorizon(
-  environment: Payment["environment"]
+  _environment: Payment["environment"]
 ) {
-  const escrow = getEscrowConfig(environment);
-  const { Horizon } = await import("@stellar/stellar-sdk");
-  const { getHorizonUrl } = await import("@/lib/stellar/network");
-  const server = new Horizon.Server(getHorizonUrl(environment));
-
-  const transactions = await server
-    .transactions()
-    .forAccount(escrow.publicKey)
-    .order("desc")
-    .limit(50)
-    .call();
-
-  let detected = 0;
-
-  for (const tx of transactions.records) {
-    if (!tx.successful || !tx.memo) {
-      continue;
-    }
-
-    let payment = await getPaymentByPublicId(tx.memo);
-    if (
-      !payment ||
-      payment.paymentFlow !== "escrow" ||
-      payment.environment !== environment
-    ) {
-      continue;
-    }
-
-    if (isRetryableFailedPayment(payment)) {
-      if (isPaymentSessionExpired(payment)) {
-        continue;
-      }
-
-      payment = await resetPaymentForRetry(payment);
-    } else if (payment.depositTxHash) {
-      continue;
-    }
-
-    if (payment.status !== "pending" && payment.status !== "failed") {
-      continue;
-    }
-
-    const verification = await verifyEscrowDepositByMemo({
-      txHash: tx.hash,
-      destination: escrow.publicKey,
-      environment,
-      memo: payment.memo ?? payment.publicId,
-    });
-
-    if (!verification.valid) {
-      continue;
-    }
-
-    await registerEscrowDeposit({
-      payment,
-      depositTxHash: tx.hash,
-      payerAddress: verification.payerAddress,
-      receivedAmount: verification.receivedAmount,
-      paidAsset: verification.paidAsset,
-    });
-
-    detected += 1;
-  }
-
-  return detected;
+  return 0;
 }
 
 export async function runEscrowSettlementWorker() {

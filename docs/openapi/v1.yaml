@@ -185,30 +185,6 @@ paths:
                       $ref: "#/components/schemas/CheckoutSession"
         "401":
           $ref: "#/components/responses/Unauthorized"
-    post:
-      operationId: createCheckoutSession
-      tags: [Checkout sessions]
-      summary: Create a checkout session
-      description: |
-        Creates a checkout session and underlying payment intent. Returns a hosted
-        checkout URL (`/c/cs_...`) for the payer.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/CreateCheckoutSessionRequest"
-      responses:
-        "201":
-          description: Checkout session created
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/CheckoutSession"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
   /checkout-sessions/{id}:
     get:
       operationId: getCheckoutSession
@@ -253,7 +229,7 @@ paths:
       summary: Create a payment link
       description: |
         Creates a reusable payment link. Each visit starts a new checkout session.
-        Share the returned `url` (`/l/plink_...`).
+        Share the returned `url` (`/c/plink_...`). Each visit redirects to a new checkout session.
       requestBody:
         required: true
         content:
@@ -532,40 +508,6 @@ components:
           nullable: true
         metadata:
           $ref: "#/components/schemas/StringMetadata"
-    CreateCheckoutSessionRequest:
-      type: object
-      required: [amount]
-      properties:
-        amount:
-          $ref: "#/components/schemas/StellarAmount"
-        settlement_asset:
-          $ref: "#/components/schemas/AssetRef"
-        allowed_assets:
-          type: array
-          minItems: 1
-          items:
-            $ref: "#/components/schemas/AssetRef"
-        description:
-          type: string
-          maxLength: 500
-          nullable: true
-        metadata:
-          $ref: "#/components/schemas/StringMetadata"
-        expires_in_minutes:
-          type: integer
-          minimum: 5
-          maximum: 10080
-        customer_id:
-          type: string
-          nullable: true
-        success_url:
-          type: string
-          format: uri
-          nullable: true
-        cancel_url:
-          type: string
-          format: uri
-          nullable: true
     CreatePaymentLinkRequest:
       type: object
       required: [amount]
@@ -781,7 +723,7 @@ components:
         url:
           type: string
           format: uri
-          description: Hosted payment link URL (`/l/plink_...`)
+          description: Checkout entry URL (`/c/plink_...`)
         environment:
           $ref: "#/components/schemas/Environment"
         created_at:

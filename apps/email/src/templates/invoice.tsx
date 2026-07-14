@@ -1,6 +1,5 @@
 import {
   Heading,
-  Hr,
   Link,
   Section,
   Text,
@@ -30,8 +29,7 @@ export default function InvoiceEmail({
       lineAmount: "$120.00",
     },
   ],
-  payUrl = "http://localhost:3000/i/example",
-  hostedInvoiceUrl = "http://localhost:3000/i/example",
+  payUrl = "http://localhost:3000/c/example",
   environmentLabel,
   wordmarkUrl,
 }: {
@@ -44,7 +42,6 @@ export default function InvoiceEmail({
   description?: string | null;
   items: InvoiceEmailItem[];
   payUrl: string;
-  hostedInvoiceUrl?: string | null;
   environmentLabel?: string | null;
   wordmarkUrl?: string;
 }) {
@@ -121,18 +118,6 @@ export default function InvoiceEmail({
           Pay invoice
         </Link>
       </Section>
-
-      {hostedInvoiceUrl ? (
-        <>
-          <Hr className="my-6 border-neutral-200" />
-          <Text className="text-sm leading-6 text-neutral-500">
-            You can also view this invoice online:{" "}
-            <Link className="text-blue-600 no-underline" href={hostedInvoiceUrl}>
-              {hostedInvoiceUrl.replace(/^https?:\/\//, "")}
-            </Link>
-          </Text>
-        </>
-      ) : null}
     </EmailShell>
   );
 }

@@ -21,6 +21,7 @@
     "db:migrate": "npm run db:migrate --workspace=web",
     "db:setup": "npm run db:setup --workspace=web",
     "db:studio": "npm run db:studio --workspace=web",
+    "soroban:deploy": "bash scripts/soroban-deploy-contract.sh",
     "email:dev": "npm run dev --workspace=@payoes/email",
     "docs:dev": "cd docs && npx mintlify@latest dev --port 3001"
   }

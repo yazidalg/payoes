@@ -25,9 +25,8 @@ import {
   InvoiceLineItemsSection,
   InvoiceMetadataSection,
 } from "@/ui/payments/invoice-sections";
-import { getInvoiceStatusVariant } from "@/ui/payments/payment-formatters";
+import { getInvoiceRowStatusLabel, getInvoiceRowStatusVariant } from "@/ui/payments/payment-formatters";
 import { ShareLinkSection } from "@/ui/payments/share-link-section";
-import { OpenExternalLinkButton } from "@/ui/payments/open-external-link-button";
 import { useSetDashboardPageHeader } from "@/ui/layout/dashboard-page-header-context";
 import {
   Button,
@@ -107,7 +106,7 @@ export function InvoiceDetailPanel({
       return;
     }
 
-    toast.success("Invoice sent");
+    toast.success("Email sent");
     reload();
   }, [organizationId, invoiceId, reload]);
 
@@ -187,8 +186,8 @@ export function InvoiceDetailPanel({
           <span className="text-content-emphasis min-w-0 truncate text-base font-semibold">
             {invoice.invoice_number}
           </span>
-          <StatusBadge variant={getInvoiceStatusVariant(invoice.status)} icon={null}>
-            {invoice.status}
+          <StatusBadge variant={getInvoiceRowStatusVariant(invoice)} icon={null}>
+            {getInvoiceRowStatusLabel(invoice)}
           </StatusBadge>
         </div>
       ),
@@ -253,7 +252,7 @@ export function InvoiceDetailPanel({
             {invoice.checkout_url ? (
               <ShareLinkSection
                 title="Checkout"
-                description="Payment page and hosted invoice links."
+                description="Share the hosted checkout page with your customer."
                 url={invoice.checkout_url}
                 copyLabel="Copy checkout link"
                 copySuccessMessage="Checkout link copied"
@@ -272,19 +271,13 @@ export function InvoiceDetailPanel({
                     }
                   />
                 ) : null}
-                {invoice.hosted_invoice_url ? (
-                  <OpenExternalLinkButton
-                    href={invoice.hosted_invoice_url}
-                    text="Open hosted invoice"
-                  />
-                ) : null}
               </ShareLinkSection>
             ) : (
               <div className="border-border-subtle overflow-hidden rounded-xl border bg-neutral-100">
                 <div className="border-border-subtle border-b px-4 py-3">
                   <h2 className="text-content-emphasis text-sm font-semibold">Checkout</h2>
                   <p className="mt-0.5 text-xs text-neutral-500">
-                    Payment page and hosted invoice links.
+                    Share the hosted checkout page with your customer.
                   </p>
                 </div>
                 <div className="border-border-subtle -mx-px -mb-px rounded-xl border bg-white p-4">
@@ -357,7 +350,7 @@ function InvoiceDetailControls({
         <Button
           type="button"
           variant="outline"
-          text="Resend invoice"
+          text="Resend email"
           className="h-9"
           icon={<Envelope className="size-4" />}
           onClick={() => void onResend()}
@@ -383,6 +376,7 @@ function InvoiceDetailControls({
       />
       <InvoiceDetailMenu
         invoice={invoice}
+        onResend={onResend}
         onFinalize={onFinalize}
         onMarkPaid={onMarkPaid}
         onDownload={onDownload}
@@ -395,6 +389,7 @@ function InvoiceDetailControls({
 
 function InvoiceDetailMenu({
   invoice,
+  onResend,
   onFinalize,
   onMarkPaid,
   onDownload,
@@ -402,6 +397,7 @@ function InvoiceDetailMenu({
   onDelete,
 }: {
   invoice: InvoiceRow;
+  onResend: () => void;
   onFinalize: () => void;
   onMarkPaid: () => void;
   onDownload: () => void;
@@ -442,6 +438,18 @@ function InvoiceDetailMenu({
                 }}
               >
                 Copy checkout link
+              </MenuItem>
+            ) : null}
+            {canResendInvoice(invoice.status) ? (
+              <MenuItem
+                as={Command.Item}
+                icon={Envelope}
+                onSelect={() => {
+                  onResend();
+                  setIsOpen(false);
+                }}
+              >
+                Resend email
               </MenuItem>
             ) : null}
             {invoice.status === "draft" ? (

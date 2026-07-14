@@ -4,7 +4,6 @@ import { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { useAsyncData } from "@/hooks/use-async-data";
-import { getPaymentsHubHref } from "@/lib/navigation/payments-tabs";
 import type { CheckoutSessionRow } from "@/lib/payments/types";
 import { CheckoutSessionDetailSkeleton } from "@/ui/payments/checkout-session-detail-skeleton";
 import { CheckoutSessionDetailStats } from "@/ui/payments/checkout-session-detail-stats";
@@ -61,9 +60,9 @@ export function CheckoutSessionDetailPanel({
       title: (
         <div className="flex min-w-0 items-center gap-1.5">
           <Link
-            href={getPaymentsHubHref("checkout-sessions")}
-            aria-label="Back to checkout sessions"
-            title="Back to checkout sessions"
+            href="/dashboard/payments"
+            aria-label="Back to payments"
+            title="Back to payments"
             className="bg-bg-subtle hover:bg-bg-emphasis flex size-8 shrink-0 items-center justify-center rounded-lg transition-[transform,background-color] duration-150 active:scale-95"
           >
             <CreditCard className="size-4" />
@@ -94,7 +93,7 @@ export function CheckoutSessionDetailPanel({
     return (
       <div className="space-y-4">
         <Link
-          href={getPaymentsHubHref("checkout-sessions")}
+          href="/dashboard/payments"
           className="bg-bg-subtle hover:bg-bg-emphasis inline-flex size-8 items-center justify-center rounded-lg transition-colors"
         >
           <CreditCard className="size-4" />

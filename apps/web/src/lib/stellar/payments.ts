@@ -128,13 +128,6 @@ export async function buildPathPaymentStrictReceiveXdr(input: {
     party: "customer",
   });
 
-  await assertAccountTrustsAsset({
-    accountId: input.destinationPublicKey,
-    asset: destStellarAsset,
-    environment: input.environment,
-    party: "merchant",
-  });
-
   const paths = await server
     .strictReceivePaths([sendStellarAsset], destStellarAsset, input.destAmount)
     .call();

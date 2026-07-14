@@ -32,7 +32,6 @@ export type InvoicePresentation = {
     lineAmount: string;
   }[];
   allowedAssets?: string[];
-  hostedInvoiceUrl?: string | null;
   checkoutUrl?: string | null;
 };
 
@@ -57,7 +56,7 @@ export function mapInvoicePresentationToEmailProps(
   input: InvoicePresentation,
   email: string,
 ) {
-  const payUrl = input.checkoutUrl ?? input.hostedInvoiceUrl ?? "#";
+  const payUrl = input.checkoutUrl ?? "#";
 
   return {
     email,
@@ -74,7 +73,6 @@ export function mapInvoicePresentationToEmailProps(
       lineAmount: formatInvoiceAmount(item.lineAmount, input.currencyCode),
     })),
     payUrl,
-    hostedInvoiceUrl: input.hostedInvoiceUrl,
     environmentLabel: input.environmentLabel ?? null,
     wordmarkUrl: getWordmarkUrl(),
   };
@@ -100,7 +98,7 @@ export async function renderInvoiceEmailHtml(input: InvoicePresentation) {
 }
 
 export function buildInvoiceEmailText(input: InvoicePresentation) {
-  const payUrl = input.checkoutUrl ?? input.hostedInvoiceUrl ?? "";
+  const payUrl = input.checkoutUrl ?? "";
   const lines = [
     `${input.organization.name} sent you invoice ${input.invoiceNumber}`,
     `Amount due: ${formatInvoiceAmount(input.amount, input.currencyCode)}`,
@@ -114,10 +112,6 @@ export function buildInvoiceEmailText(input: InvoicePresentation) {
     "",
     `Pay invoice: ${payUrl}`,
   ];
-
-  if (input.hostedInvoiceUrl) {
-    lines.push(`View invoice: ${input.hostedInvoiceUrl}`);
-  }
 
   return lines.join("\n");
 }

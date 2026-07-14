@@ -40,7 +40,6 @@ export function PaymentsTabs({
 
     return data.counts ?? {
       "payment-intents": 0,
-      "checkout-sessions": 0,
       invoices: 0,
       "payment-links": 0,
     };
@@ -83,7 +82,7 @@ export function PaymentsTabs({
   );
 
   return (
-    <div className="grid w-full grid-cols-2 gap-2 overflow-x-auto sm:gap-4 lg:grid-cols-4">
+    <div className="grid w-full grid-cols-2 gap-2 overflow-x-auto sm:gap-4 lg:grid-cols-3">
       {PAYMENTS_TABS.map((tab) => (
         <button
           key={tab}

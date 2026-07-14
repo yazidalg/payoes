@@ -81,9 +81,10 @@ Resources include an `object` field for identification:
 
 | Method | Path | Description |
 |--------|------|-------------|
-| `POST` | `/checkout-sessions` | Create a hosted checkout session |
 | `GET` | `/checkout-sessions` | List checkout sessions |
 | `GET` | `/checkout-sessions/{id}` | Retrieve a checkout session |
+
+Checkout sessions are created when you finalize an invoice or when a customer visits a payment link.
 
 ### Payment links
 
@@ -111,7 +112,7 @@ Full request and response schemas are in the endpoint sections of this API refer
 | Resource | URL pattern |
 |----------|-------------|
 | Payment checkout | `/c/{payment_id}` or `/c/{checkout_session_id}` |
-| Payment link | `/l/{payment_link_id}` |
+| Payment link | `/c/{payment_link_id}` |
 | Hosted invoice | `/i/{invoice_id}` |
 
 ## Rate limiting

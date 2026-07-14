@@ -159,9 +159,7 @@ export async function refreshPaymentQuote(
     settlementQuoteRate: quote.settlement_quote_rate,
   });
 
-  await ensureEscrowPaymentRegistered(updated).catch((error) => {
-    console.error("Failed to register escrow payment on contract:", error);
-  });
+  await ensureEscrowPaymentRegistered(updated);
 
   return { quote, payment: updated };
 }

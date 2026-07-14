@@ -5,6 +5,7 @@ import { findAllowedAsset } from "@/lib/assets/types";
 import { serializePaymentAssets } from "@/lib/assets/serialize";
 import { getCheckoutLineItems } from "@/lib/checkout/line-items";
 import { getCheckoutInvoiceDetails } from "@/lib/checkout/invoice-details";
+import { getCheckoutCustomerCollection } from "@/lib/checkout/customer-collection";
 import { resolvePaymentForHostedCheckout } from "@/lib/checkout-sessions/service";
 import { db } from "@/lib/db";
 import { organizations } from "@/lib/db/schema";
@@ -18,24 +19,19 @@ import {
   formatRefundReasonForCheckout,
   isRetryableFailedPayment,
 } from "@/lib/payments/retry";
+import { processEscrowSettlement } from "@/lib/payments/settlement/escrow";
 import { setPaymentPaidAsset } from "@/lib/payments/service";
 import { simulateSandboxPayment } from "@/lib/payments/simulate-sandbox-payment";
-import { applySendMaxBuffer, assetsMatch } from "@/lib/pricing/quotes";
-import {
-  buildPathPaymentStrictReceiveXdr,
-  buildPaymentTransactionXdr,
-} from "@/lib/stellar/payments";
-import {
-  buildSorobanPaymentTransaction,
-  confirmSorobanPayment,
-  submitSorobanPaymentTransaction,
-} from "@/lib/soroban/payment-router";
 import {
   buildEscrowDepositTransaction,
-  canUseEscrowContractDeposit,
   confirmEscrowContractDeposit,
-  ensureEscrowPaymentRegistered,
+  ensureEscrowPaymentRegisteredForCheckout,
 } from "@/lib/soroban/escrow-contract";
+import {
+  SorobanSetupError,
+  toSorobanErrorResponse,
+} from "@/lib/soroban/setup-errors";
+import { submitSorobanPaymentTransaction } from "@/lib/soroban/payment-router";
 
 const confirmSchema = z.object({
   txHash: z.string().min(1),
@@ -47,6 +43,7 @@ const paidAssetSchema = z.object({
 });
 
 const buildTxSchema = z.object({
+  action: z.literal("build_transaction"),
   sourcePublicKey: z.string().min(1),
   paid_asset: paidAssetSchema,
 });
@@ -56,17 +53,29 @@ const submitSorobanSchema = z.object({
   signedXdr: z.string().min(1),
 });
 
-const confirmSorobanSchema = z.object({
-  action: z.literal("confirm_soroban"),
-  txHash: z.string().min(1),
-  payerAddress: z.string().min(1),
-});
-
 const confirmEscrowContractSchema = z.object({
   action: z.literal("confirm_escrow_contract"),
   txHash: z.string().min(1),
   payerAddress: z.string().min(1),
 });
+
+function deprecatedPaymentFlowResponse() {
+  return NextResponse.json(
+    {
+      error: "This payment uses a deprecated flow. Create a new payment to continue.",
+      code: "deprecated_payment_flow",
+    },
+    { status: 410 },
+  );
+}
+
+function sorobanErrorResponse(error: unknown, status = 400) {
+  if (error instanceof SorobanSetupError) {
+    return NextResponse.json(error.toJSON(), { status });
+  }
+
+  return NextResponse.json(toSorobanErrorResponse(error), { status });
+}
 
 export async function GET(
   _request: Request,
@@ -87,7 +96,7 @@ export async function GET(
   const payment = payable.payment;
   const assets = serializePaymentAssets(payment);
 
-  const [organization, items, invoice] = await Promise.all([
+  const [organization, items, invoice, customerCollection] = await Promise.all([
     db
       .select({
         name: organizations.name,
@@ -100,6 +109,7 @@ export async function GET(
       .then((rows) => rows[0] ?? null),
     getCheckoutLineItems(payment),
     getCheckoutInvoiceDetails(payment),
+    getCheckoutCustomerCollection(payment),
   ]);
 
   return NextResponse.json({
@@ -129,6 +139,7 @@ export async function GET(
     items,
     merchant: organization,
     invoice,
+    customer_collection: customerCollection,
   });
 }
 
@@ -153,20 +164,24 @@ export async function POST(
         }
       : undefined;
 
-    const result = await simulateSandboxPayment(
-      resolved.payment.publicId,
-      paidAsset,
-    );
+    try {
+      const result = await simulateSandboxPayment(
+        resolved.payment.publicId,
+        paidAsset,
+      );
 
-    if (!result.ok) {
-      return NextResponse.json({ error: result.error }, { status: 400 });
+      if (!result.ok) {
+        return NextResponse.json({ error: result.error }, { status: 400 });
+      }
+
+      return NextResponse.json({
+        status: result.payment.status,
+        tx_hash: result.payment.txHash,
+        simulated: true,
+      });
+    } catch (error) {
+      return sorobanErrorResponse(error);
     }
-
-    return NextResponse.json({
-      status: result.payment.status,
-      tx_hash: result.payment.txHash,
-      simulated: true,
-    });
   }
 
   const payable = await ensurePayablePayment(resolved.payment);
@@ -181,96 +196,52 @@ export async function POST(
     const parsed = confirmEscrowContractSchema.safeParse(body);
 
     if (!parsed.success || payment.paymentFlow !== "escrow") {
-      return NextResponse.json({ error: "Invalid request" }, { status: 400 });
+      return deprecatedPaymentFlowResponse();
     }
 
-    let result;
-
     try {
-      result = await confirmEscrowContractDeposit({
+      const depositAmount = payment.quotedPaidAmount ?? payment.amount;
+      const result = await confirmEscrowContractDeposit({
         payment,
         txHash: parsed.data.txHash,
         payerAddress: parsed.data.payerAddress,
+        amount: depositAmount,
+      });
+
+      if (!result.completed) {
+        return NextResponse.json({ status: result.status }, { status: 202 });
+      }
+
+      void processEscrowSettlement(result.payment).catch((error) => {
+        console.error("Merchant settlement failed after customer deposit:", error);
+      });
+
+      return NextResponse.json({
+        status: result.payment.status,
+        tx_hash: result.payment.txHash,
       });
     } catch (error) {
-      return NextResponse.json(
-        {
-          error:
-            error instanceof Error
-              ? error.message
-              : "Unable to confirm Soroban escrow transaction",
-        },
-        { status: 502 }
-      );
+      return sorobanErrorResponse(error, 502);
     }
-
-    if (!result.completed) {
-      return NextResponse.json({ status: "processing" }, { status: 202 });
-    }
-
-    return NextResponse.json({
-      status: result.payment.status,
-      tx_hash: result.payment.txHash,
-    });
   }
 
   if (body.action === "submit_soroban") {
     const parsed = submitSorobanSchema.safeParse(body);
 
-    if (
-      !parsed.success ||
-      (payment.paymentFlow !== "soroban" && payment.paymentFlow !== "escrow")
-    ) {
-      return NextResponse.json({ error: "Invalid request" }, { status: 400 });
+    if (!parsed.success || payment.paymentFlow !== "escrow") {
+      return deprecatedPaymentFlowResponse();
     }
-
-    const result = await submitSorobanPaymentTransaction({
-      payment,
-      signedXdr: parsed.data.signedXdr,
-    });
-
-    if (result.status === "ERROR") {
-      return NextResponse.json({ error: "Soroban transaction was rejected" }, { status: 400 });
-    }
-
-    return NextResponse.json({ tx_hash: result.hash, status: "processing" });
-  }
-
-  if (body.action === "confirm_soroban") {
-    const parsed = confirmSorobanSchema.safeParse(body);
-
-    if (!parsed.success || payment.paymentFlow !== "soroban") {
-      return NextResponse.json({ error: "Invalid request" }, { status: 400 });
-    }
-
-    let result;
 
     try {
-      result = await confirmSorobanPayment({
+      const result = await submitSorobanPaymentTransaction({
         payment,
-        txHash: parsed.data.txHash,
-        payerAddress: parsed.data.payerAddress,
+        signedXdr: parsed.data.signedXdr,
       });
+
+      return NextResponse.json({ tx_hash: result.hash, status: "processing" });
     } catch (error) {
-      return NextResponse.json(
-        {
-          error:
-            error instanceof Error
-              ? error.message
-              : "Unable to confirm Soroban transaction",
-        },
-        { status: 502 }
-      );
+      return sorobanErrorResponse(error, 400);
     }
-
-    if (!result.completed) {
-      return NextResponse.json({ status: "processing" }, { status: 202 });
-    }
-
-    return NextResponse.json({
-      status: result.payment.status,
-      tx_hash: result.payment.txHash,
-    });
   }
 
   if (body.action === "build_transaction") {
@@ -278,6 +249,10 @@ export async function POST(
 
     if (!parsed.success) {
       return NextResponse.json({ error: "Invalid request" }, { status: 400 });
+    }
+
+    if (payment.paymentFlow !== "escrow") {
+      return deprecatedPaymentFlowResponse();
     }
 
     const paidAsset = {
@@ -301,11 +276,13 @@ export async function POST(
 
     try {
       let activePayment = await setPaymentPaidAsset(payment, paidAsset);
+      let quoteRefreshHandledRegistration = false;
 
       if (activePayment.pricingCurrency && activePayment.pricingAmount) {
         if (needsPaymentQuoteRefresh(activePayment, paidAsset)) {
           const refreshed = await refreshPaymentQuote(activePayment, paidAsset);
           activePayment = refreshed.payment;
+          quoteRefreshHandledRegistration = true;
         }
 
         if (!activePayment.quotedPaidAmount) {
@@ -316,132 +293,23 @@ export async function POST(
         }
       }
 
-      const paymentWithPaidAsset = activePayment;
+      const depositAmount = activePayment.quotedPaidAmount ?? activePayment.amount;
 
-      if (paymentWithPaidAsset.paymentFlow === "escrow") {
-        const depositAddress = paymentWithPaidAsset.depositAddress;
-        if (!depositAddress) {
-          return NextResponse.json(
-            { error: "Escrow deposit address is not configured" },
-            { status: 503 }
-          );
-        }
-
-        await ensureEscrowPaymentRegistered(paymentWithPaidAsset).catch((error) => {
-          console.error("Failed to register escrow payment on contract:", error);
-        });
-
-        if (canUseEscrowContractDeposit(paymentWithPaidAsset)) {
-          const soroban = await buildEscrowDepositTransaction({
-            payment: paymentWithPaidAsset,
-            payerAddress: parsed.data.sourcePublicKey,
-            amount:
-              paymentWithPaidAsset.quotedPaidAmount ?? paymentWithPaidAsset.amount,
-          });
-
-          return NextResponse.json({
-            ...soroban,
-            payment_type: "escrow_contract_deposit",
-          });
-        }
-
-        const xdr = await buildPaymentTransactionXdr({
-          sourcePublicKey: parsed.data.sourcePublicKey,
-          destinationPublicKey: depositAddress,
-          amount: paymentWithPaidAsset.quotedPaidAmount ?? paymentWithPaidAsset.amount,
-          asset: {
-            assetCode: paidAsset.asset_code,
-            issuerAddress: paidAsset.issuer_address,
-          },
-          environment: paymentWithPaidAsset.environment,
-          memo: paymentWithPaidAsset.memo,
-        });
-
-        return NextResponse.json({ xdr, payment_type: "escrow_deposit" });
-      }
-
-      if (paymentWithPaidAsset.paymentFlow === "soroban") {
-        if (
-          paymentWithPaidAsset.paidAsset !== paymentWithPaidAsset.settlementAsset ||
-          paymentWithPaidAsset.paidAssetIssuer !== paymentWithPaidAsset.settlementAssetIssuer
-        ) {
-          return NextResponse.json(
-            { error: "Soroban payments currently require the settlement asset" },
-            { status: 400 }
-          );
-        }
-
-        const soroban = await buildSorobanPaymentTransaction({
-          payment: paymentWithPaidAsset,
-          payerAddress: parsed.data.sourcePublicKey,
-        });
-
-        return NextResponse.json({
-          ...soroban,
-          payment_type: "soroban_payment",
-        });
-      }
-
-      const settlementAsset = {
-        asset_code: payment.settlementAsset,
-        issuer_address: payment.settlementAssetIssuer,
-      };
-
-      const requiresPathPayment =
-        paymentWithPaidAsset.quotedSettlementAmount &&
-        !assetsMatch(match, settlementAsset);
-
-      if (requiresPathPayment) {
-        if (!paymentWithPaidAsset.quotedSettlementAmount) {
-          return NextResponse.json(
-            { error: "Settlement quote is missing. Try again in a moment." },
-            { status: 400 }
-          );
-        }
-
-        const xdr = await buildPathPaymentStrictReceiveXdr({
-          sourcePublicKey: parsed.data.sourcePublicKey,
-          destinationPublicKey: paymentWithPaidAsset.receivingAddress,
-          sendAsset: {
-            assetCode: paidAsset.asset_code,
-            issuerAddress: paidAsset.issuer_address,
-          },
-          sendMax: applySendMaxBuffer(paymentWithPaidAsset.quotedPaidAmount!),
-          destAsset: {
-            assetCode: settlementAsset.asset_code,
-            issuerAddress: settlementAsset.issuer_address,
-          },
-          destAmount: paymentWithPaidAsset.quotedSettlementAmount,
-          environment: paymentWithPaidAsset.environment,
-          memo: paymentWithPaidAsset.memo,
-        });
-
-        return NextResponse.json({ xdr, payment_type: "path_payment" });
-      }
-
-      const xdr = await buildPaymentTransactionXdr({
-        sourcePublicKey: parsed.data.sourcePublicKey,
-        destinationPublicKey: paymentWithPaidAsset.receivingAddress,
-        amount: paymentWithPaidAsset.quotedPaidAmount ?? paymentWithPaidAsset.amount,
-        asset: {
-          assetCode: paidAsset.asset_code,
-          issuerAddress: paidAsset.issuer_address,
-        },
-        environment: paymentWithPaidAsset.environment,
-        memo: paymentWithPaidAsset.memo,
+      await ensureEscrowPaymentRegisteredForCheckout(activePayment, {
+        skipIfQuoteRefreshHandled: quoteRefreshHandledRegistration,
+      });
+      const soroban = await buildEscrowDepositTransaction({
+        payment: activePayment,
+        payerAddress: parsed.data.sourcePublicKey,
+        amount: depositAmount,
       });
 
-      return NextResponse.json({ xdr, payment_type: "payment" });
+      return NextResponse.json({
+        ...soroban,
+        payment_type: "escrow_contract_deposit",
+      });
     } catch (error) {
-      return NextResponse.json(
-        {
-          error:
-            error instanceof Error
-              ? error.message
-              : "Unable to build transaction",
-        },
-        { status: 400 }
-      );
+      return sorobanErrorResponse(error);
     }
   }
 
@@ -451,40 +319,16 @@ export async function POST(
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
   }
 
-  try {
-    const result = await confirmPaymentWithTxHash(
-      payment.publicId,
-      parsed.data.txHash
-    );
-
-    if (!result.ok) {
-      return NextResponse.json({ error: result.error }, { status: 400 });
-    }
-
-    if (
-      result.payment.status === "deposit_received" ||
-      result.payment.status === "settling"
-    ) {
-      return NextResponse.json(
-        { status: result.payment.status, tx_hash: result.payment.depositTxHash },
-        { status: 202 }
-      );
-    }
-
-    return NextResponse.json({
-      status: result.payment.status,
-      tx_hash: result.payment.txHash,
-    });
-  } catch (error) {
-    console.error("Payment confirmation failed:", error);
-    return NextResponse.json(
-      {
-        error:
-          error instanceof Error
-            ? error.message
-            : "Unable to verify payment",
-      },
-      { status: 500 }
-    );
+  if (payment.paymentFlow !== "escrow") {
+    return deprecatedPaymentFlowResponse();
   }
+
+  return NextResponse.json(
+    {
+      error:
+        "Use confirm_escrow_contract after submitting a Soroban escrow deposit transaction.",
+      code: "deprecated_confirmation_flow",
+    },
+    { status: 410 },
+  );
 }

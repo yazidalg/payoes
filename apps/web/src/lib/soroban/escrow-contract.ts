@@ -14,9 +14,19 @@ import {
 } from "@stellar/stellar-sdk";
 import type { AllowedAsset } from "@/lib/assets/types";
 import type { Payment } from "@/lib/db/schema";
-import { updatePaymentStatus } from "@/lib/payments/service";
+import { recordEscrowContractDepositReceived, updatePaymentStatus } from "@/lib/payments/service";
+import { assetsMatch } from "@/lib/pricing/quotes";
 import { getNetworkPassphrase, getHorizonUrl } from "@/lib/stellar/network";
-import { getSorobanConfig, isSorobanConfigured } from "@/lib/soroban/config";
+import { getSorobanConfig } from "@/lib/soroban/config";
+import { getSorobanSimulationErrorMessage } from "@/lib/soroban/simulation";
+import {
+  submitSorobanTransaction,
+  waitForSorobanTransaction,
+} from "@/lib/soroban/transaction";
+import {
+  assertSorobanConfigured,
+  classifySorobanSimulationError,
+} from "@/lib/soroban/setup-errors";
 import { REFUND_REASONS, type RefundReason } from "@/lib/payments/settlement/constants";
 
 function paymentIdHash(payment: Payment) {
@@ -59,10 +69,30 @@ function refundReasonCode(reason: RefundReason) {
   }
 }
 
+function paidAsset(payment: Payment): AllowedAsset {
+  return {
+    asset_code: payment.paidAsset ?? payment.settlementAsset,
+    issuer_address: payment.paidAsset
+      ? payment.paidAssetIssuer
+      : payment.settlementAssetIssuer,
+  };
+}
+
+export function isSameAssetEscrowDeposit(payment: Payment) {
+  const settlementAsset: AllowedAsset = {
+    asset_code: payment.settlementAsset,
+    issuer_address: payment.settlementAssetIssuer,
+  };
+
+  return assetsMatch(paidAsset(payment), settlementAsset);
+}
+
 async function invokeEscrowContract(
   payment: Payment,
   buildOperation: (contract: Contract) => xdr.Operation
 ) {
+  assertSorobanConfigured(payment.environment);
+
   const config = getSorobanConfig(payment.environment);
   const signer = Keypair.fromSecret(config.authorizationSignerSecret);
   const horizon = new Horizon.Server(getHorizonUrl(payment.environment));
@@ -81,11 +111,17 @@ async function invokeEscrowContract(
   const simulation = await server.simulateTransaction(transaction);
 
   if (!rpc.Api.isSimulationSuccess(simulation)) {
-    throw new Error("Soroban escrow simulation failed");
+    throw classifySorobanSimulationError(
+      getSorobanSimulationErrorMessage(
+        simulation,
+        "Soroban escrow simulation failed",
+      ),
+      payment.environment,
+    );
   }
 
   const signerAddress = signer.publicKey();
-  const validUntilLedgerSeq = simulation.latestLedger + 100;
+  const validUntilLedgerSeq = simulation.latestLedger + 1000;
   const auth = await Promise.all(
     simulation.result?.auth.map(async (entry) => {
       const credentials = entry.credentials();
@@ -109,16 +145,17 @@ async function invokeEscrowContract(
   const prepared = rpc.assembleTransaction(transaction, simulation).build();
   prepared.sign(signer);
 
-  return server.sendTransaction(prepared);
+  const submission = await submitSorobanTransaction(server, prepared);
+
+  if (submission.hash) {
+    await waitForSorobanTransaction(config.rpcUrl, submission.hash);
+  }
+
+  return submission;
 }
 
 export async function registerEscrowPaymentOnContract(payment: Payment) {
-  const paidAsset: AllowedAsset = {
-    asset_code: payment.paidAsset ?? payment.settlementAsset,
-    issuer_address: payment.paidAsset
-      ? payment.paidAssetIssuer
-      : payment.settlementAssetIssuer,
-  };
+  const asset = paidAsset(payment);
   const settlementAsset: AllowedAsset = {
     asset_code: payment.settlementAsset,
     issuer_address: payment.settlementAssetIssuer,
@@ -133,7 +170,7 @@ export async function registerEscrowPaymentOnContract(payment: Payment) {
       "register_payment",
       xdr.ScVal.scvBytes(paymentIdHash(payment)),
       nativeToScVal(payment.receivingAddress, { type: "address" }),
-      nativeToScVal(assetContractId(paidAsset, payment.environment), {
+      nativeToScVal(assetContractId(asset, payment.environment), {
         type: "address",
       }),
       nativeToScVal(amountToStroops(requiredAmount), { type: "i128" }),
@@ -143,6 +180,54 @@ export async function registerEscrowPaymentOnContract(payment: Payment) {
       nativeToScVal(amountToStroops(settlementAmount), { type: "i128" }),
       nativeToScVal(amountToStroops(payment.platformFeeAmount), { type: "i128" }),
       nativeToScVal(BigInt(expiresAt), { type: "u64" })
+    )
+  );
+}
+
+export async function ensureEscrowPaymentRegisteredForCheckout(
+  payment: Payment,
+  options?: { skipIfQuoteRefreshHandled?: boolean }
+) {
+  if (options?.skipIfQuoteRefreshHandled) {
+    return;
+  }
+
+  await registerEscrowPaymentOnContract(payment);
+}
+
+export async function releaseEscrowDepositToOperator(payment: Payment) {
+  return invokeEscrowContract(payment, (contract) =>
+    contract.call(
+      "release_deposit_to_operator",
+      xdr.ScVal.scvBytes(paymentIdHash(payment))
+    )
+  );
+}
+
+export async function settleSameAssetEscrowDepositOnContract(input: {
+  payment: Payment;
+  payerAddress: string;
+}) {
+  return invokeEscrowContract(input.payment, (contract) =>
+    contract.call(
+      "settle_same_asset_deposit",
+      xdr.ScVal.scvBytes(paymentIdHash(input.payment)),
+      nativeToScVal(input.payerAddress, { type: "address" })
+    )
+  );
+}
+
+export async function refundHeldEscrowDepositOnContract(input: {
+  payment: Payment;
+  payerAddress: string;
+  reason: RefundReason;
+}) {
+  return invokeEscrowContract(input.payment, (contract) =>
+    contract.call(
+      "refund_held_deposit",
+      xdr.ScVal.scvBytes(paymentIdHash(input.payment)),
+      nativeToScVal(input.payerAddress, { type: "address" }),
+      nativeToScVal(BigInt(refundReasonCode(input.reason)), { type: "u32" })
     )
   );
 }
@@ -186,6 +271,8 @@ export async function buildEscrowDepositTransaction(input: {
   payerAddress: string;
   amount: string;
 }) {
+  assertSorobanConfigured(input.payment.environment);
+
   const config = getSorobanConfig(input.payment.environment);
   const horizon = new Horizon.Server(getHorizonUrl(input.payment.environment));
   const account = await horizon.loadAccount(input.payerAddress);
@@ -210,12 +297,18 @@ export async function buildEscrowDepositTransaction(input: {
   const simulation = await server.simulateTransaction(transaction);
 
   if (!rpc.Api.isSimulationSuccess(simulation)) {
-    throw new Error("Soroban escrow deposit simulation failed");
+    throw classifySorobanSimulationError(
+      getSorobanSimulationErrorMessage(
+        simulation,
+        "Soroban escrow deposit simulation failed",
+      ),
+      input.payment.environment,
+    );
   }
 
   const signer = Keypair.fromSecret(config.authorizationSignerSecret);
   const signerAddress = signer.publicKey();
-  const validUntilLedgerSeq = simulation.latestLedger + 100;
+  const validUntilLedgerSeq = simulation.latestLedger + 1000;
   const auth = await Promise.all(
     simulation.result?.auth.map(async (entry) => {
       const credentials = entry.credentials();
@@ -244,35 +337,31 @@ export async function buildEscrowDepositTransaction(input: {
   };
 }
 
-export function canUseEscrowContractDeposit(payment: Payment) {
-  const paidAssetCode = payment.paidAsset ?? payment.settlementAsset;
-  const paidAssetIssuer = payment.paidAsset
-    ? payment.paidAssetIssuer
-    : payment.settlementAssetIssuer;
-
-  return (
-    paidAssetCode === payment.settlementAsset &&
-    (paidAssetIssuer ?? null) === (payment.settlementAssetIssuer ?? null)
-  );
-}
-
 export async function ensureEscrowPaymentRegistered(payment: Payment) {
-  if (payment.paymentFlow !== "escrow" || !isSorobanConfigured(payment.environment)) {
+  if (payment.paymentFlow !== "escrow") {
     return;
   }
 
-  try {
-    await registerEscrowPaymentOnContract(payment);
-  } catch (error) {
-    console.error("Failed to register escrow payment on contract:", error);
-  }
+  assertSorobanConfigured(payment.environment);
+  await registerEscrowPaymentOnContract(payment);
 }
+
+export type EscrowContractDepositConfirmResult =
+  | { completed: true; payment: Payment }
+  | {
+      completed: false;
+      status: "deposit_received";
+      payment: Payment;
+      receivedAmount: string;
+    }
+  | { completed: false; status: string };
 
 export async function confirmEscrowContractDeposit(input: {
   payment: Payment;
   txHash: string;
   payerAddress: string;
-}) {
+  amount: string;
+}): Promise<EscrowContractDepositConfirmResult> {
   const config = getSorobanConfig(input.payment.environment);
   const response = await fetch(config.rpcUrl, {
     method: "POST",
@@ -304,14 +393,21 @@ export async function confirmEscrowContractDeposit(input: {
     return { completed: false as const, status: status ?? "NOT_FOUND" };
   }
 
-  const payment = await updatePaymentStatus(input.payment, "completed", {
+  const asset = paidAsset(input.payment);
+
+  const withDeposit = await recordEscrowContractDepositReceived({
+    payment: input.payment,
+    txHash: input.txHash,
+    payerAddress: input.payerAddress,
+    amount: input.amount,
+    paidAsset: asset,
+  });
+
+  const payment = await updatePaymentStatus(withDeposit, "completed", {
     txHash: input.txHash,
     confirmedAt: new Date(),
     payerAddress: input.payerAddress,
-    paidAsset: {
-      asset_code: input.payment.settlementAsset,
-      issuer_address: input.payment.settlementAssetIssuer,
-    },
+    paidAsset: asset,
   });
 
   return { completed: true as const, payment };

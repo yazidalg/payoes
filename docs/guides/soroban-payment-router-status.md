@@ -54,19 +54,19 @@ stellar contract info interface `
 
 ### Checkout Flow
 
-New payments use `payment_flow = soroban`. Existing payments retain `direct` for backwards compatibility.
-
-For a Soroban payment, the checkout flow is:
+New payments use `payment_flow = escrow` and a single Soroban contract path:
 
 ```text
-Checkout requests an XDR transaction
--> Backend simulates the router invocation
--> Backend signs the Payoes authorization entry
+Checkout requests an escrow deposit XDR
+-> Backend registers the payment on the contract
+-> Backend simulates deposit and signs the authorization entry
 -> Customer wallet signs the transaction envelope
 -> Backend submits the signed XDR to Soroban RPC
--> Backend confirms the RPC transaction status
--> Payment is completed after RPC reports SUCCESS
+-> Same-asset deposits settle on the contract immediately
+-> Cross-asset deposits are held on the contract, released to the operator, and settled by the worker
 ```
+
+Legacy `direct` and `soroban` (`pay()`) checkout flows are deprecated for new payments.
 
 The browser never receives the Payoes authorization signer secret.
 
@@ -93,7 +93,8 @@ The operator secret must only be available to the server runtime or a secrets ma
 - `stellar_transactions` and `soroban_events` are not populated by the current checkout confirmation flow.
 - `blockchain_status`, `soroban_contract_id`, and `merchant_settlement_amount` are not updated after successful checkout confirmation.
 - Platform fee configuration has no dashboard or public API control yet. New payments default to a zero platform fee.
-- Soroban checkout currently requires the selected payment asset to match the settlement asset. Path payments are still limited to the legacy direct flow.
+- Soroban checkout requires a configured escrow contract for all new payments.
+- Cross-asset deposits are held on the contract and settled by the operator worker.
 - Mainnet deployment, contract audit, key management policy, monitoring, and alerting remain required.
 
 ## Next Implementation Steps

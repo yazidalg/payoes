@@ -126,7 +126,6 @@ function buildDraftPresentation(input: {
       email: input.customer?.email ?? null,
     },
     items: draftItems,
-    hostedInvoiceUrl: null,
     checkoutUrl: null,
   };
 }

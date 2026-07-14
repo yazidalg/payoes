@@ -122,12 +122,12 @@ export function PaymentLinkDetailPanel({
           <PaymentLinkCustomerCollectionSection link={link} />
 
           <ShareLinkSection
-            title="Share"
-            description="Each visit creates a new checkout session."
+            title="Checkout link"
+            description="Each visit starts a new checkout session."
             url={link.url}
-            copyLabel="Copy payment link"
-            copySuccessMessage="Payment link copied"
-            openLabel="Open payment link"
+            copyLabel="Copy checkout link"
+            copySuccessMessage="Checkout link copied"
+            openLabel="Open checkout"
           />
         </div>
       </div>
@@ -163,12 +163,12 @@ function PaymentLinkDetailMenu({ link }: { link: PaymentLinkRow }) {
               icon={Link4}
               onSelect={() => {
                 toast.promise(copyToClipboard(link.url), {
-                  success: "Payment link copied",
+                  success: "Checkout link copied",
                 });
                 setIsOpen(false);
               }}
             >
-              Copy payment link
+              Copy checkout link
             </MenuItem>
           </Command.List>
         </Command>

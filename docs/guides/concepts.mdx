@@ -73,7 +73,7 @@ A single payment request, equivalent to a Stripe Payment Intent.
 | `source_type` | How the payment was created (`direct`, `checkout_session`, `payment_link`, etc.) |
 | `checkout_url` | Hosted page at `/c/pay_...` |
 
-Payment intents are created directly via the dashboard or API, or automatically when you create a checkout session or start checkout from a payment link.
+Payment intents are created directly via the dashboard or API, or automatically when you finalize an invoice or start checkout from a payment link.
 
 ### Checkout session
 
@@ -86,7 +86,7 @@ A hosted checkout flow, equivalent to a Stripe Checkout Session. Each session cr
 | `payment_intent_id` | Linked `pay_...` record |
 | `checkout_url` | Hosted page at `/c/cs_...` |
 
-Create checkout sessions from the dashboard or API when you want a dedicated checkout URL with optional success and cancel redirects.
+Checkout sessions are created automatically when you finalize an invoice or when a customer visits a payment link. You can list and retrieve them via the API.
 
 ### Payment link
 
@@ -95,7 +95,7 @@ A reusable shareable link, equivalent to a Stripe Payment Link.
 | Field | Meaning |
 |-------|---------|
 | `id` | Public ID (`plink_...`) |
-| `url` | Public page at `/l/plink_...` |
+| `url` | Public checkout entry at `/c/plink_...` (redirects to a new checkout session) |
 | `active` | Whether the link accepts new checkouts |
 
 Each visit to a payment link starts a new checkout session and payment intent.

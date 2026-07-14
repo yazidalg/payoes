@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { CheckoutSessionsListPanel } from "@/components/payments/checkout-sessions-list-panel";
 import { CreatePaymentMenu } from "@/components/payments/create-payment-menu";
 import { InvoicesListPanel } from "@/components/payments/invoices-list-panel";
 import { PaymentLinksListPanel } from "@/components/payments/payment-links-list-panel";
@@ -20,13 +19,12 @@ export function PaymentsHubPanel({ organizationId }: { organizationId: string })
     () => ({
       titleInfo: {
         title:
-          "Create and manage payment intents, checkout sessions, invoices, and payment links.",
+          "Create and manage payment intents, invoices, and payment links.",
         href: "/dashboard/developers/documentation",
       },
       controls: (
         <CreatePaymentMenu
           organizationId={organizationId}
-          includeCheckoutSession
           onCreated={() => setReloadKey((current) => current + 1)}
         />
       ),
@@ -47,14 +45,6 @@ export function PaymentsHubPanel({ organizationId }: { organizationId: string })
       <div key={activeTab}>
         {activeTab === "payment-intents" ? (
           <PaymentsListPanel
-            organizationId={organizationId}
-            embedded
-            reloadKey={reloadKey}
-          />
-        ) : null}
-
-        {activeTab === "checkout-sessions" ? (
-          <CheckoutSessionsListPanel
             organizationId={organizationId}
             embedded
             reloadKey={reloadKey}

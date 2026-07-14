@@ -123,7 +123,7 @@ export function InvoicePreviewPanel({
         receiving_address: "G...",
         deposit_address: null,
         memo: "PREVIEW",
-        payment_flow: "direct" as const,
+        payment_flow: "escrow" as const,
       },
       items: presentation.items.map((item) => ({
         description: item.description,

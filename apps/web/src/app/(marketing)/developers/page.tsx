@@ -11,7 +11,7 @@ const ACCENT = "bg-gradient-to-b from-indigo-500 to-indigo-600";
 export const metadata: Metadata = {
   title: "Developers - Payoes",
   description:
-    "Every Payoes feature starts with an API. Create payments, checkout sessions, payment links, invoices, and customers from your codebase, and let Payoes handle the blockchain.",
+    "Every Payoes feature starts with an API. Create payments, payment links, invoices, and customers from your codebase, and let Payoes handle the blockchain.",
 };
 
 const RESOURCES = [
@@ -24,10 +24,10 @@ const RESOURCES = [
   },
   {
     name: "Checkout Sessions",
-    endpoint: "POST /v1/checkout-sessions",
+    endpoint: "GET /v1/checkout-sessions/{id}",
     prefix: "cs_",
     description:
-      "Wrap a payment in a hosted checkout flow with line items and customer fields.",
+      "Retrieve hosted checkout sessions created from finalized invoices or payment link visits.",
   },
   {
     name: "Payment Links",

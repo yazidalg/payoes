@@ -101,7 +101,7 @@ export function canEditInvoice(status: string) {
 }
 
 export function canResendInvoice(status: string) {
-  return status === "draft" || status === "open";
+  return status === "open";
 }
 
 export function canChangeInvoiceCustomer(status: string) {

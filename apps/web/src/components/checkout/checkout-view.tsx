@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "motion/react";
-import type { ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { cn } from "@dub/utils";
 import { Badge, Button, CopyButton, Tooltip, InfoTooltip } from "@dub/ui";
 import { Check2, LoadingSpinner } from "@dub/ui/icons";
@@ -13,6 +13,12 @@ import { OrganizationMark } from "@/components/organizations/organization-mark";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { formatInvoiceAmount } from "@/lib/invoices/amount";
 import { formatAmountWithUnit, formatTokenWithAsset } from "@/lib/format/amount";
+import {
+  hasCustomerCollection,
+  type PaymentLinkCustomerInput,
+} from "@/lib/payment-links/types";
+import { getPaymentLinkCustomerInputError } from "@/lib/payment-links/validate-customer-input";
+import { CheckoutAdditionalInfoFields } from "@/components/checkout/checkout-additional-info-fields";
 import type { AllowedAsset, CheckoutData, PaymentQuote } from "./checkout-types";
 
 export function AssetIcon({ code, className }: { code: string; className?: string }) {
@@ -166,6 +172,8 @@ export type CheckoutViewProps = {
   address: string | null;
   pendingTxHash: string | null;
   isPaying: boolean;
+  isConfirming?: boolean;
+  confirmExhausted?: boolean;
   isConnecting: boolean;
   paymentBlocked: boolean;
   quoteError: string | null;
@@ -181,6 +189,8 @@ export type CheckoutViewProps = {
   onRetryConfirm?: () => void;
   disabled?: boolean;
   countdown?: string;
+  customerInput?: PaymentLinkCustomerInput;
+  onCustomerInputChange?: (value: PaymentLinkCustomerInput) => void;
 };
 
 export function CheckoutView({
@@ -214,6 +224,8 @@ export function CheckoutView({
   address,
   pendingTxHash,
   isPaying,
+  isConfirming = false,
+  confirmExhausted = false,
   isConnecting,
   paymentBlocked,
   quoteError,
@@ -228,8 +240,51 @@ export function CheckoutView({
   onRetryConfirm,
   disabled = false,
   countdown = "",
+  customerInput,
+  onCustomerInputChange,
 }: CheckoutViewProps) {
   const lineItems = data.items ?? [];
+  const showCustomerInfoFields =
+    hasCustomerCollection(data.customer_collection) &&
+    !isCompleted &&
+    !isSessionExpired;
+  const customerCollectionKey = useMemo(
+    () => JSON.stringify(data.customer_collection ?? null),
+    [data.customer_collection],
+  );
+  const [customerPanel, setCustomerPanel] = useState<"details" | "payment">(
+    showCustomerInfoFields ? "details" : "payment",
+  );
+  const [detailsError, setDetailsError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setCustomerPanel(showCustomerInfoFields ? "details" : "payment");
+    setDetailsError(null);
+  }, [showCustomerInfoFields, customerCollectionKey]);
+
+  const detailsValidationError = useMemo(
+    () =>
+      showCustomerInfoFields
+        ? getPaymentLinkCustomerInputError(customerInput, data.customer_collection)
+        : null,
+    [showCustomerInfoFields, customerInput, data.customer_collection],
+  );
+  const canContinueToPayment = detailsValidationError === null;
+
+  function handleContinueToPayment() {
+    if (!canContinueToPayment) {
+      setDetailsError(detailsValidationError);
+      setCustomerPanel("details");
+      return;
+    }
+
+    setDetailsError(null);
+    setCustomerPanel("payment");
+  }
+
+  const showCustomerPanelTabs = showCustomerInfoFields;
+  const isDetailsPanel = showCustomerPanelTabs && customerPanel === "details";
+  const isPaymentPanel = !showCustomerPanelTabs || customerPanel === "payment";
 
   function formatLineAmount(amount: string) {
     if (hasPricing) {
@@ -256,9 +311,7 @@ export function CheckoutView({
             className={cn(
               "flex-none border-b border-neutral-200/60 bg-neutral-50 px-4 py-4",
               "@lg:flex-1 @lg:border-b-0 @lg:border-r",
-              disabled
-                ? "@lg:px-4 @lg:py-4"
-                : "@lg:px-8 @lg:py-8"
+              disabled ? "@lg:px-4 @lg:py-4" : "@lg:px-8 @lg:py-8",
             )}
           >
             <div className={cn("mx-auto max-w-md", disabled ? "space-y-3" : "space-y-4 @lg:space-y-6")}>
@@ -378,6 +431,27 @@ export function CheckoutView({
                 </div>
               ) : null}
 
+              {!data.invoice && data.payment.description?.trim() ? (
+                <div
+                  className={cn(
+                    "border-t border-neutral-200/60 pt-3",
+                    disabled ? "space-y-0.5" : "space-y-1",
+                  )}
+                >
+                  <p className={cn("text-neutral-500", disabled ? "text-[10px]" : "text-xs")}>
+                    Memo
+                  </p>
+                  <p
+                    className={cn(
+                      "whitespace-pre-wrap text-neutral-900",
+                      disabled ? "text-xs" : "text-sm",
+                    )}
+                  >
+                    {data.payment.description}
+                  </p>
+                </div>
+              ) : null}
+
               {/* Mobile Compact Line Items */}
               <div className="@lg:hidden">
                 {lineItems.length > 0 && (
@@ -477,24 +551,31 @@ export function CheckoutView({
           </div>
 
           {/* Payment Section (Right) */}
-          <div className="relative flex-1 bg-white flex flex-col justify-between">
+          <div className="relative flex min-h-0 flex-1 flex-col bg-white @lg:sticky @lg:top-0 @lg:max-h-svh @lg:self-start">
             <div
               className={cn(
-                "relative z-10 px-6 py-8",
-                disabled
-                  ? "@lg:px-4 @lg:py-4"
-                  : "@lg:px-12 @lg:py-12"
+                "mx-auto flex w-full min-h-0 max-w-md flex-1 flex-col",
+                disabled ? "px-4 py-4" : "px-6 py-8 @lg:px-12 @lg:py-8",
               )}
             >
-              <div className={cn("mx-auto max-w-md", disabled ? "space-y-4" : "space-y-6")}>
+              <div className="shrink-0">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <h2 className={cn("font-semibold text-neutral-900", disabled ? "text-sm" : "text-base")}>Payment</h2>
+                    <h2
+                      className={cn(
+                        "font-semibold text-neutral-900",
+                        disabled ? "text-sm" : "text-base",
+                      )}
+                    >
+                      {isDetailsPanel ? "Your details" : "Payment"}
+                    </h2>
                     <p className={cn("mt-1 text-neutral-500", disabled ? "text-xs" : "text-sm")}>
-                      Connect your Stellar wallet and complete the payment.
+                      {isDetailsPanel
+                        ? "Enter your information before continuing to payment."
+                        : "Connect your Stellar wallet and complete the payment."}
                     </p>
                   </div>
-                  {(hasPricing || disabled) && countdown ? (
+                  {isPaymentPanel && (hasPricing || disabled) && countdown ? (
                     <div className="shrink-0">
                       <RateLockCountdown
                         countdown={countdown}
@@ -504,7 +585,88 @@ export function CheckoutView({
                   ) : null}
                 </div>
 
-                {isCompleted ? (
+                {showCustomerPanelTabs ? (
+                  <div
+                    className={cn(
+                      "mt-4 flex rounded-xl bg-neutral-100 p-1",
+                      disabled ? "h-9" : "h-10",
+                    )}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDetailsError(null);
+                        setCustomerPanel("details");
+                      }}
+                      className={cn(
+                        "flex-1 rounded-lg text-center font-semibold transition-all",
+                        disabled ? "text-xs" : "text-sm",
+                        customerPanel === "details"
+                          ? "bg-white text-neutral-900 shadow-sm"
+                          : "text-neutral-500 hover:text-neutral-950",
+                      )}
+                    >
+                      Your details
+                    </button>
+                    <button
+                      type="button"
+                      disabled={isDetailsPanel && !canContinueToPayment}
+                      title={
+                        isDetailsPanel && !canContinueToPayment
+                          ? "Fill in all required fields first"
+                          : undefined
+                      }
+                      onClick={handleContinueToPayment}
+                      className={cn(
+                        "flex-1 rounded-lg text-center font-semibold transition-all",
+                        disabled ? "text-xs" : "text-sm",
+                        customerPanel === "payment"
+                          ? "bg-white text-neutral-900 shadow-sm"
+                          : "text-neutral-500 hover:text-neutral-950",
+                        isDetailsPanel &&
+                          !canContinueToPayment &&
+                          "cursor-not-allowed opacity-50 hover:text-neutral-500",
+                      )}
+                    >
+                      Payment
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+
+              <div
+                className={cn(
+                  "flex min-h-0 flex-1 flex-col pt-4",
+                  disabled ? "space-y-4" : "space-y-5",
+                )}
+              >
+                {isDetailsPanel ? (
+                  <div className={disabled ? "space-y-4" : "space-y-5"}>
+                    <CheckoutAdditionalInfoFields
+                      collection={data.customer_collection!}
+                      value={customerInput ?? {}}
+                      onChange={(value) => {
+                        setDetailsError(null);
+                        onCustomerInputChange?.(value);
+                      }}
+                      readOnly={disabled && !onCustomerInputChange}
+                      size={disabled ? "preview" : "default"}
+                    />
+                    {detailsError ? (
+                      <AlertBlock type="error">{detailsError}</AlertBlock>
+                    ) : null}
+                    <Button
+                      type="button"
+                      className={cn("w-full", disabled ? "h-8 text-xs rounded-lg" : "h-10")}
+                      text="Continue to payment"
+                      disabled={!canContinueToPayment}
+                      onClick={handleContinueToPayment}
+                    />
+                  </div>
+                ) : null}
+
+                {isPaymentPanel ? (
+                  isCompleted ? (
                   <div className="flex items-start gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-4 text-sm text-emerald-800">
                     <Check2 className="mt-0.5 size-4 shrink-0" />
                     <div>
@@ -793,11 +955,23 @@ export function CheckoutView({
                               networkLabel={
                                 data.payment.environment === "production" ? "Public" : "Testnet"
                               }
-                              className="border-neutral-200 bg-neutral-50 px-3 py-3"
+                              compact
+                              className="text-center"
                             />
                           ) : null}
 
-                          {pendingTxHash ? (
+                          {pendingTxHash && isConfirming ? (
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              className={cn("w-full", disabled ? "h-8 text-xs rounded-lg" : "h-10")}
+                              text="Confirming payment..."
+                              loading
+                              disabled
+                            />
+                          ) : null}
+
+                          {pendingTxHash && confirmExhausted && !isConfirming ? (
                             <Button
                               type="button"
                               variant="secondary"
@@ -823,8 +997,13 @@ export function CheckoutView({
                               type="button"
                               className={cn("w-full", disabled ? "h-8 text-xs rounded-lg" : "h-10")}
                               text={`Pay ${formatTokenWithAsset(displayAmount, displayAsset)}`}
-                              loading={isPaying || isRefreshingRate}
-                              disabled={disabled || paymentBlocked || isRefreshingRate}
+                              loading={isPaying || isConfirming || isRefreshingRate}
+                              disabled={
+                                disabled ||
+                                paymentBlocked ||
+                                isRefreshingRate ||
+                                Boolean(pendingTxHash)
+                              }
                               onClick={disabled ? undefined : onPay}
                             />
                           )}
@@ -832,22 +1011,22 @@ export function CheckoutView({
                       )}
                     </AnimatePresence>
                   </div>
-                )}
+                )
+                ) : null}
               </div>
-            </div>
 
-            {/* Powered by Payoes Watermark */}
-            <div className={cn("mt-auto text-center", disabled ? "pb-3" : "pb-6")}>
-              <a
-                href="https://payoes.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 text-xs text-neutral-400 hover:text-neutral-600 transition-colors"
-              >
-                <span>Powered by</span>
-                <img src="/logo.svg" alt="Payoes logo" className="h-4 w-auto brightness-90" />
-                <span className="font-semibold text-neutral-500">Payoes</span>
-              </a>
+              <div className={cn("mt-auto shrink-0 text-center", disabled ? "pt-3" : "pt-6")}>
+                <a
+                  href="https://payoes.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-xs text-neutral-400 hover:text-neutral-600 transition-colors"
+                >
+                  <span>Powered by</span>
+                  <img src="/logo.svg" alt="Payoes logo" className="h-4 w-auto brightness-90" />
+                  <span className="font-semibold text-neutral-500">Payoes</span>
+                </a>
+              </div>
             </div>
           </div>
         </div>

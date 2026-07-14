@@ -49,7 +49,7 @@ ID prefixes match Stripe conventions and appear throughout code, docs, and URLs:
 
 - Payments (`pay_...`) are the core record; `source` tracks how they were created (`direct`, `checkout_session`, `payment_link`).
 - Checkout sessions (`cs_...`) wrap a payment and get a hosted page at `/c/[paymentId]`.
-- Payment links (`plink_...`) are reusable; each visit to `/l/[linkId]` spawns a new checkout session.
+- Payment links (`plink_...`) are reusable; each visit to `/c/plink_...` spawns a new checkout session.
 - Invoices (`inv_...`) go draft -> finalize (spawns a checkout session) -> paid; hosted at `/i/[invoiceId]`.
 - Subscriptions (`sub_...`) bill by creating a finalized invoice per period; the period advances when that invoice is paid.
 

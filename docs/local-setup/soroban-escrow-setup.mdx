@@ -1,0 +1,180 @@
+---
+title: Soroban escrow setup
+description: Deploy and configure the Payoes Soroban escrow contract for local checkout.
+---
+
+All new Payoes payments use the Soroban escrow contract. Checkout returns setup instructions if the contract or operator account is not configured correctly.
+
+Use the deploy script in `scripts/soroban-deploy-contract.sh`. It builds the contract, deploys it, initializes it, and prints the values you need for `.env.local`.
+
+## Prerequisites
+
+- [Stellar CLI](https://developers.stellar.org/docs/tools/cli) (`stellar`)
+- Rust toolchain (`cargo`)
+- A funded Stellar account on the target network
+
+## Quick start (Testnet)
+
+From the repository root:
+
+### 1. Create Stellar CLI identities
+
+You need two logical roles:
+
+| Role | Flag | Purpose |
+|------|------|---------|
+| Operator | `--operator-account` | Contract admin and `authorization_signer` |
+| Funder | `--source-account` | Pays deploy transaction fees |
+
+For local development, one identity is enough. Use the same name for both flags.
+
+```bash
+stellar keys generate --global payoes-operator
+```
+
+If you want a separate funder account:
+
+```bash
+stellar keys generate --global payoes-funder
+```
+
+### 2. Fund the accounts
+
+Fund whichever account pays fees on Testnet:
+
+```bash
+# Single-account setup
+curl "https://friendbot.stellar.org?addr=$(stellar keys address payoes-operator)"
+
+# Separate funder setup
+curl "https://friendbot.stellar.org?addr=$(stellar keys address payoes-funder)"
+```
+
+If operator and funder are different, fund **both**. The operator also needs a small XLM balance to pay the `initialize` transaction fee.
+
+### 3. Deploy and initialize
+
+**Single account (simplest):**
+
+```bash
+./scripts/soroban-deploy-contract.sh \
+  --operator-account payoes-operator \
+  --source-account payoes-operator
+```
+
+**Separate operator and funder:**
+
+```bash
+./scripts/soroban-deploy-contract.sh \
+  --operator-account payoes-operator \
+  --source-account payoes-funder
+```
+
+Or via npm:
+
+```bash
+npm run soroban:deploy -- \
+  --operator-account payoes-operator \
+  --source-account payoes-operator
+```
+
+The script will:
+
+1. Run `cargo test -p payoes`
+2. Build the contract WASM
+3. Deploy to the selected network (default: `testnet`)
+4. Call `initialize(admin, authorization_signer, fee_recipient)` with the operator public key
+5. Print:
+
+```text
+CONTRACT_ID=C...
+OPERATOR_SECRET=S...
+```
+
+### 4. Configure apps/web/.env.local
+
+Copy the script output into your env file:
+
+```bash
+STELLAR_TESTNET_OPERATOR_SECRET=S...
+SOROBAN_TESTNET_RPC_URL=https://soroban-testnet.stellar.org
+SOROBAN_TESTNET_CONTRACT_ID=C...
+```
+
+Restart the dev server:
+
+```bash
+npm run dev
+```
+
+### 5. Verify the contract
+
+```bash
+stellar contract info interface \
+  --network testnet \
+  --contract-id YOUR_CONTRACT_ID
+```
+
+You should see `register_payment`, `deposit`, `release_deposit_to_operator`, `record_settlement`, and `refund_held_deposit`.
+
+## Script reference
+
+```bash
+./scripts/soroban-deploy-contract.sh --help
+```
+
+| Flag | Required | Description |
+|------|----------|-------------|
+| `--operator-account` | Yes | Stellar CLI identity for contract admin and authorization |
+| `--source-account` | Yes | Identity that pays deploy fees |
+| `--network` | No | Stellar CLI network name (default: `testnet`) |
+
+Supported networks are any name from:
+
+```bash
+stellar network ls
+```
+
+Common values: `testnet`, `mainnet`, `futurenet`, `local`.
+
+<Note>
+  Deploy fees are paid by `--source-account`. `initialize` is signed by `--operator-account` because the contract requires admin authorization.
+</Note>
+
+## Common checkout errors
+
+| Symptom | Fix |
+|---------|-----|
+| `soroban_not_configured` | Set `SOROBAN_TESTNET_CONTRACT_ID` and `SOROBAN_TESTNET_RPC_URL` |
+| `operator_not_configured` | Set `STELLAR_TESTNET_OPERATOR_SECRET` from script output |
+| `contract_not_initialized` | Re-run the deploy script on a fresh contract ID |
+| `unauthorized_signer` | Operator public key must match contract `authorization_signer`. Redeploy with the correct operator identity |
+| `payment_already_finalized` | Payment already settled, refunded, or simulated on-chain. Start a new checkout session |
+| `payment_not_registered` | Check operator funding, contract pause state, and server logs |
+
+## Redeploying after contract changes
+
+When the Rust contract changes:
+
+1. Re-run the deploy script (it creates a new contract ID)
+2. Update `SOROBAN_TESTNET_CONTRACT_ID` in `.env.local`
+3. Restart `npm run dev`
+
+Existing pending payments registered on the old contract cannot be completed on the new one.
+
+## Mainnet
+
+Use the same script with `--network mainnet` and set the `*_MAINNET_*` env vars instead:
+
+```bash
+./scripts/soroban-deploy-contract.sh \
+  --operator-account payoes-operator \
+  --source-account payoes-funder \
+  --network mainnet
+```
+
+Mainnet accounts must be funded outside Friendbot. Treat operator secrets as production credentials.
+
+## Reference Testnet deployment
+
+An example Testnet contract ID is documented in [Soroban payment router status](/guides/soroban-payment-router-status). Use your own deployment for local development unless you control that contract's authorization signer.

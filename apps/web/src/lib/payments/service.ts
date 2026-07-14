@@ -17,12 +17,11 @@ import { normalizeStellarAmount } from "@/lib/stellar/amount";
 import { resolveStellarTransactionHash } from "@/lib/stellar/transaction-hash";
 import {
   getEscrowDepositAddress,
-  isEscrowConfigured,
 } from "@/lib/stellar/escrow/config";
 import {
-  isSorobanConfigured,
   getSorobanConfig,
 } from "@/lib/soroban/config";
+import { assertSorobanConfigured } from "@/lib/soroban/setup-errors";
 import { ensureEscrowPaymentRegistered } from "@/lib/soroban/escrow-contract";
 import { DEFAULT_AUTH_URL } from "@/constants/app";
 import {
@@ -182,7 +181,8 @@ export async function createPayment(input: {
   const amount = input.pricingAmount
     ? PLACEHOLDER_PRICING_PAYMENT_AMOUNT
     : normalizeStellarAmount(input.amount);
-  const useEscrow = isEscrowConfigured(input.environment);
+
+  assertSorobanConfigured(input.environment);
 
   const [payment] = await db
     .insert(payments)
@@ -194,7 +194,7 @@ export async function createPayment(input: {
       paymentLinkId: input.paymentLinkId ?? null,
       invoiceId: input.invoiceId ?? null,
       environment: input.environment,
-      paymentFlow: useEscrow ? "escrow" : "soroban",
+      paymentFlow: "escrow",
       amount,
       pricingCurrency: input.pricingCurrency ?? null,
       pricingAmount: input.pricingAmount ?? null,
@@ -204,12 +204,8 @@ export async function createPayment(input: {
       settlementAssetIssuer: assetConfig.settlement_asset.issuer_address,
       allowedAssets: dbAllowedAssets(assetConfig.allowed_assets),
       receivingAddress: wallet.stellarAddress,
-      depositAddress: useEscrow
-        ? getEscrowDepositAddress(input.environment)
-        : null,
-      sorobanContractId: useEscrow && isSorobanConfigured(input.environment)
-        ? getSorobanConfig(input.environment).contractId
-        : null,
+      depositAddress: getEscrowDepositAddress(input.environment),
+      sorobanContractId: getSorobanConfig(input.environment).contractId,
       description: input.description?.trim() || null,
       metadata: input.metadata ?? null,
       memo: publicId.slice(0, 28),
@@ -225,8 +221,9 @@ export async function createPayment(input: {
     payload: serializePayment(payment, { customerPublicId }),
   });
 
-  await ensureEscrowPaymentRegistered(payment).catch((error) => {
-    console.error("Failed to register escrow payment on contract:", error);
+  await ensureEscrowPaymentRegistered(payment).catch(async (error) => {
+    await db.delete(payments).where(eq(payments.id, payment.id));
+    throw error;
   });
 
   return payment;
@@ -395,6 +392,32 @@ export async function applyPaymentQuote(
       updatedAt: new Date(),
     })
     .where(eq(payments.id, payment.id))
+    .returning();
+
+  return updated;
+}
+
+export async function recordEscrowContractDepositReceived(input: {
+  payment: Payment;
+  txHash: string;
+  payerAddress: string;
+  amount: string;
+  paidAsset: AllowedAsset;
+}) {
+  const [updated] = await db
+    .update(payments)
+    .set({
+      status: "deposit_received",
+      depositTxHash: input.txHash,
+      txHash: input.txHash,
+      payerAddress: input.payerAddress,
+      receivedAmount: normalizeStellarAmount(input.amount),
+      paidAsset: input.paidAsset.asset_code,
+      paidAssetIssuer: input.paidAsset.issuer_address,
+      confirmedAt: new Date(),
+      updatedAt: new Date(),
+    })
+    .where(eq(payments.id, input.payment.id))
     .returning();
 
   return updated;

@@ -173,7 +173,7 @@ payoes/
 | `(auth)`       | `/login`, `/register` | Sign in and account creation                   |
 | `dashboard`    | `/dashboard/*`  | Payments, customers, developers, and settings        |
 | `onboarding`   | `/onboarding/*` | Organization and settlement wallet setup              |
-| Public checkout| `/c/[paymentId]`, `/l/[linkId]`, `/i/[invoiceId]` | Hosted payment pages |
+| Public checkout| `/c/[paymentId]`, `/i/[invoiceId]` | Hosted payment pages |
 
 ### Workspaces
 

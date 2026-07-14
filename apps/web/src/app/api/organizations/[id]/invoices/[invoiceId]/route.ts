@@ -9,7 +9,6 @@ import {
   serializeInvoice,
   updateInvoice,
 } from "@/lib/invoices/service";
-import { getHostedInvoiceUrl } from "@/lib/invoices/url";
 import { getOrganizationForMember } from "@/lib/organizations/settlement-wallet";
 
 const updateInvoiceSchema = z.object({
@@ -45,7 +44,6 @@ async function getSerializedInvoice(
       checkoutUrl: detail.checkoutUrl,
       checkoutSessionPublicId: detail.checkoutSessionPublicId,
       items: detail.items,
-      hostedInvoiceUrl: getHostedInvoiceUrl(detail.invoice.publicId),
       customerName: detail.customerName,
       customerEmail: detail.customerEmail,
     }

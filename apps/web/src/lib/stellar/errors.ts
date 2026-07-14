@@ -24,3 +24,30 @@ export function formatHorizonSubmitError(error: unknown): string {
 
   return "Transaction failed when submitted to the Stellar network.";
 }
+
+export function isLiquiditySettlementError(error: unknown): boolean {
+  const raw =
+    error instanceof Error ? error.message : formatHorizonSubmitError(error);
+  const formatted = formatHorizonSubmitError(error);
+  const combined = `${raw} ${formatted}`.toLowerCase();
+
+  return (
+    combined.includes("no liquidity path") ||
+    combined.includes("not enough liquidity") ||
+    combined.includes("too few offers") ||
+    combined.includes("op_too_few_offers") ||
+    combined.includes("liquidity")
+  );
+}
+
+export function isEscrowDepositAlreadyReleasedError(error: unknown): boolean {
+  const message = (
+    error instanceof Error ? error.message : formatHorizonSubmitError(error)
+  ).toLowerCase();
+
+  return (
+    message.includes("invalidamount") ||
+    message.includes("#5") ||
+    message.includes("insufficient balance")
+  );
+}

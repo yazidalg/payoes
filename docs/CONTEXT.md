@@ -188,7 +188,7 @@ Capabilities:
 
 Hosted checkout flows (`cs_...`), equivalent to Stripe Checkout Sessions.
 
-Each session creates an underlying payment intent and exposes a checkout URL at `/c/cs_...`.
+Each session creates an underlying payment intent and exposes a checkout URL at `/c/cs_...`. Sessions are created when you finalize an invoice or when a customer visits a payment link.
 
 ---
 
@@ -199,7 +199,7 @@ Reusable shareable links (`plink_...`), equivalent to Stripe Payment Links.
 Example
 
 ```
-https://pay.payoes.com/l/plink_xxxxxx
+https://pay.payoes.com/c/plink_xxxxxx
 ```
 
 Each visit starts a new checkout session and payment intent.

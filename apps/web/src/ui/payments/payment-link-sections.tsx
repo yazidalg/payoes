@@ -11,7 +11,7 @@ export function PaymentLinkProductsSection({ link }: { link: PaymentLinkRow }) {
   return (
     <DetailSection
       title="Products"
-      description="Line items shown on the hosted page."
+      description="Line items shown on checkout."
       contentClassName="p-0"
     >
       <div className="divide-y divide-neutral-200">

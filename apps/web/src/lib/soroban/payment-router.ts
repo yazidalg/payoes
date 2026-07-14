@@ -15,6 +15,10 @@ import {
 import type { Payment } from "@/lib/db/schema";
 import { getNetworkPassphrase, getHorizonUrl } from "@/lib/stellar/network";
 import { getSorobanConfig } from "@/lib/soroban/config";
+import {
+  submitSorobanTransaction,
+  waitForSorobanTransaction,
+} from "@/lib/soroban/transaction";
 import { updatePaymentStatus } from "@/lib/payments/service";
 
 function paymentIdHash(payment: Payment) {
@@ -106,10 +110,10 @@ export async function submitSorobanPaymentTransaction(input: {
   const config = getSorobanConfig(input.payment.environment);
   const transaction = TransactionBuilder.fromXDR(
     input.signedXdr,
-    getNetworkPassphrase(input.payment.environment)
+    getNetworkPassphrase(input.payment.environment),
   );
   const server = new rpc.Server(config.rpcUrl);
-  return server.sendTransaction(transaction);
+  return submitSorobanTransaction(server, transaction);
 }
 
 export async function confirmSorobanPayment(input: {

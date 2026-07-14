@@ -35,6 +35,10 @@ Install these before you start:
     - **SMTP settings** — send team invitation and verification emails
     - **Persona API keys** — identity verification for production mode ([KYC setup](/local-setup/kyc-verification))
   </Accordion>
+  <Accordion title="Stellar / Soroban (payments)">
+    - **Stellar CLI** (`stellar`) and **Rust** (`cargo`) for contract deploy
+    - See [Soroban escrow setup](/local-setup/soroban-escrow-setup)
+  </Accordion>
 </AccordionGroup>
 
 ## Repository layout
@@ -53,6 +57,9 @@ payoes/
   <Step title="Getting started">
     Follow [Getting started](/local-setup/getting-started) to install dependencies, start Docker, configure `.env.local`, run migrations, and sign in.
   </Step>
+  <Step title="Soroban escrow">
+    Deploy the contract before creating payments. See [Soroban escrow setup](/local-setup/soroban-escrow-setup).
+  </Step>
   <Step title="Environment variables">
     Use [Environment variables](/local-setup/environment-variables) as a reference when you enable OAuth, SMTP, or Persona KYC.
   </Step>
@@ -65,5 +72,5 @@ payoes/
 </Steps>
 
 <Note>
-  You do **not** need Persona to develop sandbox payments, checkout, customers, or webhooks. Those features work on Stellar testnet with the default local setup.
+  Sandbox payments and checkout require a deployed Soroban escrow contract. Persona is only needed for production mode.
 </Note>

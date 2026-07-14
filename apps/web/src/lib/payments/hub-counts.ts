@@ -1,7 +1,6 @@
-import { and, count, eq } from "drizzle-orm";
+import { count } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
-  checkoutSessions,
   invoices,
   paymentLinks,
   payments,
@@ -16,12 +15,8 @@ export async function getPaymentsHubCounts(
   organizationId: string,
   environment: Organization["environment"],
 ): Promise<PaymentsHubCounts> {
-  const [
-    paymentIntentsCount,
-    checkoutSessionsCount,
-    invoicesCount,
-    paymentLinksCount,
-  ] = await Promise.all([
+  const [paymentIntentsCount, invoicesCount, paymentLinksCount] =
+    await Promise.all([
     db
       .select({ count: count() })
       .from(payments)
@@ -31,16 +26,6 @@ export async function getPaymentsHubCounts(
           payments.environment,
           organizationId,
           environment,
-        ),
-      ),
-    db
-      .select({ count: count() })
-      .from(checkoutSessions)
-      .innerJoin(payments, eq(checkoutSessions.paymentId, payments.id))
-      .where(
-        and(
-          eq(checkoutSessions.organizationId, organizationId),
-          eq(payments.environment, environment),
         ),
       ),
     db
@@ -69,7 +54,6 @@ export async function getPaymentsHubCounts(
 
   return {
     "payment-intents": paymentIntentsCount[0]?.count ?? 0,
-    "checkout-sessions": checkoutSessionsCount[0]?.count ?? 0,
     invoices: invoicesCount[0]?.count ?? 0,
     "payment-links": paymentLinksCount[0]?.count ?? 0,
   };

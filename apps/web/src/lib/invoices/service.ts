@@ -36,7 +36,6 @@ import {
   renderInvoiceEmailHtml,
   type InvoicePresentation,
 } from "@/lib/invoices/presentation";
-import { getHostedInvoiceUrl } from "@/lib/invoices/url";
 import { organizationEnvironmentWhere } from "@/lib/organizations/environment-scope";
 import {
   createCheckoutSession,
@@ -517,7 +516,6 @@ export async function buildInvoicePresentation(
         currencyCode
       ),
     })),
-    hostedInvoiceUrl: getHostedInvoiceUrl(invoice.publicId),
     checkoutUrl: options?.checkoutUrl ?? null,
   };
 }
@@ -898,7 +896,6 @@ export function serializeInvoice(
       quantity: string;
       unitAmount: string;
     }>;
-    hostedInvoiceUrl?: string | null;
     settlementAsset?: string | null;
     allowedAssets?: string[] | null;
     customerName?: string | null;
@@ -927,8 +924,6 @@ export function serializeInvoice(
     customer_email: options?.customerEmail ?? null,
     checkout_session_id: options?.checkoutSessionPublicId ?? null,
     checkout_url: options?.checkoutUrl ?? null,
-    hosted_invoice_url:
-      options?.hostedInvoiceUrl ?? getHostedInvoiceUrl(invoice.publicId),
     items:
       options?.items?.map((item) => ({
         description: item.description,
@@ -973,7 +968,6 @@ export async function serializeInvoices(
       {
         checkoutSessionPublicId: sessionPublicId,
         checkoutUrl: sessionPublicId ? getCheckoutSessionUrl(sessionPublicId) : null,
-        hostedInvoiceUrl: getHostedInvoiceUrl(row.publicId),
         customerName: row.customerName ?? null,
         customerEmail: row.customerEmail ?? null,
       }

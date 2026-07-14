@@ -1,11 +1,21 @@
-import { HostedInvoiceClient } from "@/components/invoices/hosted-invoice-client";
+import { redirect, notFound } from "next/navigation";
+import { getPublicInvoiceDetail } from "@/lib/invoices/service";
 
-export default async function HostedInvoicePage({
+export default async function HostedInvoiceRedirectPage({
   params,
 }: {
   params: Promise<{ invoiceId: string }>;
 }) {
   const { invoiceId } = await params;
+  const detail = await getPublicInvoiceDetail(invoiceId);
 
-  return <HostedInvoiceClient invoiceId={invoiceId} />;
+  if (!detail) {
+    notFound();
+  }
+
+  if (detail.checkoutUrl) {
+    redirect(detail.checkoutUrl);
+  }
+
+  notFound();
 }

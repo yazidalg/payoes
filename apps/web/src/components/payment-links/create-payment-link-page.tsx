@@ -310,11 +310,13 @@ export function CreatePaymentLinkPage({
 
             <div className="relative mx-auto flex w-full max-w-lg flex-col gap-8">
               {!isEditingItem ? (
-                <InvoiceCurrencyPicker
-                  value={currencyCode}
-                  onChange={setCurrencyCode}
-                  onTouch={() => touch("currencyCode")}
-                />
+                <div className="flex flex-col gap-8">
+                  <InvoiceCurrencyPicker
+                    value={currencyCode}
+                    onChange={setCurrencyCode}
+                    onTouch={() => touch("currencyCode")}
+                  />
+                </div>
               ) : null}
 
               <div className={cn("relative", isEditingItem && "z-20")}>
@@ -360,15 +362,16 @@ export function CreatePaymentLinkPage({
 
                   <div className="space-y-3">
                     <div>
-                      <FormFieldLabel htmlFor="payment-link-options">
-                        Additional options
+                      <FormFieldLabel htmlFor="payment-link-additional-info">
+                        Additional info
                       </FormFieldLabel>
                       <p className="text-content-subtle mt-1 text-xs">
-                        Collect extra customer details before checkout.
+                        Choose which customer details to collect on the checkout
+                        page.
                       </p>
                     </div>
 
-                    <div className="space-y-3">
+                    <div className="space-y-2">
                       <CollectionOption
                         title="Collect customer name"
                         description="Ask for the payer's full name on the payment page."
@@ -409,7 +412,7 @@ export function CreatePaymentLinkPage({
           </div>
 
           <div className="bg-bg-preview flex min-h-[420px] flex-col border-t border-neutral-200 px-6 py-6 lg:border-t-0 lg:border-l">
-            <div className="mx-auto flex h-full min-h-0 w-full max-w-xl flex-col">
+            <div className="flex h-full min-h-0 w-full flex-col">
               <PaymentLinkPreviewPanel
                 presentation={presentation}
                 environment={environment}

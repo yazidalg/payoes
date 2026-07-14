@@ -4,7 +4,6 @@ import {
   needsPaymentQuoteRefresh,
   refreshPaymentQuote,
 } from "@/lib/payments/quote-service";
-import { confirmPaymentWithTxHash } from "@/lib/payments/verify";
 import {
   getPaymentByPublicId,
   setPaymentPaidAsset,
@@ -75,16 +74,7 @@ export async function simulateSandboxPayment(
 
   try {
     const submitted = await submitSandboxPaymentTransaction(payment);
-    const confirmed = await confirmPaymentWithTxHash(
-      payment.publicId,
-      submitted.txHash,
-    );
-
-    if (!confirmed.ok) {
-      return { ok: false as const, error: confirmed.error };
-    }
-
-    return { ok: true as const, payment: confirmed.payment };
+    return { ok: true as const, payment: submitted.payment };
   } catch (error) {
     return {
       ok: false as const,
