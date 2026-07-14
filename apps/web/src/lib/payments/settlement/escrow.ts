@@ -284,6 +284,11 @@ async function settleCrossAssetEscrowPayment(input: {
     assetCode: receivedAsset.asset_code,
     issuerAddress: receivedAsset.issuer_address,
   };
+  const grossSettlementAmount =
+    settling.quotedSettlementAmount ?? settling.amount;
+  const merchantSettlementAmount =
+    settling.merchantSettlementAmount ??
+    calculateMerchantSettlementAmount(grossSettlementAmount);
 
   try {
     const result = await submitEscrowPathPayment({
@@ -295,40 +300,37 @@ async function settleCrossAssetEscrowPayment(input: {
         assetCode: settling.settlementAsset,
         issuerAddress: settling.settlementAssetIssuer,
       },
-      destAmount: settling.quotedSettlementAmount!,
+      destAmount: merchantSettlementAmount,
       environment: settling.environment,
       memo: settling.memo,
     });
 
     return {
       result,
-      grossAmount: receivedAmount,
-      merchantAmount:
-        settling.quotedSettlementAmount ??
-        calculateMerchantSettlementAmount(receivedAmount),
+      grossAmount: grossSettlementAmount,
+      merchantAmount: merchantSettlementAmount,
     };
   } catch (pathError) {
     if (!isLiquiditySettlementError(pathError)) {
       throw pathError;
     }
 
-    const merchantAmount =
-      settling.merchantSettlementAmount ??
-      calculateMerchantSettlementAmount(receivedAmount);
-
     const result = await submitEscrowPayment({
       keypair: escrow.keypair,
       destinationPublicKey: settling.receivingAddress,
-      amount: merchantAmount,
-      asset: paidAssetInput,
+      amount: merchantSettlementAmount,
+      asset: {
+        assetCode: settling.settlementAsset,
+        issuerAddress: settling.settlementAssetIssuer,
+      },
       environment: settling.environment,
       memo: settling.memo,
     });
 
     return {
       result,
-      grossAmount: receivedAmount,
-      merchantAmount,
+      grossAmount: grossSettlementAmount,
+      merchantAmount: merchantSettlementAmount,
     };
   }
 }
@@ -388,9 +390,9 @@ export async function processEscrowSettlement(payment: Payment) {
   const escrow = getEscrowConfig(payment.environment);
   const merchantAmount =
     payment.merchantSettlementAmount ??
-    payment.quotedSettlementAmount ??
-    payment.quotedPaidAmount ??
-    payment.amount;
+    calculateMerchantSettlementAmount(
+      payment.quotedSettlementAmount ?? payment.quotedPaidAmount ?? payment.amount
+    );
 
   try {
     if (requiresCrossAssetSettlement(settling)) {
@@ -448,7 +450,7 @@ export async function processEscrowSettlement(payment: Payment) {
     await syncEscrowContractSettlement(
       finalized,
       payerAddress,
-      receivedAmount,
+      payment.quotedSettlementAmount ?? payment.amount,
       merchantAmount
     );
 
@@ -476,7 +478,7 @@ export async function confirmEscrowDepositWithTxHash(
   publicId: string,
   txHash: string
 ) {
-  let payment = await getPaymentByPublicId(publicId);
+  const payment = await getPaymentByPublicId(publicId);
 
   if (!payment) {
     return { ok: false as const, error: "Payment not found" };

@@ -21,6 +21,8 @@ export type PaymentQuote = {
   expires_at: string;
 };
 
+export type AssetBalances = Record<string, string | null>;
+
 export type CheckoutData = {
   payment: {
     id: string;

@@ -19,7 +19,12 @@ import {
 } from "@/lib/payment-links/types";
 import { getPaymentLinkCustomerInputError } from "@/lib/payment-links/validate-customer-input";
 import { CheckoutAdditionalInfoFields } from "@/components/checkout/checkout-additional-info-fields";
-import type { AllowedAsset, CheckoutData, PaymentQuote } from "./checkout-types";
+import type {
+  AllowedAsset,
+  AssetBalances,
+  CheckoutData,
+  PaymentQuote,
+} from "./checkout-types";
 
 export function AssetIcon({ code, className }: { code: string; className?: string }) {
   const iconUrl = getAssetIconUrl(code);
@@ -163,6 +168,7 @@ export type CheckoutViewProps = {
   selectedPaidAsset: AllowedAsset | null;
   selectedPaidAssetKey: string;
   setSelectedPaidAssetKey: (key: string) => void;
+  assetBalances?: AssetBalances;
   isAssetDropdownOpen: boolean;
   setIsAssetDropdownOpen: (open: boolean) => void;
   isMobileItemsOpen: boolean;
@@ -177,6 +183,7 @@ export type CheckoutViewProps = {
   isConnecting: boolean;
   paymentBlocked: boolean;
   quoteError: string | null;
+  walletAssetError?: string | null;
   error: string | null;
   networkError: string | null;
   connectError: string | null;
@@ -185,6 +192,7 @@ export type CheckoutViewProps = {
   // Callbacks
   onSimulatePayment?: () => void;
   onConnectWallet?: () => void;
+  onUpdateWallet?: () => void;
   onPay?: () => void;
   onRetryConfirm?: () => void;
   disabled?: boolean;
@@ -215,6 +223,7 @@ export function CheckoutView({
   selectedPaidAsset,
   selectedPaidAssetKey,
   setSelectedPaidAssetKey,
+  assetBalances = {},
   isAssetDropdownOpen,
   setIsAssetDropdownOpen,
   isMobileItemsOpen,
@@ -229,6 +238,7 @@ export function CheckoutView({
   isConnecting,
   paymentBlocked,
   quoteError,
+  walletAssetError = null,
   error,
   networkError,
   connectError,
@@ -236,6 +246,7 @@ export function CheckoutView({
   dropdownRef,
   onSimulatePayment,
   onConnectWallet,
+  onUpdateWallet,
   onPay,
   onRetryConfirm,
   disabled = false,
@@ -760,12 +771,13 @@ export function CheckoutView({
                                   const key = assetKey(asset);
                                   const isSelected = selectedPaidAssetKey === key;
                                   const details = getAssetDetails(asset);
+                                  const unavailable = Boolean(address && assetBalances[key] === null);
 
                                   return (
                                     <button
                                       key={key}
                                       type="button"
-                                      disabled={disabled || isRefreshingRate}
+                                      disabled={disabled || isRefreshingRate || unavailable}
                                       onClick={() => {
                                         setSelectedPaidAssetKey(key);
                                         setIsAssetDropdownOpen(false);
@@ -775,13 +787,16 @@ export function CheckoutView({
                                         isSelected
                                           ? "bg-neutral-100 text-neutral-900"
                                           : "text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900",
+                                        unavailable && "cursor-not-allowed opacity-50",
                                       )}
                                     >
                                       <div className="flex items-center gap-2.5">
                                         <AssetIcon code={asset.asset_code} className="size-7 p-0.5" />
                                         <p className="text-sm font-medium">{details.name}</p>
                                       </div>
-                                      {isSelected ? (
+                                      {unavailable ? (
+                                        <span className="text-xs text-neutral-400">Unavailable</span>
+                                      ) : isSelected ? (
                                         <Check2 className="size-4 text-neutral-900" />
                                       ) : null}
                                     </button>
@@ -804,6 +819,7 @@ export function CheckoutView({
                       {quoteError && !isRefreshingRate ? (
                         <AlertBlock type="error">{quoteError}</AlertBlock>
                       ) : null}
+                      {walletAssetError ? <AlertBlock type="error">{walletAssetError}</AlertBlock> : null}
                       {error ? <AlertBlock type="error">{error}</AlertBlock> : null}
                       {networkError ? <AlertBlock type="error">{networkError}</AlertBlock> : null}
                       {connectError ? <AlertBlock type="error">{connectError}</AlertBlock> : null}
@@ -950,14 +966,29 @@ export function CheckoutView({
                           className="space-y-4"
                         >
                           {address ? (
-                            <ConnectedWallet
-                              address={address}
-                              networkLabel={
-                                data.payment.environment === "production" ? "Public" : "Testnet"
-                              }
-                              compact
-                              className="text-center"
-                            />
+                            <div className="space-y-2">
+                              <ConnectedWallet
+                                address={address}
+                                networkLabel={
+                                  data.payment.environment === "production" ? "Public" : "Testnet"
+                                }
+                                compact
+                                className="text-center"
+                              />
+                              {onUpdateWallet ? (
+                                <Button
+                                  type="button"
+                                  variant="secondary"
+                                  className={cn(
+                                    "w-full",
+                                    disabled ? "h-8 text-xs rounded-lg" : "h-9",
+                                  )}
+                                  text="Update wallet"
+                                  disabled={disabled || isPaying || isConfirming || isRefreshingRate}
+                                  onClick={onUpdateWallet}
+                                />
+                              ) : null}
+                            </div>
                           ) : null}
 
                           {pendingTxHash && isConfirming ? (

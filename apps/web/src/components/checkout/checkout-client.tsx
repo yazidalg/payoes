@@ -22,7 +22,12 @@ import { getOfficialAsset } from "@/lib/payment-methods/official-assets";
 
 import type { PaymentLinkCustomerInput } from "@/lib/payment-links/types";
 import { getPaymentLinkCustomerInputError } from "@/lib/payment-links/validate-customer-input";
-import type { AllowedAsset, CheckoutData, PaymentQuote } from "./checkout-types";
+import type {
+  AllowedAsset,
+  AssetBalances,
+  CheckoutData,
+  PaymentQuote,
+} from "./checkout-types";
 import { CheckoutView } from "./checkout-view";
 
 function assetKey(asset: AllowedAsset) {
@@ -65,9 +70,14 @@ function getInitialPaidAssetKey(allowedAssets: AllowedAsset[]) {
 
   const params = new URLSearchParams(window.location.search);
   const paidAssetCode = params.get("paid_asset");
+  const paidAssetIssuer = params.get("paid_asset_issuer");
 
   if (paidAssetCode) {
-    const match = allowedAssets.find((asset) => asset.asset_code === paidAssetCode);
+    const match = allowedAssets.find(
+      (asset) =>
+        asset.asset_code === paidAssetCode &&
+        (!paidAssetIssuer || asset.issuer_address === paidAssetIssuer)
+    );
 
     if (match) {
       return assetKey(match);
@@ -116,6 +126,7 @@ export function CheckoutClient({ paymentId }: { paymentId: string }) {
   const [isMobileItemsOpen, setIsMobileItemsOpen] = useState(false);
   const [quote, setQuote] = useState<PaymentQuote | null>(null);
   const [quoteError, setQuoteError] = useState<string | null>(null);
+  const [assetBalances, setAssetBalances] = useState<AssetBalances>({});
   const [isLoadingQuote, setIsLoadingQuote] = useState(false);
   const [pendingTxHash, setPendingTxHash] = useState<string | null>(() =>
     getStoredCheckoutTxHash(paymentId),
@@ -146,21 +157,75 @@ export function CheckoutClient({ paymentId }: { paymentId: string }) {
   }
 
   const environment = data?.payment.environment ?? "sandbox";
-  const { address, connect, isConnecting, networkError, connectError } = useStellarWallet(environment);
+  const {
+    address,
+    connect,
+    disconnect,
+    isConnecting,
+    networkError,
+    connectError,
+  } = useStellarWallet(environment);
 
-  const allowedAssets = data?.payment.allowed_assets ?? [];
+  const handleUpdateWallet = useCallback(async () => {
+    await disconnect();
+    await connect();
+  }, [connect, disconnect]);
+
+  const allowedAssets = useMemo(
+    () => data?.payment.allowed_assets ?? [],
+    [data?.payment.allowed_assets],
+  );
   const assetOptions = useMemo(
     () => allowedAssets.map(assetToOption),
     [allowedAssets],
   );
 
   const selectedPaidAsset = useMemo(() => {
-    return (
-      allowedAssets.find((asset) => assetKey(asset) === selectedPaidAssetKey) ??
-      allowedAssets[0] ??
-      null
-    );
+    return allowedAssets.find((asset) => assetKey(asset) === selectedPaidAssetKey) ?? null;
   }, [allowedAssets, selectedPaidAssetKey]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadAssetBalances() {
+      if (!address || allowedAssets.length === 0) {
+        setAssetBalances({});
+        return;
+      }
+
+      try {
+        const account = await new Horizon.Server(getHorizonUrl(environment)).loadAccount(address);
+        const nextBalances: AssetBalances = {};
+
+        for (const asset of allowedAssets) {
+          const balance = account.balances.find((entry) =>
+            asset.asset_code === "XLM"
+              ? entry.asset_type === "native"
+              : "asset_code" in entry &&
+                entry.asset_code === asset.asset_code &&
+                "asset_issuer" in entry &&
+                entry.asset_issuer === asset.issuer_address
+          );
+
+          nextBalances[assetKey(asset)] = balance?.balance ?? null;
+        }
+
+        if (!cancelled) {
+          setAssetBalances(nextBalances);
+        }
+      } catch {
+        if (!cancelled) {
+          setAssetBalances({});
+        }
+      }
+    }
+
+    void loadAssetBalances();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [address, allowedAssets, environment]);
 
   const selectedAssetOption = useMemo(
     () => assetOptions.find((option) => option.value === selectedPaidAssetKey) ?? null,
@@ -247,8 +312,27 @@ export function CheckoutClient({ paymentId }: { paymentId: string }) {
     void loadQuote();
   }, [loadQuote]);
 
+  const selectedAssetKey = selectedPaidAsset ? assetKey(selectedPaidAsset) : null;
+  const selectedAssetBalance = selectedAssetKey
+    ? assetBalances[selectedAssetKey]
+    : undefined;
+  const walletAssetCheckLoading = Boolean(
+    address && selectedAssetKey && !(selectedAssetKey in assetBalances)
+  );
+  const walletAssetError =
+    address && selectedPaidAsset && selectedAssetBalance === null
+      ? `${selectedPaidAsset.asset_code} is not available in this wallet. Add the trustline or choose another asset.`
+      : address &&
+          selectedPaidAsset &&
+          quote &&
+          selectedAssetBalance &&
+          Number(selectedAssetBalance) < Number(quote.paid_amount)
+        ? `Insufficient ${selectedPaidAsset.asset_code} balance. Choose another asset or fund this wallet.`
+        : null;
   const paymentBlocked =
-    hasPricing && (!quote || isLoadingQuote || quoteExpired || isRefreshingRate);
+    (hasPricing && (!quote || isLoadingQuote || quoteExpired || isRefreshingRate)) ||
+    walletAssetCheckLoading ||
+    Boolean(walletAssetError);
 
   const showQuoteAmountLoading = isLoadingQuote && !quote;
   const showQrLoading = isLoadingQuote && (isRefreshingRate || !quote);
@@ -694,6 +778,7 @@ export function CheckoutClient({ paymentId }: { paymentId: string }) {
       selectedPaidAsset={selectedPaidAsset}
       selectedPaidAssetKey={selectedPaidAssetKey}
       setSelectedPaidAssetKey={setSelectedPaidAssetKey}
+      assetBalances={assetBalances}
       isAssetDropdownOpen={isAssetDropdownOpen}
       setIsAssetDropdownOpen={setIsAssetDropdownOpen}
       isMobileItemsOpen={isMobileItemsOpen}
@@ -708,6 +793,7 @@ export function CheckoutClient({ paymentId }: { paymentId: string }) {
       isConnecting={isConnecting}
       paymentBlocked={paymentBlocked}
       quoteError={quoteError}
+      walletAssetError={walletAssetError}
       error={error}
       networkError={networkError}
       connectError={connectError}
@@ -715,6 +801,7 @@ export function CheckoutClient({ paymentId }: { paymentId: string }) {
       dropdownRef={dropdownRef}
       onSimulatePayment={() => void handleSimulatePayment()}
       onConnectWallet={() => void connect()}
+      onUpdateWallet={() => void handleUpdateWallet()}
       onPay={() => void handlePay()}
       onRetryConfirm={() => {
         setConfirmExhausted(false);

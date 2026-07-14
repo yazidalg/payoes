@@ -186,6 +186,6 @@ fn holds_cross_asset_deposit_until_settlement() {
     assert_eq!(paid_token_client.balance(&authorization_signer), 1_000);
     assert_eq!(paid_token_client.balance(&contract_address), 0);
 
-    client.record_settlement(&payment_id, &payer, &1_000, &870);
+    client.record_settlement(&payment_id, &payer, &900, &870);
     assert_eq!(client.get_payment(&payment_id).status, PaymentStatus::Settled);
 }

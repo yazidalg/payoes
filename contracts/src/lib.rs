@@ -219,7 +219,7 @@ impl Payoes {
         if required_amount <= 0
             || settlement_amount <= 0
             || platform_fee < 0
-            || platform_fee > required_amount
+            || platform_fee > settlement_amount
         {
             panic_with_error!(&env, Error::InvalidAmount);
         }
@@ -464,11 +464,17 @@ impl Payoes {
         let mut record = load_payment(&env, &payment_key);
         ensure_settleable(&env, &record);
 
+        if gross_amount <= 0
+            || merchant_amount < 0
+            || merchant_amount > gross_amount
+            || gross_amount - merchant_amount != record.platform_fee
+        {
+            panic_with_error!(&env, Error::InvalidAmount);
+        }
+
         record.status = PaymentStatus::Settled;
         record.held_amount = 0;
         env.storage().persistent().set(&payment_key, &record);
-
-        let platform_fee = gross_amount - merchant_amount;
 
         PaymentSettled {
             payment_id,
@@ -476,7 +482,7 @@ impl Payoes {
             merchant: record.merchant,
             token: record.settlement_token,
             gross_amount,
-            platform_fee_amount: platform_fee,
+            platform_fee_amount: record.platform_fee,
         }
         .publish(&env);
     }

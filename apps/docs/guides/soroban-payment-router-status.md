@@ -92,7 +92,7 @@ The operator secret must only be available to the server runtime or a secrets ma
 - The event ingestion worker has not been implemented.
 - `stellar_transactions` and `soroban_events` are not populated by the current checkout confirmation flow.
 - `blockchain_status`, `soroban_contract_id`, and `merchant_settlement_amount` are not updated after successful checkout confirmation.
-- Platform fee configuration has no dashboard or public API control yet. New payments default to a zero platform fee.
+- Platform fee configuration has no dashboard or public API control yet. Normal payments apply a fixed 1% fee, rounded down to stroops. The fee is calculated in the settlement asset, while manually recorded payments remain fee-free.
 - Soroban checkout requires a configured escrow contract for all new payments.
 - Cross-asset deposits are held on the contract and settled by the operator worker.
 - Mainnet deployment, contract audit, key management policy, monitoring, and alerting remain required.

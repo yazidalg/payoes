@@ -238,13 +238,21 @@ export async function recordEscrowSettlementOnContract(input: {
   grossAmount: string;
   merchantAmount: string;
 }) {
+  const platformFeeAmount = amountToStroops(input.payment.platformFeeAmount);
+  const grossAmount = amountToStroops(input.grossAmount);
+  const merchantAmount = amountToStroops(input.merchantAmount);
+
+  if (grossAmount - merchantAmount !== platformFeeAmount) {
+    throw new Error("Escrow settlement amounts do not reconcile");
+  }
+
   return invokeEscrowContract(input.payment, (contract) =>
     contract.call(
       "record_settlement",
       xdr.ScVal.scvBytes(paymentIdHash(input.payment)),
       nativeToScVal(input.payerAddress, { type: "address" }),
-      nativeToScVal(amountToStroops(input.grossAmount), { type: "i128" }),
-      nativeToScVal(amountToStroops(input.merchantAmount), { type: "i128" })
+      nativeToScVal(grossAmount, { type: "i128" }),
+      nativeToScVal(merchantAmount, { type: "i128" })
     )
   );
 }

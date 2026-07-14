@@ -29,7 +29,8 @@ export function needsPaymentQuoteRefresh(
     !payment.quotedPaidAmount ||
     !payment.quoteExpiresAt ||
     isQuoteExpired(payment.quoteExpiresAt) ||
-    payment.paidAsset !== paidAsset.asset_code
+    payment.paidAsset !== paidAsset.asset_code ||
+    payment.paidAssetIssuer !== paidAsset.issuer_address
   );
 }
 

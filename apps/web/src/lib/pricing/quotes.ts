@@ -31,10 +31,6 @@ function getQuoteTtlMinutes() {
     : DEFAULT_INVOICE_QUOTE_TTL_MINUTES;
 }
 
-function getSettlementFiatCode(assetCode: string): InvoiceCurrencyCode {
-  return STABLECOIN_FIAT_MAP[assetCode] ?? "USD";
-}
-
 async function getFiatPerUsd(fiatCurrency: InvoiceCurrencyCode) {
   if (fiatCurrency === "USD") {
     return 1;
@@ -122,29 +118,6 @@ async function fetchFiatPerUsd(fiatCurrency: InvoiceCurrencyCode) {
   });
 
   return fiatPerUsd;
-}
-
-async function convertFiatAmount(
-  amount: string,
-  from: InvoiceCurrencyCode,
-  to: InvoiceCurrencyCode
-) {
-  if (from === to) {
-    return amount;
-  }
-
-  const numeric = Number(amount);
-
-  if (!Number.isFinite(numeric) || numeric <= 0) {
-    throw new Error("Invalid amount for conversion");
-  }
-
-  const fromPerUsd = await getFiatPerUsd(from);
-  const toPerUsd = await getFiatPerUsd(to);
-  const usdAmount = numeric / fromPerUsd;
-  const converted = usdAmount * toPerUsd;
-
-  return converted.toFixed(7);
 }
 
 async function fetchAssetPriceInFiat(
@@ -275,13 +248,17 @@ export async function buildPaymentQuote(input: {
   );
   assertQuoteUsdValue(invoiceUsdValue, paidAmount, paidAssetUsdPrice);
 
-  const settlementFiat = getSettlementFiatCode(input.settlementAsset.asset_code);
-  const settlementFiatAmount = await convertFiatAmount(
-    input.pricingAmount,
-    input.pricingCurrency,
-    settlementFiat
-  );
-  const settlementAmount = normalizeStellarAmount(settlementFiatAmount);
+  const settlementAmount = assetsMatch(input.paidAsset, input.settlementAsset)
+    ? paidAmount
+    : normalizeStellarAmount(
+        (
+          invoiceTotal /
+          (await fetchAssetPriceInFiat(
+            input.settlementAsset.asset_code,
+            input.pricingCurrency
+          ))
+        ).toFixed(7)
+      );
 
   const paidNumeric = Number(paidAmount);
   const settlementNumeric = Number(settlementAmount);

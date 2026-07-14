@@ -198,8 +198,12 @@ export async function createPayment(input: {
       amount,
       pricingCurrency: input.pricingCurrency ?? null,
       pricingAmount: input.pricingAmount ?? null,
-      platformFeeAmount: calculatePlatformFeeAmount(amount),
-      merchantSettlementAmount: calculateMerchantSettlementAmount(amount),
+      platformFeeAmount: input.pricingAmount
+        ? "0.0000000"
+        : calculatePlatformFeeAmount(amount),
+      merchantSettlementAmount: input.pricingAmount
+        ? null
+        : calculateMerchantSettlementAmount(amount),
       settlementAsset: assetConfig.settlement_asset.asset_code,
       settlementAssetIssuer: assetConfig.settlement_asset.issuer_address,
       allowedAssets: dbAllowedAssets(assetConfig.allowed_assets),
@@ -385,9 +389,11 @@ export async function applyPaymentQuote(
       quoteRate: quote.rate,
       settlementQuoteRate: quote.settlementQuoteRate ?? null,
       quoteExpiresAt: quote.expiresAt,
-      platformFeeAmount: calculatePlatformFeeAmount(quote.paidAmount),
+      platformFeeAmount: calculatePlatformFeeAmount(
+        quote.settlementAmount ?? quote.paidAmount
+      ),
       merchantSettlementAmount: calculateMerchantSettlementAmount(
-        quote.paidAmount
+        quote.settlementAmount ?? quote.paidAmount
       ),
       updatedAt: new Date(),
     })
@@ -514,6 +520,8 @@ export function serializePayment(
     quote_rate: payment.quoteRate,
     settlement_quote_rate: payment.settlementQuoteRate,
     quote_expires_at: payment.quoteExpiresAt,
+    platform_fee_amount: payment.platformFeeAmount,
+    merchant_settlement_amount: payment.merchantSettlementAmount,
     ...assets,
     status: payment.status,
     description: payment.description,
