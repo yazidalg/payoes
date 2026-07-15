@@ -1,6 +1,7 @@
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { payments, type Payment } from "@/lib/db/schema";
+import { markDepositTxHandled } from "@/lib/payments/settlement/deposit-tracking";
 import {
   REFUND_REASONS,
   type RefundReason,
@@ -34,6 +35,10 @@ export function formatRefundReasonForCheckout(reason: string | null | undefined)
 }
 
 export async function resetPaymentForRetry(payment: Payment) {
+  const metadata = payment.depositTxHash
+    ? markDepositTxHandled(payment.metadata, payment.depositTxHash)
+    : payment.metadata;
+
   const [updated] = await db
     .update(payments)
     .set({
@@ -45,6 +50,7 @@ export async function resetPaymentForRetry(payment: Payment) {
       settlementTxHash: null,
       txHash: null,
       payerAddress: null,
+      metadata,
       updatedAt: new Date(),
     })
     .where(eq(payments.id, payment.id))

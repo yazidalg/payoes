@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNotNull } from "drizzle-orm";
+import { and, eq, inArray, isNotNull, notInArray } from "drizzle-orm";
 import { Horizon } from "@stellar/stellar-sdk";
 import { findAllowedAsset } from "@/lib/assets/types";
 import type { AllowedAsset } from "@/lib/assets/types";
@@ -17,6 +17,11 @@ import {
   needsPaymentQuoteRefresh,
   refreshPaymentQuote,
 } from "@/lib/payments/quote-service";
+import {
+  isDepositTxAlreadyHandled,
+  isEscrowRefundTerminal,
+  markDepositTxHandled,
+} from "@/lib/payments/settlement/deposit-tracking";
 import {
   REFUND_REASONS,
   type RefundReason,
@@ -153,7 +158,10 @@ export async function registerEscrowDeposit(input: {
   receivedAmount: string;
   paidAsset: AllowedAsset;
 }) {
-  if (input.payment.depositTxHash === input.depositTxHash) {
+  if (
+    input.payment.depositTxHash === input.depositTxHash ||
+    isDepositTxAlreadyHandled(input.payment, input.depositTxHash)
+  ) {
     return input.payment;
   }
 
@@ -178,6 +186,30 @@ export async function registerEscrowDeposit(input: {
   return processEscrowSettlement(withDeposit);
 }
 
+async function claimRefundAttempt(payment: Payment, reason: RefundReason) {
+  const depositTxHash = payment.depositTxHash;
+
+  const [claimed] = await db
+    .update(payments)
+    .set({
+      status: "refunding",
+      refundReason: reason,
+      metadata: depositTxHash
+        ? markDepositTxHandled(payment.metadata, depositTxHash)
+        : payment.metadata,
+      updatedAt: new Date(),
+    })
+    .where(
+      and(
+        eq(payments.id, payment.id),
+        notInArray(payments.status, ["refunding", "refunded"])
+      )
+    )
+    .returning();
+
+  return claimed ?? null;
+}
+
 async function executeRefund(
   payment: Payment,
   reason: RefundReason,
@@ -185,13 +217,22 @@ async function executeRefund(
   payerAddress: string,
   options?: { depositHeld?: boolean; forceDirect?: boolean }
 ) {
+  if (isEscrowRefundTerminal(payment)) {
+    return payment;
+  }
+
+  const depositTxHash = payment.depositTxHash;
+  if (depositTxHash && isDepositTxAlreadyHandled(payment, depositTxHash)) {
+    return payment;
+  }
+
   const escrow = getEscrowConfig(payment.environment);
   const asset = paidAsset(payment);
 
-  const refunding = await patchPayment(payment, {
-    status: "refunding",
-    refundReason: reason,
-  });
+  const refunding = await claimRefundAttempt(payment, reason);
+  if (!refunding) {
+    return payment;
+  }
 
   try {
     if (
@@ -398,11 +439,23 @@ export async function processEscrowSettlement(payment: Payment) {
     return payment;
   }
 
-  if (payment.status === "refunded" || payment.status === "expired") {
+  if (
+    payment.status === "refunded" ||
+    payment.status === "expired" ||
+    payment.status === "refunding" ||
+    isEscrowRefundTerminal(payment)
+  ) {
     return payment;
   }
 
   if (payment.status === "completed" && payment.settlementTxHash) {
+    return payment;
+  }
+
+  if (
+    payment.depositTxHash &&
+    isDepositTxAlreadyHandled(payment, payment.depositTxHash)
+  ) {
     return payment;
   }
 
@@ -584,6 +637,17 @@ export async function processPendingEscrowSettlements() {
       continue;
     }
 
+    if (payment.status === "refunding" || isEscrowRefundTerminal(payment)) {
+      continue;
+    }
+
+    if (
+      payment.depositTxHash &&
+      isDepositTxAlreadyHandled(payment, payment.depositTxHash)
+    ) {
+      continue;
+    }
+
     await processEscrowSettlement(payment);
     processed += 1;
   }
@@ -609,15 +673,23 @@ async function relayManualEscrowDeposit(payment: Payment, txHash: string) {
     return false;
   }
 
+  if (isDepositTxAlreadyHandled(payment, txHash)) {
+    return false;
+  }
+
+  let activePayment = await patchPayment(payment, {
+    metadata: markDepositTxHandled(payment.metadata, txHash),
+  });
+
   const allowed = findAllowedAsset(
-    payment.allowedAssets ?? [],
+    activePayment.allowedAssets ?? [],
     inbound.paidAsset.asset_code,
     inbound.paidAsset.issuer_address,
   );
 
   if (!allowed) {
     const refunded = await refundManualEscrowDeposit(
-      payment,
+      activePayment,
       txHash,
       inbound.payerAddress,
       inbound.receivedAmount,
@@ -627,7 +699,6 @@ async function relayManualEscrowDeposit(payment: Payment, txHash: string) {
     return refunded.status === "refunded";
   }
 
-  let activePayment = payment;
   try {
     if (
       activePayment.pricingCurrency &&

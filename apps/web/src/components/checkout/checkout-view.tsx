@@ -3,15 +3,14 @@
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { cn } from "@dub/utils";
-import { Badge, Button, CopyButton, Tooltip, InfoTooltip } from "@dub/ui";
+import { Badge, Button, CopyButton, Tooltip } from "@dub/ui";
 import { Check2, LoadingSpinner } from "@dub/ui/icons";
 import { getAssetIconUrl } from "@/lib/assets/icons";
 import { getOfficialAsset } from "@/lib/payment-methods/official-assets";
 import { ConnectedWallet } from "@/ui/wallet/connected-wallet";
 import { CheckoutSandboxBanner } from "@/components/checkout/checkout-sandbox-banner";
-import { CheckoutErrorBanner } from "@/components/checkout/checkout-error-banner";
+import { CheckoutAlertBanner } from "@/components/checkout/checkout-error-banner";
 import { BusinessMark } from "@/components/business/business-mark";
-import { AlertBlock } from "@/components/shared/alert-block";
 import { formatInvoiceAmount } from "@/lib/invoices/amount";
 import { formatAmountWithUnit, formatTokenWithAsset } from "@/lib/format/amount";
 import {
@@ -230,6 +229,78 @@ function getCheckoutErrorMessage(input: {
   );
 }
 
+type CheckoutAlert = {
+  type: "info" | "error";
+  message: string;
+  key: string;
+};
+
+function getCheckoutAlert(input: {
+  disabled?: boolean;
+  isDetailsPanel: boolean;
+  isPaymentPanel: boolean;
+  detailsError: string | null;
+  isSessionExpired: boolean;
+  sessionError?: string | null;
+  error: string | null;
+  quoteError: string | null;
+  walletAssetError?: string | null;
+  networkError: string | null;
+  connectError: string | null;
+  isRefreshingRate: boolean;
+  lastAttemptError: string | null | undefined;
+}): CheckoutAlert | null {
+  if (input.disabled) {
+    return null;
+  }
+
+  if (input.isDetailsPanel && input.detailsError) {
+    return {
+      type: "error",
+      message: input.detailsError,
+      key: `details-error:${input.detailsError}`,
+    };
+  }
+
+  const checkoutErrorMessage = getCheckoutErrorMessage({
+    isSessionExpired: input.isSessionExpired,
+    sessionError: input.sessionError,
+    error: input.error,
+    quoteError: input.quoteError,
+    walletAssetError: input.walletAssetError,
+    networkError: input.networkError,
+    connectError: input.connectError,
+    isRefreshingRate: input.isRefreshingRate,
+  });
+
+  if (checkoutErrorMessage) {
+    return {
+      type: "error",
+      message: checkoutErrorMessage,
+      key: `checkout-error:${checkoutErrorMessage}`,
+    };
+  }
+
+  if (input.isPaymentPanel && input.isRefreshingRate) {
+    return {
+      type: "info",
+      message:
+        "Rate lock is refreshing. Payment actions are paused until the new rate is ready.",
+      key: "rate-refresh",
+    };
+  }
+
+  if (input.isPaymentPanel && input.lastAttemptError) {
+    return {
+      type: "info",
+      message: `${input.lastAttemptError} You can try again below using the same payment link.`,
+      key: `last-attempt:${input.lastAttemptError}`,
+    };
+  }
+
+  return null;
+}
+
 export function CheckoutView({
   data,
   isCompleted,
@@ -284,10 +355,6 @@ export function CheckoutView({
   customerInput,
   onCustomerInputChange,
 }: CheckoutViewProps) {
-  const isMuxedEscrowAddress = qrDestination.startsWith("M");
-  const qrMemoParams = isMuxedEscrowAddress
-    ? ""
-    : `&memo=${encodeURIComponent(data.payment.memo ?? "")}&memo_type=MEMO_TEXT`;
   const lineItems = data.items ?? [];
   const showCustomerInfoFields =
     hasCustomerCollection(data.customer_collection) &&
@@ -330,7 +397,11 @@ export function CheckoutView({
   const showCustomerPanelTabs = showCustomerInfoFields;
   const isDetailsPanel = showCustomerPanelTabs && customerPanel === "details";
   const isPaymentPanel = !showCustomerPanelTabs || customerPanel === "payment";
-  const checkoutErrorMessage = getCheckoutErrorMessage({
+  const checkoutAlert = getCheckoutAlert({
+    disabled,
+    isDetailsPanel,
+    isPaymentPanel,
+    detailsError,
     isSessionExpired,
     sessionError: data.payment.session_error,
     error,
@@ -339,8 +410,9 @@ export function CheckoutView({
     networkError,
     connectError,
     isRefreshingRate,
+    lastAttemptError,
   });
-  const showCheckoutErrorBanner = Boolean(checkoutErrorMessage) && !disabled;
+  const showCheckoutAlertBanner = Boolean(checkoutAlert);
   const hideSandboxSimulate =
     disabled ||
     isCompleted ||
@@ -357,7 +429,7 @@ export function CheckoutView({
   }
 
   return (
-    <div className={cn("relative bg-white text-left flex flex-col flex-1 @container", disabled || embedded ? "min-h-full h-full" : "min-h-svh", showCheckoutErrorBanner && "pb-16")}>
+    <div className={cn("relative bg-white text-left flex flex-col flex-1 @container", disabled || embedded ? "min-h-full h-full" : "min-h-svh", showCheckoutAlertBanner && "pb-16")}>
       <div className={cn("relative z-10 flex flex-col flex-1", disabled || embedded ? "h-full" : "min-h-svh")}>
         {/* Hide sandbox banner when in preview (disabled) */}
         {isSandbox && !disabled ? (
@@ -715,9 +787,6 @@ export function CheckoutView({
                       readOnly={disabled && !onCustomerInputChange}
                       size={disabled ? "preview" : "default"}
                     />
-                    {detailsError ? (
-                      <AlertBlock type="error">{detailsError}</AlertBlock>
-                    ) : null}
                     <Button
                       type="button"
                       className={cn("w-full", disabled ? "h-8 text-xs rounded-lg" : "h-10")}
@@ -745,13 +814,6 @@ export function CheckoutView({
                   </p>
                 ) : (
                   <div className={cn(disabled ? "space-y-4" : "space-y-5")}>
-                    {lastAttemptError ? (
-                      <AlertBlock type="info">
-                        {lastAttemptError} You can try again below using the same payment
-                        link and memo.
-                      </AlertBlock>
-                    ) : null}
-
                     {allowedAssets.length > 1 ? (
                       <div ref={dropdownRef} className="relative space-y-1.5">
                         <label className={cn("font-medium text-neutral-900", disabled ? "text-xs" : "text-sm")}>
@@ -860,15 +922,6 @@ export function CheckoutView({
                       </div>
                     ) : null}
 
-                    <div className="space-y-3">
-                      {isRefreshingRate ? (
-                        <AlertBlock type="info">
-                          Rate lock is refreshing. Payment actions are paused until the
-                          new rate is ready.
-                        </AlertBlock>
-                      ) : null}
-                    </div>
-
                     {/* Payment Method Selector Tabs */}
                     <div
                       className={cn(
@@ -935,7 +988,7 @@ export function CheckoutView({
                                         qrDestination
                                       )}&amount=${encodeURIComponent(
                                         displayAmount
-                                      )}${qrMemoParams}` +
+                                      )}` +
                                         (selectedPaidAsset &&
                                         selectedPaidAsset.asset_code !== "XLM" &&
                                         selectedPaidAsset.issuer_address
@@ -966,29 +1019,6 @@ export function CheckoutView({
                                 </div>
                                 <CopyButton
                                   value={qrDestination}
-                                  className={cn("shrink-0", (disabled || isRefreshingRate) && "pointer-events-none opacity-50")}
-                                />
-                              </div>
-
-                              <div className="flex items-center justify-between gap-4 border-t border-neutral-100 pt-3">
-                                <div className="min-w-0">
-                                  <div className="flex items-center gap-1.5">
-                                    <p className={cn("font-medium text-neutral-900", disabled ? "text-[10px]" : "text-sm")}>Memo</p>
-                                    <span className="text-neutral-400 font-semibold text-[9px] uppercase tracking-wider">
-                                      {isMuxedEscrowAddress ? "(Not required)" : "(Required)"}
-                                    </span>
-                                    <InfoTooltip
-                                      content={
-                                        isMuxedEscrowAddress
-                                          ? "This muxed address identifies your payment. A memo is not required."
-                                          : "You must include this memo in your transaction or your funds will be lost."
-                                      }
-                                    />
-                                  </div>
-                                  <p className={cn("truncate font-mono text-neutral-500", disabled ? "text-xs" : "text-sm")}>{data.payment.memo}</p>
-                                </div>
-                                <CopyButton
-                                  value={data.payment.memo ?? ""}
                                   className={cn("shrink-0", (disabled || isRefreshingRate) && "pointer-events-none opacity-50")}
                                 />
                               </div>
@@ -1120,9 +1150,15 @@ export function CheckoutView({
           </div>
         </div>
       </div>
-      {showCheckoutErrorBanner && checkoutErrorMessage ? (
-        <CheckoutErrorBanner message={checkoutErrorMessage} />
-      ) : null}
+      <AnimatePresence mode="wait">
+        {checkoutAlert ? (
+          <CheckoutAlertBanner
+            key={checkoutAlert.key}
+            type={checkoutAlert.type}
+            message={checkoutAlert.message}
+          />
+        ) : null}
+      </AnimatePresence>
     </div>
   );
 }
