@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { type ComponentType, useEffect, useRef, useState } from "react";
+import { Wordmark } from "@dub/ui";
 import { cn } from "@/lib/utils";
 import {
   InvoiceGraphic,
@@ -208,9 +209,9 @@ export function Nav() {
       <div className="mx-auto flex h-16 max-w-screen-xl items-center justify-between px-6 lg:px-8">
         <Link
           href="/"
-          className="font-display text-2xl font-black tracking-tight text-neutral-900"
+          className="block rounded-lg outline-none transition-opacity focus-visible:ring-2 focus-visible:ring-primary/50"
         >
-          Payoes
+          <Wordmark className="h-5 overflow-visible" />
         </Link>
 
         <nav className="hidden items-center gap-8 md:flex">

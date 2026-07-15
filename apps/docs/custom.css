@@ -2,3 +2,17 @@
 #footer a[href*="utm_campaign=poweredBy"] {
   display: none !important;
 }
+
+/* Align accent colors with the web app dashboard brand */
+:root {
+  --primary: #054fbf;
+  --primary-dark: #043a99;
+}
+
+/* Hide Mintlify Ask Assistant UI */
+#assistant-entry,
+#assistant-entry-mobile,
+#chat-assistant-sheet,
+.chat-assistant-floating-input {
+  display: none !important;
+}

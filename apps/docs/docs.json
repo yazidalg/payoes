@@ -4,27 +4,20 @@
   "description": "Developer-first payment infrastructure for the Stellar ecosystem.",
   "theme": "mint",
   "colors": {
-    "primary": "#18181b",
-    "light": "#e4e4e7",
-    "dark": "#18181b"
+    "primary": "#054fbf",
+    "light": "#e8f0fc",
+    "dark": "#043a99"
   },
   "logo": {
-    "light": "/images/logo-light.svg",
-    "dark": "/images/logo-dark.svg"
+    "light": "/images/logo.svg",
+    "dark": "/images/logo.svg"
   },
-  "favicon": "/images/favicon.svg",
+  "favicon": "/images/logo.svg",
   "navbar": {
-    "links": [
-      {
-        "label": "Dashboard",
-        "href": "https://payoes.com/dashboard"
-      }
-    ],
-    "primary": {
-      "type": "button",
-      "label": "Get started",
-      "href": "/quickstart"
-    }
+    "links": []
+  },
+  "contextual": {
+    "options": ["copy", "view"]
   },
   "footer": {
     "socials": {}

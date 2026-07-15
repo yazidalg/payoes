@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Wordmark } from "@dub/ui";
 
 const FOOTER_COLUMNS: { title: string; links: { label: string; href: string }[] }[] = [
   {
@@ -45,9 +46,9 @@ export function Footer() {
           <div className="col-span-2 sm:col-span-3 lg:col-span-1">
             <Link
               href="/"
-              className="font-display text-xl font-black tracking-tight text-neutral-900"
+              className="inline-block rounded-lg outline-none transition-opacity focus-visible:ring-2 focus-visible:ring-primary/50"
             >
-              Payoes
+              <Wordmark className="h-6 overflow-visible" />
             </Link>
             <p className="mt-3 max-w-xs text-sm text-neutral-500">
               Stellar payment infrastructure for modern teams.
