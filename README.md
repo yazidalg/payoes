@@ -107,28 +107,11 @@ Payoes bridges this gap by providing a developer first payment infrastructure th
 | Testnet Smart Contract     | CDD7VS6OPAAEHUNHJ2RUTLG5FZZWSWR2GZL5XFQBTQOTIO3ZEY5M6JJS |
 | **Mainnet** Smart Contract | CANYTHWVKNUVAM2WZUAKIPP3AD6C5CBDPDDHZPJOPBRJRWRBOVGGZNUI |
 
-## Tech Stack
-
-| Layer      | Technology                                               |
-| ---------- | -------------------------------------------------------- |
-| Framework  | [Next.js 16](https://nextjs.org/) (App Router)           |
-| UI         | [React 19](https://react.dev/)                           |
-| Styling    | [Tailwind CSS 4](https://tailwindcss.com/)               |
-| Language   | [TypeScript 5](https://www.typescriptlang.org/)          |
-| Database   | [PostgreSQL](https://www.postgresql.org/)                |
-| Blockchain | [Stellar SDK](https://stellar.github.io/js-stellar-sdk/) |
-| Docs       | [Mintlify](https://mintlify.com/)                        |
-| Tooling    | ESLint · React Compiler · npm workspaces                 |
-
----
-
 ## Requirements
 
 - **Node.js** `>= 20`
 - **npm** `>= 10`
 - **Docker** (for local PostgreSQL and MinIO)
-
----
 
 ## Quick Start
 
@@ -159,17 +142,11 @@ For the full local setup (environment variables, docs server), see the [Getting 
 | `npm run db:studio`   | Open Drizzle Studio for database inspection.   |
 | `npm run docs:dev`    | Start Mintlify docs on port `3001`.            |
 
----
-
 ## Architecture
 
-Payoes is a monorepo that combines a Next.js application, a Soroban escrow contract, and shared packages. Merchants integrate through REST APIs or platform plugins; customers pay on hosted checkout pages without creating a Payoes account.
+Payoes is a monorepo that combines a Next.js application, a Soroban settlement contract, and shared packages. Merchants integrate through REST APIs or platform plugins; customers pay on hosted checkout pages without creating a Payoes account.
 
 Diagrams use the [C4 model](https://c4model.com/). Source files and full write-up live in [`docs/architecture/`](docs/architecture/).
-
-<div align="center">
-  <img src="assets/architecture/c4-container.png" alt="C4 Container diagram for Payoes" width="900" />
-</div>
 
 ### API surfaces
 
@@ -190,7 +167,7 @@ Every organization-scoped resource is filtered by `organizationId` and `environm
 | `apps/web`          | Next.js app: marketing site, dashboard, hosted checkout, REST API, cron jobs |
 | `apps/docs`         | Mintlify API documentation                                                   |
 | `packages/sdk`      | `@payoes/sdk` npm package for merchant integrations                          |
-| `contracts`         | Soroban smart contract for escrow deposits and settlement                    |
+| `contracts`         | Soroban smart contract for on-chain payment routing and settlement           |
 | `docs/architecture` | C4 PlantUML diagram sources                                                  |
 
 ---
