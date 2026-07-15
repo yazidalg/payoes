@@ -5,3 +5,60 @@
   background-color: var(--background);
   color: var(--foreground);
 }
+
+@keyframes hero-word-enter {
+  from {
+    opacity: 0;
+    transform: translateY(100%);
+    filter: blur(2px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+@keyframes hero-word-exit {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateY(-100%);
+    filter: blur(2px);
+  }
+}
+
+@keyframes hero-scribble-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.marketing-theme .hero-scribble-path {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+}
+
+.marketing-theme .hero-scribble-underline .hero-scribble-path {
+  animation: hero-scribble-draw 1.2s cubic-bezier(0.16, 1, 0.3, 1) 0.4s forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marketing-theme .hero-scribble-underline .hero-scribble-path {
+    animation: none;
+  }
+
+  .marketing-theme .hero-scribble-path {
+    stroke-dashoffset: 0;
+  }
+}

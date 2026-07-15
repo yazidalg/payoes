@@ -10,8 +10,15 @@ import { WhiteFadeOverlay } from "@/ui/transitions/white-fade-overlay";
 
 export const DASHBOARD_TOP_BANNER_HEIGHT = 48;
 
+/** Set to false after screenshots to restore the sandbox banner. */
+const HIDE_ENVIRONMENT_BANNER_FOR_SCREENSHOTS = false;
+
 export function useEnvironmentBannerVisibility() {
   const { activeOrganization } = useDashboardShell();
+
+  if (HIDE_ENVIRONMENT_BANNER_FOR_SCREENSHOTS) {
+    return { isVisible: false };
+  }
 
   return {
     isVisible: activeOrganization.environment === "sandbox",

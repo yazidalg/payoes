@@ -8,9 +8,11 @@ import {
   Switch,
   useMediaQuery,
 } from "@dub/ui";
-import { DUB_QR_LOGO, cn } from "@dub/utils";
+import { cn } from "@dub/utils";
 import { HelpCircle } from "lucide-react";
 import { useState } from "react";
+
+const XLM_LOGO = "/marketing/logos/xlm.svg";
 
 export function QR() {
   const { isMobile } = useMediaQuery();
@@ -18,15 +20,15 @@ export function QR() {
   const [hideLogo, setHideLogo] = useState(false);
 
   return (
-    <div className="size-full [mask-image:linear-gradient(black_70%,transparent)]">
+    <div className="pointer-events-none size-full [mask-image:linear-gradient(black_70%,transparent)]">
       <div
-        className="mx-3.5 flex origin-top scale-95 cursor-default flex-col gap-6 rounded-xl border border-neutral-200 bg-white p-4 shadow-[0_20px_20px_0_#00000017]"
+        className="mx-3.5 flex origin-top scale-95 flex-col gap-6 rounded-xl border border-neutral-200 bg-white p-4 shadow-[0_20px_20px_0_#00000017]"
         aria-hidden
       >
         <div className="flex items-center justify-between">
-          <h3 className="text-base font-medium">QR Code Design</h3>
+          <h3 className="text-base font-medium">Crypto payment QR</h3>
           <div className="max-md:hidden" aria-hidden>
-            <kbd className="flex size-6 cursor-default items-center justify-center rounded-md border border-neutral-200 font-sans text-xs text-neutral-950">
+            <kbd className="flex size-6 items-center justify-center rounded-md border border-neutral-200 font-sans text-xs text-neutral-950">
               Q
             </kbd>
           </div>
@@ -36,7 +38,7 @@ export function QR() {
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium text-neutral-700">
-                QR Code Preview
+                Scan to pay
               </span>
               <HelpCircle className="size-4 text-neutral-500" />
             </div>
@@ -51,8 +53,11 @@ export function QR() {
                 <ShimmerDots className="opacity-30 [mask-image:radial-gradient(40%_80%,transparent_50%,black)]" />
               )}
             </ClientOnly>
-            <div className="relative flex size-full items-center justify-center">
+            <div className="relative flex size-full flex-col items-center justify-center gap-1.5">
               <QRCode hideLogo={hideLogo} />
+              <span className="text-[10px] font-medium uppercase tracking-[0.14em] text-neutral-500">
+                crypto payment
+              </span>
             </div>
           </div>
         </div>
@@ -60,7 +65,9 @@ export function QR() {
         {/* Logo toggle */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-neutral-700">Logo</span>
+            <span className="text-sm font-medium text-neutral-700">
+              XLM logo
+            </span>
             <HelpCircle className="size-4 text-neutral-500" />
           </div>
           <Switch
@@ -96,7 +103,7 @@ function QRCode({ hideLogo }: { hideLogo: boolean }) {
         height="6.25"
         x="11.375"
         y="11.375"
-        href={DUB_QR_LOGO}
+        href={XLM_LOGO}
         preserveAspectRatio="none"
         className={cn("transition-opacity", hideLogo && "opacity-0")}
       />

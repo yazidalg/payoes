@@ -94,7 +94,7 @@ function LogoItem({
 
 export function Logos() {
   return (
-    <section id="logos" className="pt-8 pb-16">
+    <section id="logos" className="relative z-10 bg-white pb-16 pt-10 sm:pt-12">
       <p className="mx-auto max-w-sm text-balance text-center text-sm text-neutral-500">
         {CTA_CONTENT.logosCopy}
       </p>

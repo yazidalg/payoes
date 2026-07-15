@@ -22,6 +22,7 @@
             "guides/checkout",
             "guides/settlement-wallet",
             "guides/webhooks",
+            "guides/analytics",
             "guides/errors"
           ]
         }

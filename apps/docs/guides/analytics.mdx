@@ -1,0 +1,86 @@
+---
+title: Analytics
+description: Track payment volume, success rate, and breakdowns from the Payoes dashboard.
+---
+
+The Payoes dashboard includes analytics on the home page so you can monitor payment performance for the active organization and environment.
+
+Open **Dashboard** after signing in. Analytics appear at the top of the page and reflect payments created in the selected date range.
+
+## Environment scoping
+
+Analytics respect the organization environment switcher (sandbox or production). Switching environments reloads metrics for that mode only.
+
+## Date range
+
+Use the date picker to choose a preset or custom range:
+
+| Preset | Range |
+|--------|-------|
+| Last 24 hours | Previous day through today |
+| Last 7 days | Rolling 7-day window |
+| Last 30 days | Rolling 30-day window (default) |
+| Last 90 days | Rolling 90-day window |
+
+All metrics and charts update when you change the range.
+
+## Summary metrics
+
+Three headline metrics sit above the chart:
+
+| Metric | Description |
+|--------|-------------|
+| **Volume** | Total value of completed payments in the period |
+| **Payments** | Count of all payments created in the period |
+| **Success rate** | Share of finalized payments that completed successfully |
+
+### Volume
+
+Volume sums completed payments only. When a payment has a USD `pricing_amount`, that value is used. Otherwise Payoes uses the quoted settlement amount.
+
+### Success rate
+
+Success rate is `completed / (completed + failed + expired)`. Pending and in-progress payments are excluded from this calculation.
+
+## Time series chart
+
+The chart plots daily values for the selected metric:
+
+- **Volume**: completed payment volume per day
+- **Payments**: payment count per day
+- **Success rate**: daily success rate percentage
+
+Hover a point to see the exact value for that day.
+
+## Breakdowns
+
+Below the chart, four breakdown cards show how payments are distributed in the selected range.
+
+### Payment methods
+
+Counts payments by how they were created:
+
+- Checkout sessions
+- Invoices
+- Payment links
+- Manual (direct API payments)
+
+### Assets
+
+Volume by Stellar asset for completed payments (for example XLM, USDC). Uses the paid asset when recorded, otherwise the settlement asset.
+
+### Status
+
+Payment counts by status, including succeeded, pending, processing, failed, expired, and refunded states.
+
+### Customers
+
+Top customers by completed payment volume (up to 8). Customers without a name show their email.
+
+## Empty states
+
+If no payments exist in the selected range, the chart and breakdown cards show **No data for this period.**
+
+## API access
+
+Analytics are available in the dashboard UI today. A public REST endpoint for analytics is not part of the v1 API yet. Use `GET /payments` to list and filter payments programmatically.

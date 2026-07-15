@@ -10,42 +10,32 @@ export const HOMEPAGE_UTM_PARAMS = {
   utm_campaign: "payoes",
 } as const;
 
+export const HERO_ROTATING_WORDS = ["Platform", "Product", "Agency", "Store", "Startup", "SaaS"] as const;
+
 export const HERO_CONTENT = {
-  title: "Turn checkout into revenue",
-  description:
-    "Payoes is the modern payment platform for stablecoin checkout, payment links, and subscriptions on Stellar.",
+  titlePrefix: "Run your ",
+  titleSuffix: " onchain.",
+  rotatingWords: HERO_ROTATING_WORDS,
+  description: "Accept borderless payments with near-zero fees, instant settlement, and a developer-first payment infrastructure built on Stellar.",
   primaryCta: { label: "Start for free", href: "/register" },
   learnMoreHref: docsUrl,
 };
 
 export const FEATURES_SECTION_CONTENT = {
   badge: "What is Payoes?",
-  title: "Powerful features for modern payment teams",
-  description:
-    "Payoes is more than a checkout page. We've built a suite of powerful features that give your payments superpowers.",
+  title: "Payment infrastructure built for Stellar",
+  description: "Accept crypto payments with hosted checkout, payment links, and invoices. Subscribe to webhooks and track analytics from one dashboard.",
 };
 
 export const CTA_CONTENT = {
   title: "Start accepting Stellar payments today",
-  subtitle:
-    "See why teams choose Payoes for stablecoin checkout, payment links, and developer-first APIs.",
+  subtitle: "See why teams choose Payoes for stablecoin checkout, payment links, and developer-first APIs.",
   primaryCta: { label: "Start for free", href: "/register" },
   secondaryCta: {
     label: "View documentation",
     href: docsUrl,
     external: true,
   },
-  logosCopy: "Works with the Stellar assets and wallets you already use",
 };
 
-export const STELLAR_WORDMARKS = [
-  "Stellar",
-  "Soroban",
-  "USDC",
-  "XLM",
-  "Freighter",
-  "xBull",
-  "Albedo",
-  "LOBSTR",
-  "Persona",
-];
+export const STELLAR_WORDMARKS = ["Stellar", "Soroban", "USDC", "XLM", "Freighter", "xBull", "Albedo", "LOBSTR", "Persona"];

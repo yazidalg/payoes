@@ -12,7 +12,7 @@ function PayoesLogoLink() {
       href="/"
       className="block w-fit rounded-lg py-2 pr-2 outline-none transition-opacity focus-visible:ring-2 focus-visible:ring-primary/50"
     >
-      <Logo />
+      <Logo className="h-10 w-auto" />
     </Link>
   );
 }

@@ -1,57 +1,38 @@
 import { HERO_CONTENT } from "@/ui/marketing/homepage-content";
 import { ButtonLink } from "./button-link";
-import { Grid } from "./grid";
+import { HeroRotatingWord } from "./hero-rotating-word";
 import { HeroShowcase } from "./hero-showcase";
 
 export function Hero() {
   return (
-    <section className="grid-section relative overflow-clip border-b-0 border-grid-border bg-white px-4">
-      <div className="relative z-0 mx-auto max-w-grid-width border-grid-border px-4 pb-0 pt-24 text-center sm:px-12 sm:pt-32">
-        {/* Border-x mask overlay */}
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 border-x border-grid-border [mask-image:linear-gradient(transparent_15%,black_45%)]"
-        />
-
-        {/* Side grid SVGs (left and right) */}
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-y-0 left-1/2 w-[1800px] -translate-x-1/2 opacity-100 [mask-composite:intersect] [mask-image:linear-gradient(transparent_20%,black_55%)]"
-        >
-          <div className="absolute inset-x-[360px] inset-y-0">
-            <Grid
-              id="hero-left"
-              cellSize={60}
-              strokeWidth={2}
-              className="inset-[unset] bottom-0 right-full h-[600px] w-[360px] text-grid-border [mask-image:linear-gradient(90deg,transparent_5%,black_40%)]"
-            />
-            <Grid
-              id="hero-right"
-              cellSize={60}
-              strokeWidth={2}
-              className="inset-[unset] bottom-0 left-full h-[600px] w-[360px] text-grid-border [mask-image:linear-gradient(270deg,transparent_5%,black_40%)]"
-            />
+    <section className="relative overflow-hidden bg-white">
+      <div className="mx-auto max-w-grid-width px-4 sm:px-12">
+        <div className="flex flex-col items-center pt-16 text-center sm:pt-20 lg:pt-24">
+          <div className="relative inline-block max-w-full overflow-visible pb-2 animate-slide-up-fade [--offset:20px] [animation-delay:100ms] [animation-duration:1s] [animation-fill-mode:both] motion-reduce:animate-fade-in">
+            <h1 className="font-display text-4xl font-medium text-neutral-900 sm:text-5xl sm:leading-[1.15] text-pretty">
+              {HERO_CONTENT.titlePrefix}
+              <HeroRotatingWord words={HERO_CONTENT.rotatingWords} />
+              {HERO_CONTENT.titleSuffix}
+            </h1>
+            <svg
+              className="hero-scribble-underline pointer-events-none absolute -bottom-0.5 left-0 z-10 h-4 w-full text-primary/40 sm:-bottom-1 sm:h-5"
+              viewBox="0 0 120 14"
+              preserveAspectRatio="none"
+              fill="none"
+              aria-hidden="true"
+            >
+              <path
+                d="M1.5 12.5c5-2.8 9.2 2.8 14.8 0.2 5.2-2.4 9.8-5.2 15.4-2.2 5 2.6 10 5.8 15.6 2.8 5.2-2.8 9.8-6.4 15.4-3.4 5.8 3.2 10.6-1.2 16.2 1.8 5.2 2.6 10.4-0.6 15.8 2.4 5.6 3.2 10.8-2.4 16.2 0.6 5.6 3.4 10.6-3.8 16 0.2 5.6 3.8 10.4-5 15.6-1.2 5.4 4.2 9.8-6 14.8-2.4 5.2 3.8 9.2-7 13.8-3.6 4.8 3.6 8.4-8 12.4-4.8 4.6 4.2 7.4-8.8 11-6 4.2 4.8 6.4-9.6 9.4-7.2 4 4.6 5.2-10.2 7.6-8.4 3.6 4.2 4-10.6 5.8-9.4 3.2 4 2.6-10.8 4-10.2 2.6 3.6 1.2-11 2.2-10.8 2 3.4 0-11.2 0.6-11.4 1.6 3.2-1.2-11.2-0.8-11.6 1.2 3-2.2-10.8-2.4-11.6 0.8 2.8-3.2-10.2-4-11.2 0.4 2.6-4-9.4-5.6-10.6 0 2.4-4.8-8.6-7-9.8-0.4 2.2-5.6-7.6-8.4-8.8-0.8 2-6.2-6.4-9.8-7.6-1.2 1.8-6.8-5.2-11.2-6.4-1.4 1.6-7.4-4-11.8-5-1.6 1.4-8-2.6-12.4-3.4-1.8 1.2-8.6-1.2-13-1.8-2 1-9.2 0.2-13.4-0.4-2.2 0.8-9.8 1.6-13.8 1-2.4 0.6-10.4 3-14.2 2.4-2.6 0.4-10.8 4.4-14.6 3.6-2.8 0.6-11.2 5.6-15 4.6-3 0.8-11.6 6.6-15.4 5.6-3.2 0.8-11.8 7.6-15.6 6.4-3.4 1-12.2 8.4-16 7-3.6 1.2-12.4 9-16.2 7.4-3.8 1.4-12.6 9.4-16.4 7.8-4 1.4-12.8 10.2-16.6 8.4-4.2 1.6-13 10.8-16.8 8.8-4.4 1.8-13.2 11.2-17 9-4.6 2-13.4 11.4-17.2 9.2-4.8 2.2-13.6 11.6-17.4 9.4-5 2.4-13.8 11.8-17.6 9.6-5.2 2.6-14 12-17.8 9.8-5.4 2.8-14.2 12.2-18 10-5.6 3.2-14.4 12.4-18.2 10.2-6 3.4-14.6 12.6-18.4 10.4-6.4 3.6-14.8 12.8-18.6 10.6-6.8 3.8-15 13-18.8 10.8-7.2 4-15.2 13.2-19 11-7.6 4.2-15.4 13.4-19.2 11.2-8 4.4-15.6 13.6-19.4 11.4-8.4 4.6-15.8 13.8-19.6 11.6-8.8 4.8-16.2 14-20 11.8-9.2 5-16.6 14.2-20.4 12-9.6 5.2-17 14.4-20.8 12.2-10 5.4-17.4 14.6-21.2 12.4-10.4 5.6-18.2 14.6-22 12.4-10.8 5.8-18.8 14.8-22.6 12.6-11.2 6-19.2 15-23 12.8-11.6 6.2-20.2 15.2-24 13-12 6.4-20.4 15.4-24.2 13.2-12.4 6.6-20.6 15.6-24.4 13.4-12.8 6.8-21 15.8-24.8 13.6-13.2 7-21.4 16-25.2 13.8-13.6 7.2-21.8 16.2-25.6 14-14 7.4-22.2 16.4-26 14.2-14.4 7.6-22.6 16.6-26.4 14.4-14.8 7.8-23 16.8-26.8 14.6-15.2 8-23.4 17-27.2 14.8-15.6 8.2-23.8 17.2-27.6 15-16.4 8.4-24.6 17.4-28.4 15.2-17.2 8.6-25.4 17.6-29.2 15.4-18 9-26.2 18-30 15.8-18.8 9.4-27 18.4-30.8 16.2-19.6 9.8-27.8 18.8-31.6 16.6-20.4 10.2-28.6 19.2-32.4 17-21 10.6-29.2 19.6-33 17.4-21.6 11-29.8 20-33.6 17.8-22.2 11.4-30.4 20.4-34.2 18.2-22.8 11.8-31 20.8-34.8 18.6-23.4 12.2-31.6 21.2-35.4 19-24 12.6-32.2 21.6-36 19.4-24.6 13-32.8 22-36.6 19.8-25.2 13.4-33.4 22.4-37.2 20.2-25.8 13.8-34 22.8-37.8 20.6-26.4 14.2-34.6 23.2-38.4 21-27 14.6-35.2 23.6-39 21.4-27.6 15-35.8 24-39.6 21.8-28.2 15.4-36.4 24.4-40.2 22.2-28.8 15.8-37 24.8-40.8 22.6-29.4 16.2-37.6 25.2-41.4 23-30 16.6-38.2 25.6-42 23.4-31.2 17.4-39.4 26.4-43.2 24.2-32.4 18.2-40.6 27.2-44.4 25-33.6 19-41.8 28-45.6 25.8-34.8 19.6-43 28.6-46.8 26.4-36 20.2-44.2 29.2-48 27-37.2 20.8-45.4 29.8-49.2 27.6-38.4 21.4-46.6 30.4-50.4 28.2-39.6 22-47.8 31-51.6 28.8-40.8 22.6-49 31.6-52.8 29.4-42 23.2-50.2 32.2-54 30-43.2 23.8-51.4 32.8-55.2 30.6-44.4 24.4-52.6 33.4-56.4 31.2-45.6 25-53.8 34-57.6 31.8-46.8 25.6-55 34.6-58.8 32.4-48 26.2-56.2 35.2-60 33-49.2 26.8-57.4 35.8-61.2 33.6-50.4 27.4-58.6 36.4-62.4 34.2-51.6 28-59.8 37-63.6 34.8-52.8 29.4-61 38.4-64.8 36.2-54 30.2-62.2 39.2-66 37-55.2 31-63.4 40-67.2 37.8-56.4 31.8-64.6 40.8-68.4 38.6-57.6 32.6-65.8 41.6-69.6 39.4-58.8 33.4-67 42.4-70.8 40.2-60 34.2-68.2 43.2-72 41-61.2 35-69.4 44-73.2 41.8-62.4 36.2-70.6 45.2-74.4 43-63.6 37.4-71.8 46.4-75.6 44.2-64.8 38.6-73 47.6-76.8 45.4-66.2 40-74.4 49-78.2 46.8-67.6 41.4-75.8 50.4-79.6 48.2-69 42.8-77.2 51.8-81 49.6-70.4 44.2-78.6 53.2-82.4 51-71.8 45.6-80 54.6-83.8 52.4-73.2 47-81.4 56-85.2 53.8-74.6 48.4-82.8 57.4-86.6 55.2-76 49.8-84.2 58.8-88 56.6-77.4 51.2-85.6 60.2-89.4 58-78.8 52.6-87 61.6-90.8 59.4-80.2 54-88.4 63-92.2 60.8-81.6 55.4-89.8 64.4-93.6 62.2-83 56.6-91.2 65.6-95 63.4-84.4 58-92.6 67-96.4 64.8-85.8 59.4-94 68.4-97.8 66.2-87.2 60.8-95.4 69.8-99.2 67.6-88.6 62.2-96.8 71.2-100.6 69-90 63.6-98.2 72.6-102 70.4-91.4 65-99.6 74-103.4 71.8-92.8 66.4-101 75.4-104.8 73.2-94.2 67.8-102.4 76.8-106.2 74.6-95.6 69.2-103.8 78.2-107.6 76-97 70.6-105.2 79.6-109 77.4-98.4 73-106.6 82-110.4 79.8-99.8 74.4-108 83.4-111.8 81.2-101.2 75.8-109.4 84.8-113.2 82.6-102.6 77.2-110.8 86.2-114.6 84-104 78.6-112.2 87.6-116 85.4-105.4 80-113.6 89-117.4 86.8-106.8 81.4-115 90.4-118.8 88.2"
+                stroke="currentColor"
+                strokeWidth="2.25"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                pathLength="1"
+                className="hero-scribble-path"
+              />
+            </svg>
           </div>
-        </div>
-
-        {/* Center bottom grid SVG */}
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-x-px inset-y-0 overflow-hidden [mask-image:linear-gradient(transparent_15%,black_50%),radial-gradient(ellipse_at_center_bottom,black,transparent_85%)]"
-        >
-          <Grid
-            id="hero-center"
-            cellSize={60}
-            strokeWidth={2}
-            className="inset-[unset] bottom-0 left-1/2 h-[600px] w-grid-width -translate-x-1/2 text-grid-border"
-          />
-        </div>
-
-        <div className="relative mx-auto flex w-full max-w-3xl flex-col items-center">
-          <h1 className="mt-5 text-center font-display text-4xl font-medium text-neutral-900 sm:text-5xl sm:leading-[1.15] animate-slide-up-fade [--offset:20px] [animation-duration:1s] [animation-fill-mode:both] motion-reduce:animate-fade-in text-pretty [animation-delay:100ms]">
-            {HERO_CONTENT.title}
-          </h1>
-          <p className="mt-5 text-pretty text-base text-neutral-600 sm:text-xl animate-slide-up-fade [--offset:10px] [animation-delay:200ms] [animation-duration:1s] [animation-fill-mode:both] motion-reduce:animate-fade-in">
+          <p className="mt-5 max-w-2xl text-pretty text-base text-neutral-600 sm:text-xl animate-slide-up-fade [--offset:10px] [animation-delay:200ms] [animation-duration:1s] [animation-fill-mode:both] motion-reduce:animate-fade-in">
             {HERO_CONTENT.description}
           </p>
 
@@ -64,10 +45,10 @@ export function Hero() {
               {HERO_CONTENT.primaryCta.label}
             </ButtonLink>
           </div>
-        </div>
 
-        <div className="animate-slide-up-fade relative [--offset:10px] [animation-delay:400ms] [animation-duration:1s] [animation-fill-mode:both]">
-          <HeroShowcase />
+          <div className="animate-slide-up-fade -mb-20 mt-14 w-full sm:-mb-24 sm:mt-16 lg:-mb-28 lg:mt-20 [--offset:10px] [animation-delay:400ms] [animation-duration:1s] [animation-fill-mode:both] motion-reduce:animate-fade-in">
+            <HeroShowcase />
+          </div>
         </div>
       </div>
     </section>

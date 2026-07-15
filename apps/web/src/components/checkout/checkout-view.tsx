@@ -1057,16 +1057,24 @@ export function CheckoutView({
               </div>
 
               <div className={cn("mt-auto shrink-0 text-center", disabled ? "pt-3" : "pt-6")}>
-                <a
-                  href="https://payoes.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 text-xs text-neutral-400 hover:text-neutral-600 transition-colors"
-                >
-                  <span>Powered by</span>
-                  <img src="/logo.svg" alt="Payoes logo" className="h-4 w-auto brightness-90" />
-                  <span className="font-semibold text-neutral-500">Payoes</span>
-                </a>
+                {disabled ? (
+                  <span className="inline-flex items-center gap-1.5 text-xs text-neutral-400">
+                    <span>Powered by</span>
+                    <img src="/logo.svg" alt="Payoes logo" className="h-4 w-auto brightness-90" />
+                    <span className="font-semibold text-neutral-500">Payoes</span>
+                  </span>
+                ) : (
+                  <a
+                    href="https://payoes.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 text-xs text-neutral-400 hover:text-neutral-600 transition-colors"
+                  >
+                    <span>Powered by</span>
+                    <img src="/logo.svg" alt="Payoes logo" className="h-4 w-auto brightness-90" />
+                    <span className="font-semibold text-neutral-500">Payoes</span>
+                  </a>
+                )}
               </div>
             </div>
           </div>
