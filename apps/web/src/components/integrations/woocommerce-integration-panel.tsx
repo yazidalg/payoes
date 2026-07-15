@@ -3,8 +3,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import type { OrganizationIntegration } from "@/lib/db/schema";
-import { SettingsSection } from "@/ui/settings/settings-section";
+import { IntegrationDetailFormSkeleton } from "@/ui/integrations/integration-detail-skeleton";
 import { IntegrationStatus } from "@/ui/integrations/integration-status";
+import { SettingsSection } from "@/ui/settings/settings-section";
+import { SmoothSkeleton } from "@/ui/shared/smooth-skeleton";
 import { useSetDashboardPageHeader } from "@/ui/layout/dashboard-page-header-context";
 import { Button, Input } from "@dub/ui";
 
@@ -131,12 +133,18 @@ export function WooCommerceIntegrationPanel({
         title="WooCommerce store"
         description="Use WooCommerce REST API keys with read/write access to orders and webhooks."
         helpText={
-          isConnected
-            ? `Connected to ${integration?.storeIdentifier}`
-            : "Generate keys in WooCommerce → Settings → Advanced → REST API."
+          isLoading ? (
+            <SmoothSkeleton className="h-4 w-48 max-w-full" />
+          ) : isConnected ? (
+            `Connected to ${integration?.storeIdentifier}`
+          ) : (
+            "Generate keys in WooCommerce → Settings → Advanced → REST API."
+          )
         }
         action={
-          isConnected ? (
+          isLoading ? (
+            <SmoothSkeleton className="h-9 w-36" />
+          ) : isConnected ? (
             <Button
               type="button"
               variant="secondary"
@@ -151,62 +159,75 @@ export function WooCommerceIntegrationPanel({
               variant="primary"
               text="Connect WooCommerce"
               className="h-9 w-fit"
-              loading={isConnecting || isLoading}
+              loading={isConnecting}
               disabled={!storeUrl || !consumerKey || !consumerSecret}
               onClick={() => void handleConnect()}
             />
           )
         }
       >
-        <div className="space-y-4">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-neutral-700">Status</span>
-            <IntegrationStatus integration={integration} />
-          </div>
-
-          {!isConnected ? (
-            <div className="grid max-w-xl gap-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-neutral-700" htmlFor="woo-store-url">
-                  Store URL
-                </label>
-                <Input
-                  id="woo-store-url"
-                  value={storeUrl}
-                  onChange={(event) => setStoreUrl(event.target.value)}
-                  placeholder="https://your-store.com"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-neutral-700" htmlFor="woo-key">
-                  Consumer key
-                </label>
-                <Input
-                  id="woo-key"
-                  value={consumerKey}
-                  onChange={(event) => setConsumerKey(event.target.value)}
-                  placeholder="ck_..."
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-neutral-700" htmlFor="woo-secret">
-                  Consumer secret
-                </label>
-                <Input
-                  id="woo-secret"
-                  type="password"
-                  value={consumerSecret}
-                  onChange={(event) => setConsumerSecret(event.target.value)}
-                  placeholder="cs_..."
-                />
-              </div>
+        {isLoading ? (
+          <IntegrationDetailFormSkeleton fieldCount={3} />
+        ) : (
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-neutral-700">Status</span>
+              <IntegrationStatus integration={integration} />
             </div>
-          ) : null}
 
-          {integration?.lastError ? (
-            <p className="text-sm text-red-500">{integration.lastError}</p>
-          ) : null}
-        </div>
+            {!isConnected ? (
+              <div className="grid max-w-xl gap-4">
+                <div className="space-y-2">
+                  <label
+                    className="text-sm font-medium text-neutral-700"
+                    htmlFor="woo-store-url"
+                  >
+                    Store URL
+                  </label>
+                  <Input
+                    id="woo-store-url"
+                    value={storeUrl}
+                    onChange={(event) => setStoreUrl(event.target.value)}
+                    placeholder="https://your-store.com"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label
+                    className="text-sm font-medium text-neutral-700"
+                    htmlFor="woo-key"
+                  >
+                    Consumer key
+                  </label>
+                  <Input
+                    id="woo-key"
+                    value={consumerKey}
+                    onChange={(event) => setConsumerKey(event.target.value)}
+                    placeholder="ck_..."
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label
+                    className="text-sm font-medium text-neutral-700"
+                    htmlFor="woo-secret"
+                  >
+                    Consumer secret
+                  </label>
+                  <Input
+                    id="woo-secret"
+                    type="password"
+                    value={consumerSecret}
+                    onChange={(event) => setConsumerSecret(event.target.value)}
+                    placeholder="cs_..."
+                  />
+                </div>
+              </div>
+            ) : null}
+
+            {integration?.lastError ? (
+              <p className="text-sm text-red-500">{integration.lastError}</p>
+            ) : null}
+          </div>
+        )}
       </SettingsSection>
     </div>
   );
