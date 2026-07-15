@@ -365,7 +365,7 @@ export async function verifyEscrowDepositByMemo(input: {
   txHash: string;
   destination: string;
   environment: Organization["environment"];
-  memo: string;
+  memo?: string | null;
 }) {
   const server = new Horizon.Server(getHorizonUrl(input.environment));
   const transaction = await server
@@ -383,7 +383,7 @@ export async function verifyEscrowDepositByMemo(input: {
   }
 
   const txMemo = transaction.memo ?? "";
-  if (txMemo !== input.memo) {
+  if (input.memo && txMemo !== input.memo) {
     return {
       valid: false as const,
       reason: "Payment memo does not match",

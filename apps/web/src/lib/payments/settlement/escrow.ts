@@ -1,4 +1,5 @@
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, isNotNull } from "drizzle-orm";
+import { Horizon } from "@stellar/stellar-sdk";
 import { findAllowedAsset } from "@/lib/assets/types";
 import type { AllowedAsset } from "@/lib/assets/types";
 import {
@@ -8,9 +9,14 @@ import { db } from "@/lib/db";
 import { payments, type Payment } from "@/lib/db/schema";
 import {
   getPaymentByPublicId,
+  setPaymentPaidAsset,
   serializePayment,
   updatePaymentStatus,
 } from "@/lib/payments/service";
+import {
+  needsPaymentQuoteRefresh,
+  refreshPaymentQuote,
+} from "@/lib/payments/quote-service";
 import {
   REFUND_REASONS,
   type RefundReason,
@@ -32,12 +38,18 @@ import {
 } from "@/lib/stellar/errors";
 import { isSorobanConfigured } from "@/lib/soroban/config";
 import {
+  buildEscrowDepositTransaction,
+  confirmEscrowContractDeposit,
   recordEscrowRefundOnContract,
   recordEscrowSettlementOnContract,
   refundHeldEscrowDepositOnContract,
+  registerEscrowPaymentOnContract,
   releaseEscrowDepositToOperator,
   settleSameAssetEscrowDepositOnContract,
 } from "@/lib/soroban/escrow-contract";
+import { submitSorobanPaymentTransaction } from "@/lib/soroban/payment-router";
+import { getHorizonUrl } from "@/lib/stellar/network";
+import { verifyEscrowDepositByMemo } from "@/lib/stellar/payments";
 import { dispatchWebhookEvent } from "@/lib/webhooks/delivery";
 import { isPaymentSessionExpired } from "@/lib/payments/quote-service";
 
@@ -170,7 +182,8 @@ async function executeRefund(
   payment: Payment,
   reason: RefundReason,
   amount: string,
-  payerAddress: string
+  payerAddress: string,
+  options?: { depositHeld?: boolean; forceDirect?: boolean }
 ) {
   const escrow = getEscrowConfig(payment.environment);
   const asset = paidAsset(payment);
@@ -181,8 +194,11 @@ async function executeRefund(
   });
 
   try {
-    if (requiresCrossAssetSettlement(refunding)) {
-      await refundHeldEscrowDepositOnContract({
+    if (
+      options?.depositHeld ||
+      (!options?.forceDirect && requiresCrossAssetSettlement(refunding))
+    ) {
+      const result = await refundHeldEscrowDepositOnContract({
         payment: refunding,
         payerAddress,
         reason,
@@ -190,8 +206,8 @@ async function executeRefund(
 
       const refunded = await patchPayment(refunding, {
         status: "refunded",
-        refundTxHash: refunding.depositTxHash,
-        txHash: refunding.depositTxHash,
+        refundTxHash: result.hash,
+        txHash: result.hash,
       });
 
       await dispatchEscrowWebhook(refunded, "payment.refunded");
@@ -227,6 +243,48 @@ async function executeRefund(
     await dispatchEscrowWebhook(refunding, "payment.settlement_failed");
     return refunding;
   }
+}
+
+async function recordManualEscrowDeposit(
+  payment: Payment,
+  txHash: string,
+  payerAddress: string,
+  receivedAmount: string,
+  paidAsset: AllowedAsset,
+) {
+  return patchPayment(payment, {
+    status: "deposit_received",
+    depositTxHash: txHash,
+    payerAddress,
+    receivedAmount,
+    paidAsset: paidAsset.asset_code,
+    paidAssetIssuer: paidAsset.issuer_address,
+  });
+}
+
+async function refundManualEscrowDeposit(
+  payment: Payment,
+  txHash: string,
+  payerAddress: string,
+  receivedAmount: string,
+  receivedAsset: AllowedAsset,
+  reason: RefundReason,
+) {
+  const deposited = await recordManualEscrowDeposit(
+    payment,
+    txHash,
+    payerAddress,
+    receivedAmount,
+    receivedAsset,
+  );
+
+  return executeRefund(
+    deposited,
+    reason,
+    receivedAmount,
+    payerAddress,
+    { forceDirect: true },
+  );
 }
 
 function isUnderpay(payment: Payment, receivedAmount: string) {
@@ -361,7 +419,8 @@ export async function processEscrowSettlement(payment: Payment) {
       payment,
       REFUND_REASONS.underpay,
       receivedAmount,
-      payerAddress
+      payerAddress,
+      { depositHeld: payment.status === "completed" },
     );
   }
 
@@ -370,7 +429,8 @@ export async function processEscrowSettlement(payment: Payment) {
       payment,
       REFUND_REASONS.expired,
       receivedAmount,
-      payerAddress
+      payerAddress,
+      { depositHeld: payment.status === "completed" },
     );
   }
 
@@ -379,7 +439,8 @@ export async function processEscrowSettlement(payment: Payment) {
       payment,
       REFUND_REASONS.quote_expired,
       receivedAmount,
-      payerAddress
+      payerAddress,
+      { depositHeld: payment.status === "completed" },
     );
   }
 
@@ -462,15 +523,13 @@ export async function processEscrowSettlement(payment: Payment) {
         ? REFUND_REASONS.no_liquidity
         : REFUND_REASONS.settle_failed;
 
-    const failed = await patchPayment(settling, {
-      ...(settling.status === "completed"
-        ? { refundReason: reason }
-        : { status: "settlement_failed", refundReason: reason }),
-    });
-
-    await dispatchEscrowWebhook(failed, "payment.settlement_failed");
-
-    return failed;
+    return executeRefund(
+      settling,
+      reason,
+      receivedAmount,
+      payerAddress,
+      { depositHeld: true },
+    );
   }
 }
 
@@ -532,10 +591,179 @@ export async function processPendingEscrowSettlements() {
   return processed;
 }
 
+async function relayManualEscrowDeposit(payment: Payment, txHash: string) {
+  if (!payment.depositAddress) {
+    return false;
+  }
+
+  const inbound = await verifyEscrowDepositByMemo({
+    txHash,
+    destination: payment.depositAddress,
+    environment: payment.environment,
+    memo: payment.depositAddress.startsWith("M")
+      ? null
+      : payment.memo ?? payment.publicId,
+  });
+
+  if (!inbound.valid) {
+    return false;
+  }
+
+  const allowed = findAllowedAsset(
+    payment.allowedAssets ?? [],
+    inbound.paidAsset.asset_code,
+    inbound.paidAsset.issuer_address,
+  );
+
+  if (!allowed) {
+    const refunded = await refundManualEscrowDeposit(
+      payment,
+      txHash,
+      inbound.payerAddress,
+      inbound.receivedAmount,
+      inbound.paidAsset,
+      REFUND_REASONS.wrong_asset,
+    );
+    return refunded.status === "refunded";
+  }
+
+  let activePayment = payment;
+  try {
+    if (
+      activePayment.pricingCurrency &&
+      activePayment.pricingAmount &&
+      needsPaymentQuoteRefresh(activePayment, allowed)
+    ) {
+      activePayment = (
+        await refreshPaymentQuote(activePayment, allowed)
+      ).payment;
+    } else if (!activePayment.paidAsset) {
+      activePayment = await setPaymentPaidAsset(activePayment, allowed);
+      await registerEscrowPaymentOnContract(activePayment);
+    }
+
+    const expectedAmount = activePayment.quotedPaidAmount ?? activePayment.amount;
+    if (inbound.receivedAmount !== expectedAmount) {
+      const refunded = await refundManualEscrowDeposit(
+        activePayment,
+        txHash,
+        inbound.payerAddress,
+        inbound.receivedAmount,
+        inbound.paidAsset,
+        REFUND_REASONS.underpay,
+      );
+      return refunded.status === "refunded";
+    }
+
+    const escrow = getEscrowConfig(activePayment.environment);
+    const built = await buildEscrowDepositTransaction({
+      payment: activePayment,
+      payerAddress: escrow.publicKey,
+      payerKeypair: escrow.keypair,
+      amount: inbound.receivedAmount,
+    });
+    const submitted = await submitSorobanPaymentTransaction({
+      payment: activePayment,
+      signedXdr: built.xdr,
+    });
+
+    if (!submitted.hash) {
+      throw new Error("Soroban escrow deposit was not submitted");
+    }
+
+    const confirmed = await confirmEscrowContractDeposit({
+      payment: activePayment,
+      txHash: submitted.hash,
+      payerAddress: escrow.publicKey,
+      recordedPayerAddress: inbound.payerAddress,
+      amount: inbound.receivedAmount,
+    });
+
+    if (!confirmed.completed) {
+      if (confirmed.status === "FAILED") {
+        const refunded = await refundManualEscrowDeposit(
+          activePayment,
+          txHash,
+          inbound.payerAddress,
+          inbound.receivedAmount,
+          inbound.paidAsset,
+          REFUND_REASONS.settle_failed,
+        );
+        return refunded.status === "refunded";
+      }
+
+      return false;
+    }
+
+    await processEscrowSettlement(confirmed.payment);
+    return true;
+  } catch (error) {
+    console.error("Failed to relay manual escrow deposit:", error);
+    const refunded = await refundManualEscrowDeposit(
+      activePayment,
+      txHash,
+      inbound.payerAddress,
+      inbound.receivedAmount,
+      inbound.paidAsset,
+      REFUND_REASONS.settle_failed,
+    );
+    return refunded.status === "refunded";
+  }
+}
+
 export async function detectEscrowDepositsFromHorizon(
-  _environment: Payment["environment"]
+  environment: Payment["environment"]
 ) {
-  return 0;
+  const pending = await db
+    .select()
+    .from(payments)
+    .where(
+      and(
+        eq(payments.environment, environment),
+        eq(payments.paymentFlow, "escrow"),
+        eq(payments.status, "pending"),
+        isNotNull(payments.depositAddress),
+      ),
+    );
+
+  if (pending.length === 0) {
+    return 0;
+  }
+
+  const escrow = getEscrowConfig(environment);
+  const server = new Horizon.Server(getHorizonUrl(environment));
+  const paymentsResponse = await server
+    .payments()
+    .forAccount(escrow.publicKey)
+    .order("desc")
+    .limit(200)
+    .call();
+
+  const byDestination = new Map(
+    pending.map((payment) => [payment.depositAddress!, payment] as const),
+  );
+  let processed = 0;
+
+  for (const record of paymentsResponse.records) {
+    if (record.type !== "payment") {
+      continue;
+    }
+
+    const destination = "to_muxed" in record && record.to_muxed
+      ? record.to_muxed
+      : record.to;
+    const payment = byDestination.get(destination);
+
+    if (!payment) {
+      continue;
+    }
+
+    if (await relayManualEscrowDeposit(payment, record.transaction_hash)) {
+      processed += 1;
+    }
+  }
+
+  return processed;
 }
 
 export async function runEscrowSettlementWorker() {

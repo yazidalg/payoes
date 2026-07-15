@@ -254,6 +254,10 @@ export function CheckoutView({
   customerInput,
   onCustomerInputChange,
 }: CheckoutViewProps) {
+  const isMuxedEscrowAddress = qrDestination.startsWith("M");
+  const qrMemoParams = isMuxedEscrowAddress
+    ? ""
+    : `&memo=${encodeURIComponent(data.payment.memo ?? "")}&memo_type=MEMO_TEXT`;
   const lineItems = data.items ?? [];
   const showCustomerInfoFields =
     hasCustomerCollection(data.customer_collection) &&
@@ -891,9 +895,7 @@ export function CheckoutView({
                                         qrDestination
                                       )}&amount=${encodeURIComponent(
                                         displayAmount
-                                      )}&memo=${encodeURIComponent(
-                                        data.payment.memo ?? ""
-                                      )}&memo_type=MEMO_TEXT` +
+                                      )}${qrMemoParams}` +
                                         (selectedPaidAsset &&
                                         selectedPaidAsset.asset_code !== "XLM" &&
                                         selectedPaidAsset.issuer_address
@@ -932,8 +934,16 @@ export function CheckoutView({
                                 <div className="min-w-0">
                                   <div className="flex items-center gap-1.5">
                                     <p className={cn("font-medium text-neutral-900", disabled ? "text-[10px]" : "text-sm")}>Memo</p>
-                                    <span className="text-red-500 font-semibold text-[9px] uppercase tracking-wider">(Required)</span>
-                                    <InfoTooltip content="You must include this memo in your transaction or your funds will be lost." />
+                                    <span className="text-neutral-400 font-semibold text-[9px] uppercase tracking-wider">
+                                      {isMuxedEscrowAddress ? "(Not required)" : "(Required)"}
+                                    </span>
+                                    <InfoTooltip
+                                      content={
+                                        isMuxedEscrowAddress
+                                          ? "This muxed address identifies your payment. A memo is not required."
+                                          : "You must include this memo in your transaction or your funds will be lost."
+                                      }
+                                    />
                                   </div>
                                   <p className={cn("truncate font-mono text-neutral-500", disabled ? "text-xs" : "text-sm")}>{data.payment.memo}</p>
                                 </div>

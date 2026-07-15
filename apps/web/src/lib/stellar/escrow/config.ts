@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+import { encodeMuxedAccount, encodeMuxedAccountToAddress } from "@stellar/stellar-sdk";
 import type { Organization } from "@/lib/db/schema";
 import {
   getStellarOperatorKeypair,
@@ -22,9 +24,20 @@ export function getEscrowConfig(
 }
 
 export function getEscrowDepositAddress(
-  environment: Organization["environment"]
+  environment: Organization["environment"],
+  paymentId?: string,
 ) {
-  return getStellarOperatorPublicKey(environment);
+  const operatorAddress = getStellarOperatorPublicKey(environment);
+
+  if (!paymentId) {
+    return operatorAddress;
+  }
+
+  const id = BigInt(`0x${createHash("sha256").update(paymentId).digest("hex").slice(0, 16)}`);
+  return encodeMuxedAccountToAddress(
+    encodeMuxedAccount(operatorAddress, id.toString()),
+    true,
+  );
 }
 
 export const isEscrowConfigured = isStellarOperatorConfigured;

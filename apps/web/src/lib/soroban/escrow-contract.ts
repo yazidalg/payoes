@@ -278,6 +278,7 @@ export async function buildEscrowDepositTransaction(input: {
   payment: Payment;
   payerAddress: string;
   amount: string;
+  payerKeypair?: Keypair;
 }) {
   assertSorobanConfigured(input.payment.environment);
 
@@ -339,6 +340,10 @@ export async function buildEscrowDepositTransaction(input: {
   simulation.result!.auth = auth;
   const prepared = rpc.assembleTransaction(transaction, simulation).build();
 
+  if (input.payerKeypair) {
+    prepared.sign(input.payerKeypair);
+  }
+
   return {
     xdr: prepared.toXDR(),
     contractId: config.contractId,
@@ -368,6 +373,7 @@ export async function confirmEscrowContractDeposit(input: {
   payment: Payment;
   txHash: string;
   payerAddress: string;
+  recordedPayerAddress?: string;
   amount: string;
 }): Promise<EscrowContractDepositConfirmResult> {
   const config = getSorobanConfig(input.payment.environment);
@@ -402,11 +408,12 @@ export async function confirmEscrowContractDeposit(input: {
   }
 
   const asset = paidAsset(input.payment);
+  const recordedPayerAddress = input.recordedPayerAddress ?? input.payerAddress;
 
   const withDeposit = await recordEscrowContractDepositReceived({
     payment: input.payment,
     txHash: input.txHash,
-    payerAddress: input.payerAddress,
+    payerAddress: recordedPayerAddress,
     amount: input.amount,
     paidAsset: asset,
   });
@@ -414,7 +421,7 @@ export async function confirmEscrowContractDeposit(input: {
   const payment = await updatePaymentStatus(withDeposit, "completed", {
     txHash: input.txHash,
     confirmedAt: new Date(),
-    payerAddress: input.payerAddress,
+    payerAddress: recordedPayerAddress,
     paidAsset: asset,
   });
 

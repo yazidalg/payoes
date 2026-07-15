@@ -208,7 +208,7 @@ export async function createPayment(input: {
       settlementAssetIssuer: assetConfig.settlement_asset.issuer_address,
       allowedAssets: dbAllowedAssets(assetConfig.allowed_assets),
       receivingAddress: wallet.stellarAddress,
-      depositAddress: getEscrowDepositAddress(input.environment),
+      depositAddress: getEscrowDepositAddress(input.environment, publicId),
       sorobanContractId: getSorobanConfig(input.environment).contractId,
       description: input.description?.trim() || null,
       metadata: input.metadata ?? null,
