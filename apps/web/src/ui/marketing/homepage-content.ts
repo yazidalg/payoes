@@ -18,6 +18,10 @@ export const HERO_CONTENT = {
   rotatingWords: HERO_ROTATING_WORDS,
   description: "Accept borderless payments with near-zero fees, instant settlement, and a developer-first payment infrastructure built on Stellar.",
   primaryCta: { label: "Start for free", href: "/register" },
+  githubCta: {
+    label: "Star on GitHub",
+    href: "https://github.com/payoesteam/payoes",
+  },
   learnMoreHref: docsUrl,
 };
 

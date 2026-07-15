@@ -2,6 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import {
+  useCallback,
   useEffect,
   useLayoutEffect,
   useRef,
@@ -32,7 +33,7 @@ export function HeroRotatingWord({ words }: HeroRotatingWordProps) {
   const nextIndex = (index + 1) % words.length;
   const activeWord = isTransitioning ? words[nextIndex] : words[index];
 
-  const applyWidthForWord = (word: string) => {
+  const applyWidthForWord = useCallback((word: string) => {
     const measureEl = measureRef.current;
     if (!measureEl) return;
 
@@ -41,11 +42,7 @@ export function HeroRotatingWord({ words }: HeroRotatingWordProps) {
     if (measuredWidth > 0) {
       setWidth(measuredWidth);
     }
-  };
-
-  useLayoutEffect(() => {
-    applyWidthForWord(activeWord);
-  }, [activeWord, words]);
+  }, []);
 
   useLayoutEffect(() => {
     const scheduleMeasure = () => {
@@ -60,19 +57,18 @@ export function HeroRotatingWord({ words }: HeroRotatingWordProps) {
 
     window.addEventListener("resize", scheduleMeasure);
     return () => window.removeEventListener("resize", scheduleMeasure);
-  }, [activeWord, words]);
+  }, [activeWord, applyWidthForWord]);
 
   useEffect(() => {
     if (words.length <= 1 || isTransitioning) return;
 
     const timeoutId = window.setTimeout(() => {
-      const nextWord = words[(index + 1) % words.length];
-      applyWidthForWord(nextWord);
+      applyWidthForWord(words[nextIndex]);
       setIsTransitioning(true);
     }, DISPLAY_DURATION_MS);
 
     return () => window.clearTimeout(timeoutId);
-  }, [words, index, isTransitioning]);
+  }, [words, index, isTransitioning, nextIndex, applyWidthForWord]);
 
   useEffect(() => {
     if (!isTransitioning) return;
@@ -95,7 +91,10 @@ export function HeroRotatingWord({ words }: HeroRotatingWordProps) {
     >
       <span
         ref={measureRef}
-        className={cn(WORD_CLASS, "pointer-events-none fixed top-0 left-[-10000px] opacity-0")}
+        className={cn(
+          WORD_CLASS,
+          "pointer-events-none absolute top-0 left-[-10000px] whitespace-nowrap opacity-0",
+        )}
         aria-hidden="true"
       />
       <span className="relative block" aria-live="polite">

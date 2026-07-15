@@ -44,6 +44,11 @@
   }
 }
 
+.marketing-theme .hero-scribble-underline {
+  transform: translateY(35%) rotate(1.4deg);
+  transform-origin: 8% bottom;
+}
+
 .marketing-theme .hero-scribble-path {
   stroke-dasharray: 1;
   stroke-dashoffset: 1;
