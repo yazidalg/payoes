@@ -1,3 +1,5 @@
+import { cn } from "@/lib/utils";
+
 // dub-style background primitives: a fine SVG grid and dot pattern used as
 // section accents. Both take an explicit `id` so they can render on the server
 // (no useId hook) while keeping pattern ids unique across instances.
@@ -17,7 +19,10 @@ export function Grid({
 }) {
   return (
     <svg
-      className={`pointer-events-none absolute inset-0 h-full w-full ${className ?? ""}`}
+      className={cn(
+        "pointer-events-none absolute inset-0 h-full w-full",
+        className,
+      )}
       aria-hidden
     >
       <defs>

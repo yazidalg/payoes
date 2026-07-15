@@ -78,11 +78,18 @@ const config: Pick<Config, "presets" | "safelist"> = {
               border: "var(--sidebar-border)",
               ring: "var(--sidebar-ring)",
             },
+            "grid-border": "#e5e5e5",
           },
           borderRadius: {
             lg: "var(--radius)",
             md: "calc(var(--radius) - 2px)",
             sm: "calc(var(--radius) - 4px)",
+          },
+          maxWidth: {
+            "grid-width": "1080px",
+          },
+          width: {
+            "grid-width": "1080px",
           },
         },
       },

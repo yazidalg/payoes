@@ -1,7 +1,12 @@
+import { ArrowUpRight } from "lucide-react";
 import Link from "next/link";
-import { Wordmark } from "@dub/ui";
+import { Logo } from "@/components/shared/logo";
+import { getDocsUrl } from "@/lib/docs/url";
 
-const FOOTER_COLUMNS: { title: string; links: { label: string; href: string }[] }[] = [
+const FOOTER_COLUMNS: {
+  title: string;
+  links: { label: string; href: string; external?: boolean }[];
+}[] = [
   {
     title: "Product",
     links: [
@@ -23,9 +28,8 @@ const FOOTER_COLUMNS: { title: string; links: { label: string; href: string }[] 
   {
     title: "Resources",
     links: [
-      { label: "Docs", href: "/docs" },
+      { label: "Docs", href: getDocsUrl(), external: true },
       { label: "Pricing", href: "/pricing" },
-      { label: "Ecosystem", href: "/ecosystem" },
     ],
   },
 ];
@@ -48,7 +52,7 @@ export function Footer() {
               href="/"
               className="inline-block rounded-lg outline-none transition-opacity focus-visible:ring-2 focus-visible:ring-primary/50"
             >
-              <Wordmark className="h-6 overflow-visible" />
+              <Logo className="h-9" />
             </Link>
             <p className="mt-3 max-w-xs text-sm text-neutral-500">
               Stellar payment infrastructure for modern teams.
@@ -59,14 +63,26 @@ export function Footer() {
             <div key={title}>
               <h3 className="text-sm font-medium text-neutral-900">{title}</h3>
               <ul className="mt-3 flex flex-col gap-2.5">
-                {links.map(({ label, href }) => (
+                {links.map(({ label, href, external }) => (
                   <li key={label}>
-                    <Link
-                      href={href}
-                      className="text-sm text-neutral-500 transition-colors hover:text-neutral-900"
-                    >
-                      {label}
-                    </Link>
+                    {external ? (
+                      <a
+                        href={href}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1 text-sm text-neutral-500 transition-colors hover:text-neutral-900"
+                      >
+                        {label}
+                        <ArrowUpRight className="size-3.5" />
+                      </a>
+                    ) : (
+                      <Link
+                        href={href}
+                        className="text-sm text-neutral-500 transition-colors hover:text-neutral-900"
+                      >
+                        {label}
+                      </Link>
+                    )}
                   </li>
                 ))}
               </ul>

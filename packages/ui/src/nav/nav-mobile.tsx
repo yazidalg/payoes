@@ -1,11 +1,10 @@
 "use client";
 
-import { APP_DOMAIN, cn, createHref, fetcher } from "@dub/utils";
-import { ChevronDown, Menu, X } from "lucide-react";
+import { cn, createHref, getMarketingAuthUrls } from "@dub/utils";
+import { ArrowRight, ArrowUpRight, ChevronDown, Menu, X } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { ComponentProps, ReactNode, useEffect, useState } from "react";
-import useSWR from "swr";
 import { AnimatedSizeContainer } from "../animated-size-container";
 import { ButtonProps, buttonVariants } from "../button";
 import { NavItemChild, NavItemChildren } from "../content";
@@ -64,13 +63,7 @@ export function NavMobile({
     }
   }, [open]);
 
-  const { data: session, isLoading } = useSWR(
-    domain.endsWith("dub.co") && "/api/auth/session",
-    fetcher,
-    {
-      dedupingInterval: 60000,
-    },
-  );
+  const authUrls = getMarketingAuthUrls(domain);
 
   return (
     <div
@@ -79,19 +72,18 @@ export function NavMobile({
         theme === "dark" && "dark",
       )}
     >
-      {session && Object.keys(session).length > 0 ? (
-        <AuthButton href={APP_DOMAIN} className="max-[280px]:hidden">
-          Dashboard
-        </AuthButton>
-      ) : !isLoading ? (
-        <div className="flex gap-2 max-[280px]:hidden">
-          <AuthButton variant="secondary" href={`${APP_DOMAIN}/login`}>
-            Log in
-          </AuthButton>
-
-          <AuthButton href={`${APP_DOMAIN}/register`}>Sign Up</AuthButton>
-        </div>
-      ) : null}
+      <AuthButton
+        href={authUrls.login}
+        variant="secondary"
+        className={cn(
+          "max-[280px]:hidden gap-1.5",
+          "border-neutral-200 bg-white text-neutral-900 hover:bg-neutral-50",
+          "dark:border-white dark:bg-white dark:text-black dark:hover:bg-neutral-50",
+        )}
+      >
+        Get Started
+        <ArrowRight className="size-3.5" />
+      </AuthButton>
       <button
         onClick={() => setOpen(!open)}
         className={cn(
@@ -112,46 +104,27 @@ export function NavMobile({
         )}
       >
         <ul className="grid divide-y divide-neutral-200 dark:divide-white/[0.15]">
-          {items.map(({ name, href, childItems }, idx) => (
+          {items.map(({ name, href, childItems, target, external }, idx) => (
             <MobileNavItem
               key={idx}
               name={name}
               href={href}
               childItems={childItems}
+              target={target}
+              external={external}
               setOpen={setOpen}
             />
           ))}
 
-          {session && Object.keys(session).length > 0 ? (
-            <li className="py-3 min-[281px]:hidden">
-              <Link
-                href={APP_DOMAIN}
-                className="flex w-full font-semibold capitalize"
-              >
-                Dashboard
-              </Link>
-            </li>
-          ) : (
-            <>
-              <li className="py-3 min-[281px]:hidden">
-                <Link
-                  href={`${APP_DOMAIN}/login`}
-                  className="flex w-full font-semibold capitalize"
-                >
-                  Log in
-                </Link>
-              </li>
-
-              <li className="py-3 min-[281px]:hidden">
-                <Link
-                  href={`${APP_DOMAIN}/register`}
-                  className="flex w-full font-semibold capitalize"
-                >
-                  Sign Up
-                </Link>
-              </li>
-            </>
-          )}
+          <li className="py-3 min-[281px]:hidden">
+            <Link
+              href={authUrls.login}
+              className="flex w-full items-center gap-1.5 font-semibold"
+            >
+              Get Started
+              <ArrowRight className="size-3.5" />
+            </Link>
+          </li>
         </ul>
       </nav>
     </div>
@@ -162,11 +135,15 @@ const MobileNavItem = ({
   name,
   href,
   childItems,
+  target,
+  external,
   setOpen,
 }: {
   name: string;
   href?: string;
   childItems?: NavItemChildren;
+  target?: string;
+  external?: boolean;
   setOpen: (open: boolean) => void;
 }) => {
   const { domain = "dub.co" } = useParams() as { domain: string };
@@ -229,10 +206,16 @@ const MobileNavItem = ({
           utm_campaign: domain,
           utm_content: name,
         })}
+        target={target}
+        rel={target === "_blank" ? "noreferrer" : undefined}
         onClick={() => setOpen(false)}
-        className="flex w-full font-semibold capitalize"
+        className={cn(
+          "flex w-full items-center font-semibold capitalize",
+          external && "gap-1.5",
+        )}
       >
         {name}
+        {external ? <ArrowUpRight className="size-4" /> : null}
       </Link>
     </li>
   );

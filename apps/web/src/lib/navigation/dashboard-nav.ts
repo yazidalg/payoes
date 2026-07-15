@@ -3,6 +3,7 @@ import {
   ArrowLeftRight,
   BookOpen,
   Building2,
+  CircleUser,
   Code2,
   CreditCard,
   FileCode2,
@@ -86,6 +87,11 @@ export const dashboardNav: DashboardNavItem[] = [
     icon: Settings,
     items: [
       {
+        title: "Profile",
+        url: "/dashboard/settings/profile",
+        icon: CircleUser,
+      },
+      {
         title: "Business",
         url: "/dashboard/settings/business",
         icon: Building2,
@@ -133,6 +139,7 @@ const pageTitles: Record<string, string> = {
   "/dashboard/developers/webhooks": "Webhooks",
   "/dashboard/developers/api-logs": "API Logs",
   "/dashboard/developers/documentation": "Documentation",
+  "/dashboard/settings/profile": "Profile",
   "/dashboard/settings/business": "Business",
   "/dashboard/settings/organization": "Business",
   "/dashboard/settings/settlement-wallet": "Settlement Wallet",

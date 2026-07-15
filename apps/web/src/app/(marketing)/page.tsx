@@ -1,17 +1,18 @@
-import { CTA } from "./cta";
-import { Developers } from "./developers";
-import { Features } from "./features";
+import { FeaturesSection } from "@/ui/marketing/placeholders/features-section";
 import { Hero } from "./hero";
 import { Logos } from "./logos";
 
+const UTM_PARAMS = {
+  utm_source: "Custom Domain",
+  utm_medium: "Welcome Page",
+};
+
 export default function Home() {
   return (
-    <>
+    <div>
       <Hero />
       <Logos />
-      <Features />
-      <Developers />
-      <CTA />
-    </>
+      <FeaturesSection utmParams={UTM_PARAMS} />
+    </div>
   );
 }

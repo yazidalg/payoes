@@ -1,7 +1,8 @@
 "use client";
 
-import { APP_DOMAIN, cn, createHref, fetcher } from "@dub/utils";
+import { cn, createHref, getMarketingAuthUrls } from "@dub/utils";
 import * as NavigationMenuPrimitive from "@radix-ui/react-navigation-menu";
+import { ArrowRight, ArrowUpRight } from "lucide-react";
 import { LayoutGroup } from "motion/react";
 import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
@@ -13,7 +14,6 @@ import {
   createContext,
   useId,
 } from "react";
-import useSWR from "swr";
 import { buttonVariants } from "../button";
 import {
   FEATURES_LIST,
@@ -40,6 +40,8 @@ export type NavItem = {
   segments?: string[];
   content?: ComponentType<{ domain: string }>;
   childItems?: NavItemChildren;
+  target?: string;
+  external?: boolean;
 };
 
 export const navItems = [
@@ -126,13 +128,8 @@ export function Nav({
 
   const scrolled = useScroll(40);
   const pathname = usePathname();
-  const { data: session, isLoading } = useSWR(
-    domain.endsWith("dub.co") && "/api/auth/session",
-    fetcher,
-    {
-      dedupingInterval: 60000,
-    },
-  );
+
+  const authUrls = getMarketingAuthUrls(domain);
 
   return (
     <NavContext.Provider value={{ theme }}>
@@ -172,8 +169,8 @@ export function Nav({
                 delayDuration={0}
                 className="relative hidden lg:block"
               >
-                <NavigationMenuPrimitive.List className="group relative z-0 flex">
-                  {items.map(({ name, href, segments, content: Content }) => {
+                <NavigationMenuPrimitive.List className="group relative z-0 flex gap-2">
+                  {items.map(({ name, href, segments, content: Content, target, external }) => {
                     const isActive = (segments ?? []).some((segment) =>
                       pathname?.startsWith(segment),
                     );
@@ -189,10 +186,20 @@ export function Nav({
                                 utm_campaign: domain,
                                 utm_content: name,
                               })}
-                              className={navItemClassName}
+                              target={target}
+                              rel={
+                                target === "_blank" ? "noreferrer" : undefined
+                              }
+                              className={cn(
+                                navItemClassName,
+                                external && "gap-1",
+                              )}
                               data-active={isActive}
                             >
                               {name}
+                              {external ? (
+                                <ArrowUpRight className="size-3.5" />
+                              ) : null}
                             </Link>
                           ) : (
                             <button
@@ -227,41 +234,18 @@ export function Nav({
               </NavigationMenuPrimitive.Root>
 
               <div className="hidden grow basis-0 justify-end gap-2 lg:flex">
-                {session && Object.keys(session).length > 0 ? (
-                  <Link
-                    href={APP_DOMAIN}
-                    className={cn(
-                      buttonVariants({ variant: "primary" }),
-                      "flex h-8 items-center rounded-lg border px-4 text-sm",
-                      "dark:border-white dark:bg-white dark:text-black dark:hover:bg-neutral-50 dark:hover:ring-white/10",
-                    )}
-                  >
-                    Dashboard
-                  </Link>
-                ) : !isLoading ? (
-                  <>
-                    <Link
-                      href="https://app.dub.co/login"
-                      className={cn(
-                        buttonVariants({ variant: "secondary" }),
-                        "flex h-8 items-center rounded-lg border px-4 text-sm",
-                        "dark:border-white/10 dark:bg-black dark:text-white dark:hover:bg-neutral-900",
-                      )}
-                    >
-                      Log in
-                    </Link>
-                    <Link
-                      href="https://app.dub.co/register"
-                      className={cn(
-                        buttonVariants({ variant: "primary" }),
-                        "flex h-8 items-center rounded-lg border px-4 text-sm",
-                        "dark:border-white dark:bg-white dark:text-black dark:hover:bg-neutral-50 dark:hover:ring-white/10",
-                      )}
-                    >
-                      Sign up
-                    </Link>
-                  </>
-                ) : null}
+                <Link
+                  href={authUrls.login}
+                  className={cn(
+                    buttonVariants({ variant: "secondary" }),
+                    "flex h-8 items-center gap-1.5 rounded-lg border px-4 text-sm",
+                    "border-neutral-200 bg-white text-neutral-900 hover:bg-neutral-50",
+                    "dark:border-white dark:bg-white dark:text-black dark:hover:bg-neutral-50 dark:hover:ring-white/10",
+                  )}
+                >
+                  Get Started
+                  <ArrowRight className="size-3.5" />
+                </Link>
               </div>
             </div>
           </MaxWidthWrapper>

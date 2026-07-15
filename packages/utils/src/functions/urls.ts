@@ -1,3 +1,5 @@
+import { APP_DOMAIN } from "../constants/main";
+
 export const isValidUrl = (url: string) => {
   try {
     new URL(url);
@@ -167,7 +169,9 @@ export const createHref = (
   // any params, doesn't have to be all of them
   utmParams?: Partial<Record<(typeof UTMTags)[number], string>>,
 ) => {
-  if (domain === "dub.co") return href;
+  if (domain === "dub.co" || domain === "payoes.com" || domain.startsWith("localhost")) {
+    return href;
+  }
   const url = new URL(href.startsWith("/") ? `https://dub.co${href}` : href);
   if (utmParams) {
     Object.entries(utmParams).forEach(([key, value]) => {
@@ -175,6 +179,34 @@ export const createHref = (
     });
   }
   return url.toString();
+};
+
+export function usesMarketingSession(domain: string) {
+  return (
+    domain === "payoes.com" ||
+    domain.endsWith("dub.co") ||
+    domain.startsWith("localhost")
+  );
+}
+
+export function getMarketingAuthUrls(domain: string) {
+  if (
+    domain === "payoes.com" ||
+    domain === "dub.co" ||
+    domain.startsWith("localhost")
+  ) {
+    return {
+      login: "/login",
+      register: "/register",
+      dashboard: "/dashboard",
+    };
+  }
+
+  return {
+    login: "https://app.dub.co/login",
+    register: "https://app.dub.co/register",
+    dashboard: APP_DOMAIN,
+  };
 };
 
 export const getPathnameFromUrl = (url: string) => {

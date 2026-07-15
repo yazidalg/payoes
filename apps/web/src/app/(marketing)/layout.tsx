@@ -1,8 +1,7 @@
 import { cn } from "@/lib/utils";
 import "./marketing.css";
 import { inter, satoshi } from "./fonts";
-import { Footer } from "./footer";
-import { Nav } from "./nav";
+import { MarketingChrome } from "./marketing-chrome";
 
 export default function MarketingLayout({
   children,
@@ -14,12 +13,10 @@ export default function MarketingLayout({
       className={cn(
         satoshi.variable,
         inter.variable,
-        "marketing-theme font-default flex min-h-screen flex-col justify-between",
+        "marketing-theme font-default flex min-h-screen flex-col justify-between bg-neutral-50/80",
       )}
     >
-      <Nav />
-      <main>{children}</main>
-      <Footer />
+      <MarketingChrome>{children}</MarketingChrome>
     </div>
   );
 }

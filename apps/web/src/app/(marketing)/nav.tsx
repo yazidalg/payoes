@@ -2,6 +2,7 @@
 
 import {
   ArrowLeftRight,
+  ArrowUpRight,
   ChevronDown,
   Link2,
   Menu,
@@ -13,6 +14,7 @@ import {
 import Link from "next/link";
 import { type ComponentType, useEffect, useRef, useState } from "react";
 import { Wordmark } from "@dub/ui";
+import { getDocsUrl } from "@/lib/docs/url";
 import { cn } from "@/lib/utils";
 import {
   InvoiceGraphic,
@@ -95,10 +97,9 @@ const PRODUCT_ITEMS: ProductItem[] = [
   },
 ];
 
-const NAV_LINKS: { label: string; href: string }[] = [
+const NAV_LINKS: { label: string; href: string; external?: boolean }[] = [
   { label: "Developers", href: "/developers" },
-  { label: "Docs", href: "/docs" },
-  { label: "Ecosystem", href: "/ecosystem" },
+  { label: "Docs", href: getDocsUrl(), external: true },
   { label: "Pricing", href: "/pricing" },
 ];
 
@@ -258,15 +259,28 @@ export function Nav() {
             </div>
           </div>
 
-          {NAV_LINKS.map(({ label, href }) => (
-            <Link
-              key={label}
-              href={href}
-              className="text-[15px] font-medium text-neutral-800 transition-colors hover:text-neutral-500"
-            >
-              {label}
-            </Link>
-          ))}
+          {NAV_LINKS.map(({ label, href, external }) =>
+            external ? (
+              <a
+                key={label}
+                href={href}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1 text-[15px] font-medium text-neutral-800 transition-colors hover:text-neutral-500"
+              >
+                {label}
+                <ArrowUpRight className="size-3.5" />
+              </a>
+            ) : (
+              <Link
+                key={label}
+                href={href}
+                className="text-[15px] font-medium text-neutral-800 transition-colors hover:text-neutral-500"
+              >
+                {label}
+              </Link>
+            ),
+          )}
         </nav>
 
         <div className="flex items-center gap-3">
@@ -323,16 +337,30 @@ export function Nav() {
             </Link>
           ))}
           <div className="my-2 border-t border-neutral-100" />
-          {NAV_LINKS.map(({ label, href }) => (
-            <Link
-              key={label}
-              href={href}
-              onClick={() => setOpen(false)}
-              className="py-2.5 text-[15px] font-medium text-neutral-800 transition-colors hover:text-neutral-500"
-            >
-              {label}
-            </Link>
-          ))}
+          {NAV_LINKS.map(({ label, href, external }) =>
+            external ? (
+              <a
+                key={label}
+                href={href}
+                target="_blank"
+                rel="noreferrer"
+                onClick={() => setOpen(false)}
+                className="inline-flex items-center gap-1 py-2.5 text-[15px] font-medium text-neutral-800 transition-colors hover:text-neutral-500"
+              >
+                {label}
+                <ArrowUpRight className="size-3.5" />
+              </a>
+            ) : (
+              <Link
+                key={label}
+                href={href}
+                onClick={() => setOpen(false)}
+                className="py-2.5 text-[15px] font-medium text-neutral-800 transition-colors hover:text-neutral-500"
+              >
+                {label}
+              </Link>
+            ),
+          )}
         </nav>
       </div>
     </header>

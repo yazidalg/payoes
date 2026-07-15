@@ -1,15 +1,11 @@
-import {
-  ClientOnly,
-  Icon,
-  NavWordmark,
-  useScrollProgress,
-} from "@dub/ui";
+import { ClientOnly, Icon, useScrollProgress } from "@dub/ui";
 import { cn } from "@dub/utils";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { CSSProperties, ReactNode, useMemo, useRef } from "react";
+import { Logo } from "@/components/shared/logo";
 import { OrgDropdown } from "./org-dropdown";
 
 export type NavItemCommon = {
@@ -65,7 +61,7 @@ export function SidebarNav({
                 href="/dashboard"
                 className="block overflow-visible rounded-lg outline-none transition-opacity focus-visible:ring-2 focus-visible:ring-primary/50"
               >
-                <NavWordmark className="h-5 overflow-visible" isInApp />
+                <Logo />
               </Link>
             </div>
 

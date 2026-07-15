@@ -9,10 +9,14 @@
     "dark": "#043a99"
   },
   "logo": {
-    "light": "/images/logo.svg",
-    "dark": "/images/logo.svg"
+    "light": "/images/logo-full.png",
+    "dark": "/images/logo-full.png"
   },
   "favicon": "/images/logo.svg",
+  "appearance": {
+    "default": "light",
+    "strict": true
+  },
   "navbar": {
     "links": []
   },

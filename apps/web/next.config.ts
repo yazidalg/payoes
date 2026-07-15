@@ -9,6 +9,14 @@ const nextConfig: NextConfig = {
   reactCompiler: true,
   ...(allowedDevOrigins.length > 0 ? { allowedDevOrigins } : {}),
   transpilePackages: ["@dub/ui", "@dub/utils", "@payoes/email"],
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "assets.dub.co",
+      },
+    ],
+  },
 };
 
 export default nextConfig;

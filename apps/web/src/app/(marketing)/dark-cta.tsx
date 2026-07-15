@@ -4,8 +4,8 @@ import { ButtonLink } from "./button-link";
 import { Grid } from "./grid";
 
 /* Dark closing panel with a white notch hanging from the section above,
-   echoing the hero showcase shelf. Shared by the feature, developers, and
-   docs pages; the accent gradient carries each page's identity color. */
+   echoing the hero showcase shelf. Shared by feature and developers pages;
+   the accent gradient carries each page's identity color. */
 export function DarkCta({
   id,
   badge,

@@ -68,6 +68,12 @@ function getSettingsSubmenu(): SidebarSubmenu {
     backHref: "/dashboard",
     items: [
       {
+        name: "Profile",
+        icon: User,
+        href: "/dashboard/settings/profile",
+        isActive: (p, h) => isNavItemActive(p, h),
+      },
+      {
         name: "Business",
         icon: Globe2,
         href: "/dashboard/settings/business",
