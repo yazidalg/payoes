@@ -88,7 +88,7 @@ export const FEATURES: Record<string, Feature> = {
         {
           title: "Send one request",
           description:
-            "POST to /v1/payments with an amount, a settlement asset, and any metadata like an order_id.",
+            "POST to /v1/payments with pricing_currency, pricing_amount, and any metadata like an order_id.",
         },
         {
           title: "Get a checkout URL back",

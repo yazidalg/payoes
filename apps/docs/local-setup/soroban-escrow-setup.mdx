@@ -141,6 +141,10 @@ Common values: `testnet`, `mainnet`, `futurenet`, `local`.
   Deploy fees are paid by `--source-account`. `initialize` is signed by `--operator-account` because the contract requires admin authorization.
 </Note>
 
+  <Note>
+  QR deposits are received by muxed addresses on the Payoes operator account. The app automatically adds operator trustlines for each merchant accepted asset when payments are created, quotes are refreshed, or payment methods are enabled.
+  </Note>
+
 ## Common checkout errors
 
 | Symptom | Fix |

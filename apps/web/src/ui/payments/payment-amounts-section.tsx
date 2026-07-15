@@ -4,11 +4,14 @@ import { formatAssetRef } from "@/lib/payments/types";
 import { CopyText } from "@dub/ui";
 import {
   formatAllowedAssets,
+  formatGrossSettlementAmount,
   formatInvoiceTotal,
   formatPaidAmount,
   formatPaidAsset,
+  formatPlatformFeeAmount,
   formatSettlementAmount,
   formatSettlementTarget,
+  hasDistinctGrossSettlementQuote,
 } from "./payment-formatters";
 
 function DetailField({
@@ -46,6 +49,12 @@ export function PaymentAmountsSection({ payment }: { payment: PaymentRow }) {
           <DetailField label="Settlement amount">
             {formatSettlementAmount(payment)}
           </DetailField>
+          <DetailField label="Platform fee">{formatPlatformFeeAmount(payment)}</DetailField>
+          {hasDistinctGrossSettlementQuote(payment) ? (
+            <DetailField label="Gross settlement quote">
+              {formatGrossSettlementAmount(payment)}
+            </DetailField>
+          ) : null}
           <DetailField label="Settlement asset">
             {formatAssetRef(payment.settlement_asset)}
           </DetailField>

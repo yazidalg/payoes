@@ -12,6 +12,7 @@
   "scripts": {
     "build:packages": "npm run build --workspace=@dub/utils && npm run build --workspace=@dub/ui",
     "build:sdk": "npm run build --workspace=@payoes/sdk",
+    "predev": "npm run build:sdk",
     "dev": "npm run dev --workspace=web",
     "build": "npm run build:packages && npm run build:sdk && npm run build --workspace=web",
     "start": "npm run start --workspace=web",

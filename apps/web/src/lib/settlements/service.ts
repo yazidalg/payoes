@@ -38,6 +38,8 @@ function mapSettlementRow(
     quoted_paid_amount: payment.quotedPaidAmount ?? payment.amount,
     settlement_asset: assets.settlement_asset,
     quoted_settlement_amount: payment.quotedSettlementAmount ?? payment.amount,
+    platform_fee_amount: payment.platformFeeAmount,
+    merchant_settlement_amount: payment.merchantSettlementAmount,
     pricing_amount: payment.pricingAmount,
     pricing_currency: payment.pricingCurrency,
     quote_rate: payment.quoteRate,

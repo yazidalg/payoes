@@ -1,5 +1,9 @@
 import { eq } from "drizzle-orm";
-import { findAllowedAsset } from "@/lib/assets/types";
+import {
+  allowedAssetsEquivalent,
+  findAllowedAsset,
+  resolveAllowedAsset,
+} from "@/lib/assets/types";
 import type { AllowedAsset } from "@/lib/assets/types";
 import { db } from "@/lib/db";
 import { invoices, payments, type Payment } from "@/lib/db/schema";
@@ -7,11 +11,14 @@ import { isInvoiceCurrencyCode } from "@/lib/invoices/currencies";
 import { DEFAULT_PAYMENT_SESSION_HOURS } from "@/constants/payments/defaults";
 import { buildPaymentQuote, isQuoteExpired } from "@/lib/pricing/quotes";
 import { applyPaymentQuote, setPaymentPaidAsset, updatePaymentStatus } from "@/lib/payments/service";
+import { isCheckoutProcessingStatus } from "@/lib/checkout/payment-state";
 import {
   isRetryableFailedPayment,
   resetPaymentForRetry,
 } from "@/lib/payments/retry";
+import { processEscrowSettlement } from "@/lib/payments/settlement/escrow";
 import { ensureEscrowPaymentRegistered } from "@/lib/soroban/escrow-contract";
+import { syncEscrowOperatorTrustlines } from "@/lib/stellar/escrow/operator-trustlines";
 
 export function isPaymentSessionExpired(payment: Payment) {
   return Boolean(payment.expiresAt && payment.expiresAt.getTime() <= Date.now());
@@ -25,12 +32,22 @@ export function needsPaymentQuoteRefresh(
     return false;
   }
 
+  const assetChanged =
+    !payment.paidAsset ||
+    !allowedAssetsEquivalent(
+      {
+        asset_code: payment.paidAsset,
+        issuer_address: payment.paidAssetIssuer,
+      },
+      paidAsset,
+      payment.environment,
+    );
+
   return (
     !payment.quotedPaidAmount ||
     !payment.quoteExpiresAt ||
     isQuoteExpired(payment.quoteExpiresAt) ||
-    payment.paidAsset !== paidAsset.asset_code ||
-    payment.paidAssetIssuer !== paidAsset.issuer_address
+    assetChanged
   );
 }
 
@@ -100,6 +117,23 @@ export async function ensurePayablePayment(
     return { payment: reopened };
   }
 
+  if (isCheckoutProcessingStatus(payment.status)) {
+    return { payment };
+  }
+
+  if (payment.status === "settlement_failed") {
+    if (payment.settlementTxHash) {
+      const repaired = await processEscrowSettlement(payment);
+      return { payment: repaired };
+    }
+
+    return {
+      payment,
+      error:
+        "Settlement could not be completed. Please contact the merchant if your funds were not returned.",
+    };
+  }
+
   if (payment.status !== "pending" && payment.status !== "failed") {
     return { payment, error: `Payment is ${payment.status}` };
   }
@@ -116,9 +150,9 @@ export async function ensurePayablePayment(
   return { payment };
 }
 
-export async function refreshPaymentQuote(
+function resolveQuotePaidAsset(
   payment: Payment,
-  paidAsset: AllowedAsset
+  paidAsset: AllowedAsset,
 ) {
   if (!payment.pricingCurrency || !payment.pricingAmount) {
     throw new Error("This payment does not require a conversion quote");
@@ -132,7 +166,8 @@ export async function refreshPaymentQuote(
   const match = findAllowedAsset(
     allowed,
     paidAsset.asset_code,
-    paidAsset.issuer_address
+    paidAsset.issuer_address,
+    payment.environment,
   );
 
   if (!match) {
@@ -144,14 +179,48 @@ export async function refreshPaymentQuote(
     issuer_address: payment.settlementAssetIssuer,
   };
 
+  return {
+    match,
+    settlementAsset,
+    canonicalPaidAsset: resolveAllowedAsset(match, payment.environment),
+  };
+}
+
+export async function previewPaymentQuote(
+  payment: Payment,
+  paidAsset: AllowedAsset,
+) {
+  const { match, settlementAsset } = resolveQuotePaidAsset(payment, paidAsset);
+
+  return buildPaymentQuote({
+    pricingAmount: payment.pricingAmount!,
+    pricingCurrency: payment.pricingCurrency as Parameters<
+      typeof buildPaymentQuote
+    >[0]["pricingCurrency"],
+    paidAsset: match,
+    settlementAsset,
+  });
+}
+
+export async function refreshPaymentQuote(
+  payment: Payment,
+  paidAsset: AllowedAsset
+) {
+  const { canonicalPaidAsset, settlementAsset, match } = resolveQuotePaidAsset(
+    payment,
+    paidAsset,
+  );
+
   const quote = await buildPaymentQuote({
-    pricingAmount: payment.pricingAmount,
-    pricingCurrency: payment.pricingCurrency,
+    pricingAmount: payment.pricingAmount!,
+    pricingCurrency: payment.pricingCurrency as Parameters<
+      typeof buildPaymentQuote
+    >[0]["pricingCurrency"],
     paidAsset: match,
     settlementAsset,
   });
 
-  const withPaidAsset = await setPaymentPaidAsset(payment, match);
+  const withPaidAsset = await setPaymentPaidAsset(payment, canonicalPaidAsset);
   const updated = await applyPaymentQuote(withPaidAsset, {
     paidAmount: quote.paid_amount,
     rate: quote.rate,
@@ -160,7 +229,14 @@ export async function refreshPaymentQuote(
     settlementQuoteRate: quote.settlement_quote_rate,
   });
 
-  await ensureEscrowPaymentRegistered(updated);
+  await syncEscrowOperatorTrustlines({
+    environment: updated.environment,
+    allowedAssets: updated.allowedAssets ?? [],
+  });
+
+  if (!isCheckoutProcessingStatus(updated.status)) {
+    await ensureEscrowPaymentRegistered(updated);
+  }
 
   return { quote, payment: updated };
 }

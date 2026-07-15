@@ -23,6 +23,7 @@ import {
 } from "@/lib/soroban/config";
 import { assertSorobanConfigured } from "@/lib/soroban/setup-errors";
 import { ensureEscrowPaymentRegistered } from "@/lib/soroban/escrow-contract";
+import { syncEscrowOperatorTrustlines } from "@/lib/stellar/escrow/operator-trustlines";
 import { DEFAULT_AUTH_URL } from "@/constants/app";
 import {
   calculateMerchantSettlementAmount,
@@ -223,6 +224,11 @@ export async function createPayment(input: {
     environment: input.environment,
     event: "payment.created",
     payload: serializePayment(payment, { customerPublicId }),
+  });
+
+  await syncEscrowOperatorTrustlines({
+    environment: input.environment,
+    allowedAssets: assetConfig.allowed_assets,
   });
 
   await ensureEscrowPaymentRegistered(payment).catch(async (error) => {

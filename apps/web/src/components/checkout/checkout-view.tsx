@@ -10,21 +10,19 @@ import { getOfficialAsset } from "@/lib/payment-methods/official-assets";
 import { ConnectedWallet } from "@/ui/wallet/connected-wallet";
 import { CheckoutSandboxBanner } from "@/components/checkout/checkout-sandbox-banner";
 import { CheckoutAlertBanner } from "@/components/checkout/checkout-error-banner";
+import { getCheckoutPaymentSubtitle } from "@/lib/checkout/payment-state";
 import { BusinessMark } from "@/components/business/business-mark";
 import { formatInvoiceAmount } from "@/lib/invoices/amount";
 import { formatAmountWithUnit, formatTokenWithAsset } from "@/lib/format/amount";
-import {
-  hasCustomerCollection,
-  type PaymentLinkCustomerInput,
-} from "@/lib/payment-links/types";
+import { hasCustomerCollection, type PaymentLinkCustomerInput } from "@/lib/payment-links/types";
 import { getPaymentLinkCustomerInputError } from "@/lib/payment-links/validate-customer-input";
 import { CheckoutAdditionalInfoFields } from "@/components/checkout/checkout-additional-info-fields";
-import type {
-  AllowedAsset,
-  AssetBalances,
-  CheckoutData,
-  PaymentQuote,
-} from "./checkout-types";
+import {
+  CheckoutPaymentSpinner,
+  CheckoutPaymentWaitingBanner,
+  getCheckoutPaymentWaitingVariant,
+} from "@/components/checkout/checkout-payment-loading";
+import type { AllowedAsset, CheckoutData, PaymentQuote } from "./checkout-types";
 
 export function AssetIcon({ code, className }: { code: string; className?: string }) {
   const iconUrl = getAssetIconUrl(code);
@@ -32,20 +30,12 @@ export function AssetIcon({ code, className }: { code: string; className?: strin
   if (iconUrl) {
     return (
       <div className={cn("flex size-10 shrink-0 items-center justify-center rounded-full bg-neutral-50 border border-neutral-200/50 p-1.5 overflow-hidden", className)}>
-        <img
-          src={iconUrl}
-          alt={code}
-          className="size-full object-contain"
-        />
+        <img src={iconUrl} alt={code} className="size-full object-contain" />
       </div>
     );
   }
 
-  return (
-    <div className={cn("flex size-10 shrink-0 items-center justify-center rounded-full bg-neutral-100 text-neutral-600 font-bold text-xs uppercase", className)}>
-      {code.slice(0, 3)}
-    </div>
-  );
+  return <div className={cn("flex size-10 shrink-0 items-center justify-center rounded-full bg-neutral-100 text-neutral-600 font-bold text-xs uppercase", className)}>{code.slice(0, 3)}</div>;
 }
 
 export function getAssetDetails(asset: AllowedAsset) {
@@ -61,9 +51,7 @@ export function getAssetDetails(asset: AllowedAsset) {
 
   return {
     name: code,
-    description: asset.issuer_address
-      ? `Issued by ${asset.issuer_address.slice(0, 4)}...${asset.issuer_address.slice(-4)}`
-      : "Custom token",
+    description: asset.issuer_address ? `Issued by ${asset.issuer_address.slice(0, 4)}...${asset.issuer_address.slice(-4)}` : "Custom token",
   };
 }
 
@@ -92,13 +80,15 @@ function formatCheckoutDueDate(iso: string) {
   });
 }
 
-function RateLockBadge({
-  content,
-  children,
-}: {
-  content: string;
-  children: ReactNode;
-}) {
+function whenDesktop(embedded: boolean, classes?: string) {
+  if (embedded || !classes) {
+    return undefined;
+  }
+
+  return classes;
+}
+
+function RateLockBadge({ content, children }: { content: string; children: ReactNode }) {
   return (
     <Tooltip content={content}>
       <span className="inline-flex cursor-help">{children}</span>
@@ -106,14 +96,7 @@ function RateLockBadge({
   );
 }
 
-export function RateLockCountdown({
-  countdown,
-  isRefreshingRate,
-}: {
-  countdown: string;
-  isRefreshingRate: boolean;
-  disabled?: boolean;
-}) {
+export function RateLockCountdown({ countdown, isRefreshingRate }: { countdown: string; isRefreshingRate: boolean; disabled?: boolean }) {
   const badgeClassName = "inline-flex items-center gap-1.5 tabular-nums";
 
   if (isRefreshingRate) {
@@ -149,6 +132,7 @@ export function RateLockCountdown({
 export type CheckoutViewProps = {
   data: CheckoutData;
   isCompleted: boolean;
+  isProcessing?: boolean;
   isSessionExpired: boolean;
   lastAttemptError: string | null | undefined;
   qrDestination: string;
@@ -168,7 +152,6 @@ export type CheckoutViewProps = {
   selectedPaidAsset: AllowedAsset | null;
   selectedPaidAssetKey: string;
   setSelectedPaidAssetKey: (key: string) => void;
-  assetBalances?: AssetBalances;
   isAssetDropdownOpen: boolean;
   setIsAssetDropdownOpen: (open: boolean) => void;
   isMobileItemsOpen: boolean;
@@ -181,9 +164,10 @@ export type CheckoutViewProps = {
   isConfirming?: boolean;
   confirmExhausted?: boolean;
   isConnecting: boolean;
+  isFetchingQuote?: boolean;
   paymentBlocked: boolean;
   quoteError: string | null;
-  walletAssetError?: string | null;
+  depositTrustlineError?: string | null;
   error: string | null;
   networkError: string | null;
   connectError: string | null;
@@ -195,6 +179,9 @@ export type CheckoutViewProps = {
   onUpdateWallet?: () => void;
   onPay?: () => void;
   onRetryConfirm?: () => void;
+  onCheckDeposit?: () => void;
+  isCheckingDeposit?: boolean;
+  depositCheckInfo?: string | null;
   disabled?: boolean;
   embedded?: boolean;
   countdown?: string;
@@ -202,31 +189,12 @@ export type CheckoutViewProps = {
   onCustomerInputChange?: (value: PaymentLinkCustomerInput) => void;
 };
 
-function getCheckoutErrorMessage(input: {
-  isSessionExpired: boolean;
-  sessionError?: string | null;
-  error: string | null;
-  quoteError: string | null;
-  walletAssetError?: string | null;
-  networkError: string | null;
-  connectError: string | null;
-  isRefreshingRate: boolean;
-}) {
+function getCheckoutErrorMessage(input: { isSessionExpired: boolean; sessionError?: string | null; error: string | null; quoteError: string | null; depositTrustlineError?: string | null; networkError: string | null; connectError: string | null; isRefreshingRate: boolean }) {
   if (input.isSessionExpired) {
-    return (
-      input.sessionError ??
-      "This payment has expired. Ask the merchant to send a new payment link."
-    );
+    return input.sessionError ?? "This payment has expired. Ask the merchant to send a new payment link.";
   }
 
-  return (
-    input.error ??
-    (!input.isRefreshingRate ? input.quoteError : null) ??
-    input.walletAssetError ??
-    input.networkError ??
-    input.connectError ??
-    null
-  );
+  return input.error ?? input.depositTrustlineError ?? (!input.isRefreshingRate ? input.quoteError : null) ?? input.networkError ?? input.connectError ?? null;
 }
 
 type CheckoutAlert = {
@@ -235,22 +203,8 @@ type CheckoutAlert = {
   key: string;
 };
 
-function getCheckoutAlert(input: {
-  disabled?: boolean;
-  isDetailsPanel: boolean;
-  isPaymentPanel: boolean;
-  detailsError: string | null;
-  isSessionExpired: boolean;
-  sessionError?: string | null;
-  error: string | null;
-  quoteError: string | null;
-  walletAssetError?: string | null;
-  networkError: string | null;
-  connectError: string | null;
-  isRefreshingRate: boolean;
-  lastAttemptError: string | null | undefined;
-}): CheckoutAlert | null {
-  if (input.disabled) {
+function getCheckoutAlert(input: { disabled?: boolean; isCompleted?: boolean; isDetailsPanel: boolean; isPaymentPanel: boolean; detailsError: string | null; isSessionExpired: boolean; sessionError?: string | null; error: string | null; quoteError: string | null; depositTrustlineError?: string | null; networkError: string | null; connectError: string | null; isRefreshingRate: boolean; lastAttemptError: string | null | undefined; depositCheckInfo?: string | null }): CheckoutAlert | null {
+  if (input.disabled || input.isCompleted) {
     return null;
   }
 
@@ -267,7 +221,7 @@ function getCheckoutAlert(input: {
     sessionError: input.sessionError,
     error: input.error,
     quoteError: input.quoteError,
-    walletAssetError: input.walletAssetError,
+    depositTrustlineError: input.depositTrustlineError,
     networkError: input.networkError,
     connectError: input.connectError,
     isRefreshingRate: input.isRefreshingRate,
@@ -284,8 +238,7 @@ function getCheckoutAlert(input: {
   if (input.isPaymentPanel && input.isRefreshingRate) {
     return {
       type: "info",
-      message:
-        "Rate lock is refreshing. Payment actions are paused until the new rate is ready.",
+      message: "Rate lock is refreshing. Payment actions are paused until the new rate is ready.",
       key: "rate-refresh",
     };
   }
@@ -298,75 +251,28 @@ function getCheckoutAlert(input: {
     };
   }
 
+  if (input.isPaymentPanel && input.depositCheckInfo) {
+    return {
+      type: "info",
+      message: input.depositCheckInfo,
+      key: `deposit-check:${input.depositCheckInfo}`,
+    };
+  }
+
   return null;
 }
 
-export function CheckoutView({
-  data,
-  isCompleted,
-  isSessionExpired,
-  lastAttemptError,
-  qrDestination,
-  settlementLabel,
-  isSandbox,
-  sourceLabel,
-  currencyCode,
-  hasPricing,
-  showQuoteAmountLoading,
-  displayAmount,
-  displayAsset,
-  quote,
-  rateLockLabel,
-  isRefreshingRate,
-  isSimulating,
-  allowedAssets,
-  selectedPaidAsset,
-  selectedPaidAssetKey,
-  setSelectedPaidAssetKey,
-  assetBalances = {},
-  isAssetDropdownOpen,
-  setIsAssetDropdownOpen,
-  isMobileItemsOpen,
-  setIsMobileItemsOpen,
-  paymentMode,
-  setPaymentMode,
-  address,
-  pendingTxHash,
-  isPaying,
-  isConfirming = false,
-  confirmExhausted = false,
-  isConnecting,
-  paymentBlocked,
-  quoteError,
-  walletAssetError = null,
-  error,
-  networkError,
-  connectError,
-  showQrLoading,
-  dropdownRef,
-  onSimulatePayment,
-  onConnectWallet,
-  onUpdateWallet,
-  onPay,
-  onRetryConfirm,
-  disabled = false,
-  embedded = false,
-  countdown = "",
-  customerInput,
-  onCustomerInputChange,
-}: CheckoutViewProps) {
+export function CheckoutView({ data, isCompleted, isProcessing = false, isSessionExpired, lastAttemptError, qrDestination, settlementLabel, isSandbox, sourceLabel, currencyCode, hasPricing, showQuoteAmountLoading, displayAmount, displayAsset, quote, rateLockLabel, isRefreshingRate, isSimulating, allowedAssets, selectedPaidAsset, selectedPaidAssetKey, setSelectedPaidAssetKey, isAssetDropdownOpen, setIsAssetDropdownOpen, isMobileItemsOpen, setIsMobileItemsOpen, paymentMode, setPaymentMode, address, pendingTxHash, isPaying, isConfirming = false, confirmExhausted = false, isConnecting, isFetchingQuote = false, paymentBlocked, quoteError, depositTrustlineError = null, error, networkError, connectError, showQrLoading, dropdownRef, onSimulatePayment, onConnectWallet, onUpdateWallet, onPay, onRetryConfirm, onCheckDeposit, isCheckingDeposit = false, depositCheckInfo = null, disabled = false, embedded = false, countdown = "", customerInput, onCustomerInputChange }: CheckoutViewProps) {
   const lineItems = data.items ?? [];
+  const isPaymentWaiting =
+    isProcessing || isPaying || isConfirming || isCheckingDeposit;
   const showCustomerInfoFields =
     hasCustomerCollection(data.customer_collection) &&
     !isCompleted &&
-    !isSessionExpired;
-  const customerCollectionKey = useMemo(
-    () => JSON.stringify(data.customer_collection ?? null),
-    [data.customer_collection],
-  );
-  const [customerPanel, setCustomerPanel] = useState<"details" | "payment">(
-    showCustomerInfoFields ? "details" : "payment",
-  );
+    !isSessionExpired &&
+    !isPaymentWaiting;
+  const customerCollectionKey = useMemo(() => JSON.stringify(data.customer_collection ?? null), [data.customer_collection]);
+  const [customerPanel, setCustomerPanel] = useState<"details" | "payment">(showCustomerInfoFields ? "details" : "payment");
   const [detailsError, setDetailsError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -374,13 +280,7 @@ export function CheckoutView({
     setDetailsError(null);
   }, [showCustomerInfoFields, customerCollectionKey]);
 
-  const detailsValidationError = useMemo(
-    () =>
-      showCustomerInfoFields
-        ? getPaymentLinkCustomerInputError(customerInput, data.customer_collection)
-        : null,
-    [showCustomerInfoFields, customerInput, data.customer_collection],
-  );
+  const detailsValidationError = useMemo(() => (showCustomerInfoFields ? getPaymentLinkCustomerInputError(customerInput, data.customer_collection) : null), [showCustomerInfoFields, customerInput, data.customer_collection]);
   const canContinueToPayment = detailsValidationError === null;
 
   function handleContinueToPayment() {
@@ -399,6 +299,7 @@ export function CheckoutView({
   const isPaymentPanel = !showCustomerPanelTabs || customerPanel === "payment";
   const checkoutAlert = getCheckoutAlert({
     disabled,
+    isCompleted,
     isDetailsPanel,
     isPaymentPanel,
     detailsError,
@@ -406,20 +307,36 @@ export function CheckoutView({
     sessionError: data.payment.session_error,
     error,
     quoteError,
-    walletAssetError,
+    depositTrustlineError,
     networkError,
     connectError,
     isRefreshingRate,
     lastAttemptError,
+    depositCheckInfo,
   });
   const showCheckoutAlertBanner = Boolean(checkoutAlert);
+  const paymentWaitingVariant = getCheckoutPaymentWaitingVariant({
+    isProcessing,
+    isPaying,
+    isConfirming,
+    isCheckingDeposit,
+  });
   const hideSandboxSimulate =
     disabled ||
     isCompleted ||
+    Boolean(paymentWaitingVariant) ||
     isRefreshingRate ||
     isSessionExpired ||
     data.payment.status === "failed" ||
-    data.payment.status === "refunded";
+    data.payment.status === "refunded" ||
+    data.payment.status === "settlement_failed";
+  const paymentSubtitle = getCheckoutPaymentSubtitle({
+    isDetailsPanel,
+    isProcessing,
+    isSessionExpired,
+    hasLastAttemptError: Boolean(lastAttemptError),
+    paymentWaitingVariant,
+  });
 
   function formatLineAmount(amount: string) {
     if (hasPricing) {
@@ -429,31 +346,19 @@ export function CheckoutView({
   }
 
   return (
-    <div className={cn("relative bg-white text-left flex flex-col flex-1 @container", disabled || embedded ? "min-h-full h-full" : "min-h-svh", showCheckoutAlertBanner && "pb-16")}>
-      <div className={cn("relative z-10 flex flex-col flex-1", disabled || embedded ? "h-full" : "min-h-svh")}>
+    <div className={cn("relative bg-white text-left flex flex-col flex-1 @container", embedded ? "h-dvh min-h-0 max-h-dvh overflow-hidden" : "min-h-svh", showCheckoutAlertBanner && !embedded && "pb-16")}>
+      <div className={cn("relative z-10 flex flex-col flex-1 min-h-0", embedded ? "h-full overflow-hidden" : "min-h-svh")}>
         {/* Hide sandbox banner when in preview (disabled) */}
-        {isSandbox && !disabled ? (
-          <CheckoutSandboxBanner
-            onSimulate={disabled ? undefined : onSimulatePayment}
-            isSimulating={isSimulating}
-            simulateDisabled={hideSandboxSimulate}
-          />
-        ) : null}
+        {isSandbox && !disabled ? <CheckoutSandboxBanner onSimulate={disabled ? undefined : onSimulatePayment} isSimulating={isSimulating} simulateDisabled={hideSandboxSimulate} /> : null}
 
-        <div className="flex flex-1 flex-col @lg:flex-row">
+        <div className={cn("flex flex-1 min-h-0 flex-col", whenDesktop(embedded, "@lg:flex-row"))}>
           {/* Order Summary (Left) */}
-          <div
-            className={cn(
-              "flex-none border-b border-neutral-200/60 bg-neutral-50 px-4 py-4",
-              "@lg:flex-1 @lg:border-b-0 @lg:border-r",
-              disabled ? "@lg:px-4 @lg:py-4" : "@lg:px-8 @lg:py-8",
-            )}
-          >
-            <div className={cn("mx-auto max-w-md", disabled ? "space-y-3" : "space-y-4 @lg:space-y-6")}>
+          <div className={cn("flex-none border-b border-neutral-200/60 bg-neutral-50 px-4 py-4", whenDesktop(embedded, "@lg:flex-1 @lg:border-b-0 @lg:border-r"), disabled ? whenDesktop(embedded, "@lg:px-4 @lg:py-4") : whenDesktop(embedded, "@lg:px-8 @lg:py-8"))}>
+            <div className={cn("mx-auto max-w-md", disabled ? "space-y-3" : cn("space-y-4", whenDesktop(embedded, "@lg:space-y-6")))}>
               <div className="flex items-center justify-between w-full">
                 <div className="flex items-center gap-3">
                   {data.merchant ? (
-                    <div className={cn("flex shrink-0 overflow-hidden rounded-full", disabled ? "size-7" : "size-8 @lg:size-10")}>
+                    <div className={cn("flex shrink-0 overflow-hidden rounded-full", disabled ? "size-7" : cn("size-8", whenDesktop(embedded, "@lg:size-10")))}>
                       <BusinessMark
                         organization={{
                           name: data.merchant.name,
@@ -467,29 +372,13 @@ export function CheckoutView({
                   <div className="min-w-0">
                     {data.invoice ? (
                       <>
-                        <p
-                          className={cn(
-                            "truncate font-semibold text-neutral-900",
-                            disabled ? "text-sm" : "text-base",
-                          )}
-                        >
-                          {data.merchant?.name ?? "Merchant"}
-                        </p>
-                        <p
-                          className={cn(
-                            "mt-1 truncate text-neutral-500",
-                            disabled ? "text-xs" : "text-sm",
-                          )}
-                        >
-                          {data.invoice.invoice_number}
-                        </p>
+                        <p className={cn("truncate font-semibold text-neutral-900", disabled ? "text-sm" : "text-base")}>{data.merchant?.name ?? "Merchant"}</p>
+                        <p className={cn("mt-1 truncate text-neutral-500", disabled ? "text-xs" : "text-sm")}>{data.invoice.invoice_number}</p>
                       </>
                     ) : (
                       <>
-                        <p className={cn("truncate text-neutral-500 hidden @lg:block", disabled ? "text-[10px]" : "text-sm")}>{sourceLabel}</p>
-                        <p className={cn("truncate font-medium text-neutral-900", disabled ? "text-xs" : "text-sm @lg:text-base")}>
-                          {data.merchant?.name ?? "Merchant"}
-                        </p>
+                        <p className={cn("truncate text-neutral-500 hidden", whenDesktop(embedded, "@lg:block"), disabled ? "text-[10px]" : "text-sm")}>{sourceLabel}</p>
+                        <p className={cn("truncate font-medium text-neutral-900", disabled ? "text-xs" : cn("text-sm", whenDesktop(embedded, "@lg:text-base")))}>{data.merchant?.name ?? "Merchant"}</p>
                       </>
                     )}
                   </div>
@@ -497,48 +386,26 @@ export function CheckoutView({
 
                 <div className="text-right">
                   {data.invoice?.due_at ? (
-                    <div className="hidden @lg:block">
+                    <div className={cn("hidden", whenDesktop(embedded, "@lg:block"))}>
                       <p className="text-[10px] text-neutral-500">Due</p>
-                      <p className={cn("font-medium text-neutral-900", disabled ? "text-xs" : "text-sm")}>
-                        {formatCheckoutDueDate(data.invoice.due_at)}
-                      </p>
+                      <p className={cn("font-medium text-neutral-900", disabled ? "text-xs" : "text-sm")}>{formatCheckoutDueDate(data.invoice.due_at)}</p>
                     </div>
                   ) : null}
                   {data.invoice?.due_at ? (
-                    <div className="@lg:hidden space-y-2">
+                    <div className={cn(whenDesktop(embedded, "@lg:hidden"), "space-y-2")}>
                       <div>
                         <p className="text-[10px] text-neutral-500">Due</p>
-                        <p className={cn("font-medium text-neutral-900", disabled ? "text-xs" : "text-sm")}>
-                          {formatCheckoutDueDate(data.invoice.due_at)}
-                        </p>
+                        <p className={cn("font-medium text-neutral-900", disabled ? "text-xs" : "text-sm")}>{formatCheckoutDueDate(data.invoice.due_at)}</p>
                       </div>
                       <div>
                         <p className="text-[10px] text-neutral-500">Total</p>
-                        <p className={cn("font-semibold text-neutral-900", disabled ? "text-xs" : "text-sm")}>
-                          {hasPricing ? (
-                            formatInvoiceAmount(
-                              data.payment.pricing_amount!,
-                              data.payment.pricing_currency!,
-                            )
-                          ) : (
-                            formatTokenWithAsset(data.payment.amount, settlementLabel)
-                          )}
-                        </p>
+                        <p className={cn("font-semibold text-neutral-900", disabled ? "text-xs" : "text-sm")}>{hasPricing ? formatInvoiceAmount(data.payment.pricing_amount!, data.payment.pricing_currency!) : formatTokenWithAsset(data.payment.amount, settlementLabel)}</p>
                       </div>
                     </div>
                   ) : (
-                    <div className="@lg:hidden">
+                    <div className={whenDesktop(embedded, "@lg:hidden")}>
                       <p className="text-[10px] text-neutral-500">Total</p>
-                      <p className={cn("font-semibold text-neutral-900", disabled ? "text-xs" : "text-sm")}>
-                        {hasPricing ? (
-                          formatInvoiceAmount(
-                            data.payment.pricing_amount!,
-                            data.payment.pricing_currency!,
-                          )
-                        ) : (
-                          formatTokenWithAsset(data.payment.amount, settlementLabel)
-                        )}
-                      </p>
+                      <p className={cn("font-semibold text-neutral-900", disabled ? "text-xs" : "text-sm")}>{hasPricing ? formatInvoiceAmount(data.payment.pricing_amount!, data.payment.pricing_currency!) : formatTokenWithAsset(data.payment.amount, settlementLabel)}</p>
                     </div>
                   )}
                 </div>
@@ -547,55 +414,29 @@ export function CheckoutView({
               {data.invoice ? (
                 <div className={cn("border-t border-neutral-200/60 pt-3", disabled ? "space-y-1" : "space-y-1.5")}>
                   <p className={cn("text-neutral-500", disabled ? "text-[10px]" : "text-xs")}>Bill to</p>
-                  <p className={cn("font-medium text-neutral-900", disabled ? "text-xs" : "text-sm")}>
-                    {data.invoice.customer.name ?? data.invoice.customer.email ?? "Customer"}
-                  </p>
-                  {data.invoice.customer.name && data.invoice.customer.email ? (
-                    <p className={cn("text-neutral-500", disabled ? "text-[10px]" : "text-xs")}>
-                      {data.invoice.customer.email}
-                    </p>
-                  ) : null}
+                  <p className={cn("font-medium text-neutral-900", disabled ? "text-xs" : "text-sm")}>{data.invoice.customer.name ?? data.invoice.customer.email ?? "Customer"}</p>
+                  {data.invoice.customer.name && data.invoice.customer.email ? <p className={cn("text-neutral-500", disabled ? "text-[10px]" : "text-xs")}>{data.invoice.customer.email}</p> : null}
                   {data.invoice.memo ? (
                     <div className={cn("border-t border-neutral-200/60 pt-2", disabled ? "space-y-0.5" : "space-y-1")}>
                       <p className={cn("text-neutral-500", disabled ? "text-[10px]" : "text-xs")}>Memo</p>
-                      <p className={cn("whitespace-pre-wrap text-neutral-900", disabled ? "text-xs" : "text-sm")}>
-                        {data.invoice.memo}
-                      </p>
+                      <p className={cn("whitespace-pre-wrap text-neutral-900", disabled ? "text-xs" : "text-sm")}>{data.invoice.memo}</p>
                     </div>
                   ) : null}
                 </div>
               ) : null}
 
               {!data.invoice && data.payment.description?.trim() ? (
-                <div
-                  className={cn(
-                    "border-t border-neutral-200/60 pt-3",
-                    disabled ? "space-y-0.5" : "space-y-1",
-                  )}
-                >
-                  <p className={cn("text-neutral-500", disabled ? "text-[10px]" : "text-xs")}>
-                    Memo
-                  </p>
-                  <p
-                    className={cn(
-                      "whitespace-pre-wrap text-neutral-900",
-                      disabled ? "text-xs" : "text-sm",
-                    )}
-                  >
-                    {data.payment.description}
-                  </p>
+                <div className={cn("border-t border-neutral-200/60 pt-3", disabled ? "space-y-0.5" : "space-y-1")}>
+                  <p className={cn("text-neutral-500", disabled ? "text-[10px]" : "text-xs")}>Memo</p>
+                  <p className={cn("whitespace-pre-wrap text-neutral-900", disabled ? "text-xs" : "text-sm")}>{data.payment.description}</p>
                 </div>
               ) : null}
 
               {/* Mobile Compact Line Items */}
-              <div className="@lg:hidden">
+              <div className={whenDesktop(embedded, "@lg:hidden")}>
                 {lineItems.length > 0 && (
                   <div className="border-t border-neutral-200/60 pt-3 mt-3">
-                    <button
-                      type="button"
-                      onClick={() => setIsMobileItemsOpen(!isMobileItemsOpen)}
-                      className="flex w-full cursor-pointer list-none items-center justify-between text-xs font-medium text-neutral-500 hover:text-neutral-700"
-                    >
+                    <button type="button" onClick={() => setIsMobileItemsOpen(!isMobileItemsOpen)} className="flex w-full cursor-pointer list-none items-center justify-between text-xs font-medium text-neutral-500 hover:text-neutral-700">
                       <span>Show order details</span>
                       <svg className={cn("size-4 transition-transform", isMobileItemsOpen && "rotate-180")} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -603,17 +444,13 @@ export function CheckoutView({
                     </button>
                     <AnimatePresence initial={false}>
                       {isMobileItemsOpen && (
-                        <motion.div
-                          initial={{ height: 0, opacity: 0 }}
-                          animate={{ height: "auto", opacity: 1 }}
-                          exit={{ height: 0, opacity: 0 }}
-                          transition={{ duration: 0.2, ease: "easeInOut" }}
-                          className="overflow-hidden"
-                        >
+                        <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.2, ease: "easeInOut" }} className="overflow-hidden">
                           <div className="mt-3 space-y-1.5 pb-1">
                             {lineItems.map((item, index) => (
                               <div key={index} className="flex justify-between text-xs text-neutral-600">
-                                <span className="truncate pr-2">{item.quantity} × {item.description}</span>
+                                <span className="truncate pr-2">
+                                  {item.quantity} × {item.description}
+                                </span>
                                 <span className="shrink-0">{formatLineAmount(item.line_amount)}</span>
                               </div>
                             ))}
@@ -626,155 +463,77 @@ export function CheckoutView({
               </div>
 
               {/* Desktop Line Items */}
-              <div className="hidden @lg:block space-y-4">
+              <div className={cn("hidden space-y-4", whenDesktop(embedded, "@lg:block"))}>
                 {lineItems.length > 0 ? (
                   <div className={cn("space-y-3 border-b border-neutral-200", disabled ? "pb-3" : "pb-4")}>
                     {lineItems.map((item, index) => (
-                      <div
-                        key={`${item.description}-${index}`}
-                        className="flex items-start justify-between gap-4"
-                      >
+                      <div key={`${item.description}-${index}`} className="flex items-start justify-between gap-4">
                         <div className="min-w-0">
-                          <p className={cn("font-medium text-neutral-900", disabled ? "text-xs" : "text-sm")}>
-                            {item.description}
-                          </p>
+                          <p className={cn("font-medium text-neutral-900", disabled ? "text-xs" : "text-sm")}>{item.description}</p>
                           <p className="mt-0.5 text-[10px] text-neutral-500">
                             {item.quantity} × {formatLineAmount(item.unit_amount)}
                           </p>
                         </div>
-                        <p className={cn("shrink-0 font-medium text-neutral-900", disabled ? "text-xs" : "text-sm")}>
-                          {formatLineAmount(item.line_amount)}
-                        </p>
+                        <p className={cn("shrink-0 font-medium text-neutral-900", disabled ? "text-xs" : "text-sm")}>{formatLineAmount(item.line_amount)}</p>
                       </div>
                     ))}
                   </div>
                 ) : (
                   <div className="border-b border-neutral-200 pb-4">
-                    <p className={cn("text-neutral-500", disabled ? "text-xs" : "text-sm")}>
-                      {data.payment.description ?? "No line items for this payment."}
-                    </p>
+                    <p className={cn("text-neutral-500", disabled ? "text-xs" : "text-sm")}>{data.payment.description ?? "No line items for this payment."}</p>
                   </div>
                 )}
 
                 <div className={cn("space-y-2 border-b border-neutral-200", disabled ? "pb-3" : "pb-4")}>
                   <div className={cn("flex items-center justify-between gap-4", disabled ? "text-xs" : "text-sm")}>
                     <span className="text-neutral-500">Subtotal</span>
-                    <span className="font-medium text-neutral-900">
-                      {hasPricing
-                        ? formatInvoiceAmount(
-                            data.payment.pricing_amount!,
-                            data.payment.pricing_currency!,
-                          )
-                        : formatTokenWithAsset(data.payment.amount, settlementLabel)}
-                    </span>
+                    <span className="font-medium text-neutral-900">{hasPricing ? formatInvoiceAmount(data.payment.pricing_amount!, data.payment.pricing_currency!) : formatTokenWithAsset(data.payment.amount, settlementLabel)}</span>
                   </div>
                 </div>
 
                 <div className="flex items-center justify-between gap-4">
                   <span className={cn("font-medium text-neutral-900", disabled ? "text-xs" : "text-sm")}>Total due</span>
-                  <p className={cn("font-semibold text-neutral-900", disabled ? "text-base" : "text-lg")}>
-                    {hasPricing
-                      ? formatInvoiceAmount(
-                          data.payment.pricing_amount!,
-                          data.payment.pricing_currency!,
-                        )
-                      : formatTokenWithAsset(data.payment.amount, settlementLabel)}
-                  </p>
+                  <p className={cn("font-semibold text-neutral-900", disabled ? "text-base" : "text-lg")}>{hasPricing ? formatInvoiceAmount(data.payment.pricing_amount!, data.payment.pricing_currency!) : formatTokenWithAsset(data.payment.amount, settlementLabel)}</p>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Payment Section (Right) */}
-          <div className="relative flex min-h-0 flex-1 flex-col bg-white @lg:sticky @lg:top-0 @lg:max-h-svh @lg:self-start">
-            <div
-              className={cn(
-                "mx-auto flex w-full min-h-0 max-w-md flex-1 flex-col",
-                disabled ? "px-4 py-4" : "px-6 py-8 @lg:px-12 @lg:py-8",
-              )}
-            >
+          <div className={cn("relative flex min-h-0 flex-1 flex-col bg-white", whenDesktop(embedded, "@lg:sticky @lg:top-0 @lg:max-h-svh @lg:self-start"))}>
+            <div className={cn("mx-auto flex w-full min-h-0 max-w-md flex-1 flex-col overflow-y-auto", disabled ? "px-4 py-4" : cn("px-6 py-8", whenDesktop(embedded, "@lg:px-12 @lg:py-8")))}>
               <div className="shrink-0">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <h2
-                      className={cn(
-                        "font-semibold text-neutral-900",
-                        disabled ? "text-sm" : "text-base",
-                      )}
-                    >
-                      {isDetailsPanel ? "Your details" : "Payment"}
-                    </h2>
-                    <p className={cn("mt-1 text-neutral-500", disabled ? "text-xs" : "text-sm")}>
-                      {isDetailsPanel
-                        ? "Enter your information before continuing to payment."
-                        : "Connect your Stellar wallet and complete the payment."}
-                    </p>
+                    <h2 className={cn("font-semibold text-neutral-900", disabled ? "text-sm" : "text-base")}>{isDetailsPanel ? "Your details" : "Payment"}</h2>
+                    <p className={cn("mt-1 text-neutral-500", disabled ? "text-xs" : "text-sm")}>{paymentSubtitle}</p>
                   </div>
                   {isPaymentPanel && (hasPricing || disabled) && countdown ? (
                     <div className="shrink-0">
-                      <RateLockCountdown
-                        countdown={countdown}
-                        isRefreshingRate={isRefreshingRate}
-                      />
+                      <RateLockCountdown countdown={countdown} isRefreshingRate={isRefreshingRate} />
                     </div>
                   ) : null}
                 </div>
 
                 {showCustomerPanelTabs ? (
-                  <div
-                    className={cn(
-                      "mt-4 flex rounded-xl bg-neutral-100 p-1",
-                      disabled ? "h-9" : "h-10",
-                    )}
-                  >
+                  <div className={cn("mt-4 flex rounded-xl bg-neutral-100 p-1", disabled ? "h-9" : "h-10")}>
                     <button
                       type="button"
                       onClick={() => {
                         setDetailsError(null);
                         setCustomerPanel("details");
                       }}
-                      className={cn(
-                        "flex-1 rounded-lg text-center font-semibold transition-all",
-                        disabled ? "text-xs" : "text-sm",
-                        customerPanel === "details"
-                          ? "bg-white text-neutral-900 shadow-sm"
-                          : "text-neutral-500 hover:text-neutral-950",
-                      )}
-                    >
+                      className={cn("flex-1 rounded-lg text-center font-semibold transition-all", disabled ? "text-xs" : "text-sm", customerPanel === "details" ? "bg-white text-neutral-900 shadow-sm" : "text-neutral-500 hover:text-neutral-950")}>
                       Your details
                     </button>
-                    <button
-                      type="button"
-                      disabled={isDetailsPanel && !canContinueToPayment}
-                      title={
-                        isDetailsPanel && !canContinueToPayment
-                          ? "Fill in all required fields first"
-                          : undefined
-                      }
-                      onClick={handleContinueToPayment}
-                      className={cn(
-                        "flex-1 rounded-lg text-center font-semibold transition-all",
-                        disabled ? "text-xs" : "text-sm",
-                        customerPanel === "payment"
-                          ? "bg-white text-neutral-900 shadow-sm"
-                          : "text-neutral-500 hover:text-neutral-950",
-                        isDetailsPanel &&
-                          !canContinueToPayment &&
-                          "cursor-not-allowed opacity-50 hover:text-neutral-500",
-                      )}
-                    >
+                    <button type="button" disabled={isDetailsPanel && !canContinueToPayment} title={isDetailsPanel && !canContinueToPayment ? "Fill in all required fields first" : undefined} onClick={handleContinueToPayment} className={cn("flex-1 rounded-lg text-center font-semibold transition-all", disabled ? "text-xs" : "text-sm", customerPanel === "payment" ? "bg-white text-neutral-900 shadow-sm" : "text-neutral-500 hover:text-neutral-950", isDetailsPanel && !canContinueToPayment && "cursor-not-allowed opacity-50 hover:text-neutral-500")}>
                       Payment
                     </button>
                   </div>
                 ) : null}
               </div>
 
-              <div
-                className={cn(
-                  "flex min-h-0 flex-1 flex-col pt-4",
-                  disabled ? "space-y-4" : "space-y-5",
-                )}
-              >
+              <div className={cn("flex min-h-0 flex-1 flex-col pt-4", disabled ? "space-y-4" : "space-y-5")}>
                 {isDetailsPanel ? (
                   <div className={disabled ? "space-y-4" : "space-y-5"}>
                     <CheckoutAdditionalInfoFields
@@ -787,378 +546,168 @@ export function CheckoutView({
                       readOnly={disabled && !onCustomerInputChange}
                       size={disabled ? "preview" : "default"}
                     />
-                    <Button
-                      type="button"
-                      className={cn("w-full", disabled ? "h-8 text-xs rounded-lg" : "h-10")}
-                      text="Continue to payment"
-                      disabled={!canContinueToPayment}
-                      onClick={handleContinueToPayment}
-                    />
+                    <Button type="button" className={cn("w-full", disabled ? "h-8 text-xs rounded-lg" : "h-10")} text="Continue to payment" disabled={!canContinueToPayment} onClick={handleContinueToPayment} />
                   </div>
                 ) : null}
 
                 {isPaymentPanel ? (
                   isCompleted ? (
-                  <div className="flex items-start gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-4 text-sm text-emerald-800">
-                    <Check2 className="mt-0.5 size-4 shrink-0" />
-                    <div>
-                      <p className="font-medium">Payment completed</p>
-                      <p className="mt-1 text-emerald-700">
-                        Your payment was submitted successfully.
-                      </p>
-                    </div>
-                  </div>
-                ) : isSessionExpired ? (
-                  <p className="text-sm text-neutral-500">
-                    This payment can no longer be completed.
-                  </p>
-                ) : (
-                  <div className={cn(disabled ? "space-y-4" : "space-y-5")}>
-                    {allowedAssets.length > 1 ? (
-                      <div ref={dropdownRef} className="relative space-y-1.5">
-                        <label className={cn("font-medium text-neutral-900", disabled ? "text-xs" : "text-sm")}>
-                          Pay with
-                        </label>
-                        <div
-                          className={cn(
-                            "rounded-xl bg-neutral-100 p-1",
-                            isRefreshingRate && "opacity-60",
-                          )}
-                        >
-                          <button
-                            type="button"
-                            disabled={disabled || isRefreshingRate}
-                            onClick={() => setIsAssetDropdownOpen(!isAssetDropdownOpen)}
-                            className={cn(
-                              "flex w-full items-center justify-between rounded-lg bg-white text-left font-semibold text-neutral-900 shadow-sm transition-all",
-                              disabled ? "p-2 text-xs" : "p-2.5 text-sm",
-                              isRefreshingRate && "cursor-not-allowed",
-                            )}
-                          >
-                            {selectedPaidAsset && (
-                              <div className="flex min-w-0 items-center gap-2.5">
-                                <AssetIcon code={selectedPaidAsset.asset_code} className={cn(disabled ? "size-7 p-0.5" : "size-8 p-1")} />
-                                <div className="min-w-0">
-                                  <p className="truncate text-neutral-900">
-                                    {getAssetDetails(selectedPaidAsset).name}
-                                  </p>
-                                  <p className="truncate text-[10px] font-normal text-neutral-500">
-                                    {getAssetDetails(selectedPaidAsset).description}
-                                  </p>
-                                </div>
-                              </div>
-                            )}
-                            <div className="flex shrink-0 items-center gap-2 pl-2">
-                              {hasPricing && (
-                                showQuoteAmountLoading ? (
-                                  <div className="h-4 w-16 animate-pulse rounded bg-neutral-200" />
-                                ) : quote ? (
-                                  <span className="text-xs font-medium text-neutral-600">
-                                    {formatTokenWithAsset(displayAmount, displayAsset)}
-                                  </span>
-                                ) : null
-                              )}
-                              <svg
-                                className={cn("size-4 text-neutral-400 transition-transform", isAssetDropdownOpen && "rotate-180")}
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                              >
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                              </svg>
-                            </div>
-                          </button>
-                        </div>
-
-                        <AnimatePresence>
-                          {isAssetDropdownOpen && (
-                            <motion.div
-                              initial={{ opacity: 0, y: -8, scale: 0.98 }}
-                              animate={{ opacity: 1, y: 0, scale: 1 }}
-                              exit={{ opacity: 0, y: -8, scale: 0.98 }}
-                              transition={{ duration: 0.15, ease: "easeOut" }}
-                              className="absolute left-0 top-full z-50 mt-2 w-full rounded-xl border border-neutral-200 bg-white p-1.5 shadow-lg"
-                            >
-                              <div className="grid max-h-[240px] gap-0.5 overflow-y-auto">
-                                {allowedAssets.map((asset) => {
-                                  const key = assetKey(asset);
-                                  const isSelected = selectedPaidAssetKey === key;
-                                  const details = getAssetDetails(asset);
-                                  const unavailable = Boolean(address && assetBalances[key] === null);
-
-                                  return (
-                                    <button
-                                      key={key}
-                                      type="button"
-                                      disabled={disabled || isRefreshingRate || unavailable}
-                                      onClick={() => {
-                                        setSelectedPaidAssetKey(key);
-                                        setIsAssetDropdownOpen(false);
-                                      }}
-                                      className={cn(
-                                        "flex w-full items-center justify-between rounded-lg p-2.5 text-left transition-all",
-                                        isSelected
-                                          ? "bg-neutral-100 text-neutral-900"
-                                          : "text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900",
-                                        unavailable && "cursor-not-allowed opacity-50",
-                                      )}
-                                    >
-                                      <div className="flex items-center gap-2.5">
-                                        <AssetIcon code={asset.asset_code} className="size-7 p-0.5" />
-                                        <p className="text-sm font-medium">{details.name}</p>
-                                      </div>
-                                      {unavailable ? (
-                                        <span className="text-xs text-neutral-400">Unavailable</span>
-                                      ) : isSelected ? (
-                                        <Check2 className="size-4 text-neutral-900" />
-                                      ) : null}
-                                    </button>
-                                  );
-                                })}
-                              </div>
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
+                    <div className="flex items-start gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-4 text-sm text-emerald-800">
+                      <Check2 className="mt-0.5 size-4 shrink-0" />
+                      <div>
+                        <p className="font-medium">Payment completed</p>
+                        <p className="mt-1 text-emerald-700">Your payment was submitted successfully.</p>
                       </div>
-                    ) : null}
-
-                    {/* Payment Method Selector Tabs */}
-                    <div
-                      className={cn(
-                        "flex rounded-xl bg-neutral-100 p-1",
-                        disabled ? "h-9 items-center" : "",
-                        isRefreshingRate && "opacity-60",
-                      )}
-                    >
-                      <button
-                        type="button"
-                        disabled={isRefreshingRate}
-                        onClick={() => setPaymentMode("wallet")}
-                        className={cn(
-                          "flex-1 rounded-lg text-center font-semibold transition-all",
-                          disabled ? "py-1 text-xs" : "py-2 text-sm",
-                          paymentMode === "wallet"
-                            ? "bg-white text-neutral-900 shadow-sm"
-                            : "text-neutral-500 hover:text-neutral-950",
-                          isRefreshingRate && "cursor-not-allowed",
-                        )}
-                      >
-                        Connect Wallet
-                      </button>
-                      <button
-                        type="button"
-                        disabled={isRefreshingRate}
-                        onClick={() => setPaymentMode("qr")}
-                        className={cn(
-                          "flex-1 rounded-lg text-center font-semibold transition-all",
-                          disabled ? "py-1 text-xs" : "py-2 text-sm",
-                          paymentMode === "qr"
-                            ? "bg-white text-neutral-900 shadow-sm"
-                            : "text-neutral-500 hover:text-neutral-950",
-                          isRefreshingRate && "cursor-not-allowed",
-                        )}
-                      >
-                        QR Code
-                      </button>
                     </div>
-
-                    <AnimatePresence mode="wait">
-                      {paymentMode === "qr" ? (
-                        <motion.div
-                          key="qr"
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -10 }}
-                          transition={{ duration: 0.2 }}
-                          className={cn(disabled ? "space-y-4" : "space-y-6")}
-                        >
-                          <>
-                            <div className="flex flex-col items-center justify-center">
-                              <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white p-3">
-                                {showQrLoading ? (
-                                  <div className="flex size-[130px] items-center justify-center rounded-xl bg-neutral-50 animate-pulse">
-                                    <p className="text-xs font-medium text-neutral-400">
-                                      {isRefreshingRate ? "Refreshing rate..." : "Loading..."}
-                                    </p>
+                  ) : paymentWaitingVariant ? (
+                    <CheckoutPaymentWaitingBanner variant={paymentWaitingVariant} />
+                  ) : isSessionExpired ? (
+                    <p className="text-sm text-neutral-500">This payment can no longer be completed.</p>
+                  ) : (
+                    <div className={cn(disabled ? "space-y-4" : "space-y-5")}>
+                      {allowedAssets.length > 1 ? (
+                        <div ref={dropdownRef} className="relative space-y-1.5">
+                          <label className={cn("font-medium text-neutral-900", disabled ? "text-xs" : "text-sm")}>Pay with</label>
+                          <div className={cn("rounded-xl bg-neutral-100 p-1", isRefreshingRate && "opacity-60")}>
+                            <button type="button" disabled={disabled || isRefreshingRate} onClick={() => setIsAssetDropdownOpen(!isAssetDropdownOpen)} className={cn("flex w-full items-center justify-between rounded-lg bg-white text-left font-semibold text-neutral-900 shadow-sm transition-all", disabled ? "p-2 text-xs" : "p-2.5 text-sm", isRefreshingRate && "cursor-not-allowed")}>
+                              {selectedPaidAsset && (
+                                <div className="flex min-w-0 items-center gap-2.5">
+                                  <AssetIcon code={selectedPaidAsset.asset_code} className={cn(disabled ? "size-7 p-0.5" : "size-8 p-1")} />
+                                  <div className="min-w-0">
+                                    <p className="truncate text-neutral-900">{getAssetDetails(selectedPaidAsset).name}</p>
+                                    <p className="truncate text-[10px] font-normal text-neutral-500">{getAssetDetails(selectedPaidAsset).description}</p>
                                   </div>
-                                ) : (
-                                  <img
-                                    src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(
-                                      `web+stellar:pay?destination=${encodeURIComponent(
-                                        qrDestination
-                                      )}&amount=${encodeURIComponent(
-                                        displayAmount
-                                      )}` +
-                                        (selectedPaidAsset &&
-                                        selectedPaidAsset.asset_code !== "XLM" &&
-                                        selectedPaidAsset.issuer_address
-                                          ? `&asset_code=${encodeURIComponent(
-                                              selectedPaidAsset.asset_code
-                                            )}&asset_issuer=${encodeURIComponent(
-                                              selectedPaidAsset.issuer_address
-                                            )}`
-                                          : "")
-                                    )}`}
-                                    alt="Stellar QR Code"
-                                    className={cn(disabled ? "size-[130px]" : "size-[200px]")}
-                                  />
-                                )}
-                              </div>
-                              <div className="mt-3 text-center text-xs font-medium text-neutral-500">
-                                <span>Waiting for payment...</span>
-                              </div>
-                            </div>
-
-                            <div className="space-y-3">
-                              <div className="flex items-center justify-between gap-4">
-                                <div className="min-w-0">
-                                  <p className={cn("font-medium text-neutral-900", disabled ? "text-[10px]" : "text-sm")}>Address</p>
-                                  <p className={cn("break-all font-mono text-neutral-500", disabled ? "text-xs" : "text-sm")}>
-                                    {qrDestination}
-                                  </p>
                                 </div>
-                                <CopyButton
-                                  value={qrDestination}
-                                  className={cn("shrink-0", (disabled || isRefreshingRate) && "pointer-events-none opacity-50")}
-                                />
+                              )}
+                              <div className="flex shrink-0 items-center gap-2 pl-2">
+                                {hasPricing && (showQuoteAmountLoading ? <div className="h-4 w-16 animate-pulse rounded bg-neutral-200" /> : quote ? <span className="text-xs font-medium text-neutral-600">{formatTokenWithAsset(displayAmount, displayAsset)}</span> : null)}
+                                <svg className={cn("size-4 text-neutral-400 transition-transform", isAssetDropdownOpen && "rotate-180")} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                </svg>
                               </div>
+                            </button>
+                          </div>
 
-                              <div className="flex items-center justify-between gap-4 border-t border-neutral-100 pt-3">
-                                <div className="min-w-0">
-                                  <p className={cn("font-medium text-neutral-900", disabled ? "text-[10px]" : "text-sm")}>Amount</p>
-                                  <p className={cn("truncate font-mono text-neutral-500", disabled ? "text-xs" : "text-sm")}>{formatTokenWithAsset(displayAmount, displayAsset)}</p>
+                          <AnimatePresence>
+                            {isAssetDropdownOpen && (
+                              <motion.div initial={{ opacity: 0, y: -8, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -8, scale: 0.98 }} transition={{ duration: 0.15, ease: "easeOut" }} className="absolute left-0 top-full z-50 mt-2 w-full rounded-xl border border-neutral-200 bg-white p-1.5 shadow-lg">
+                                <div className="grid max-h-[240px] gap-0.5 overflow-y-auto">
+                                  {allowedAssets.map((asset) => {
+                                    const key = assetKey(asset);
+                                    const isSelected = selectedPaidAssetKey === key;
+                                    const details = getAssetDetails(asset);
+
+                                    return (
+                                      <button
+                                        key={key}
+                                        type="button"
+                                        disabled={disabled || isRefreshingRate}
+                                        onClick={() => {
+                                          setSelectedPaidAssetKey(key);
+                                          setIsAssetDropdownOpen(false);
+                                        }}
+                                        className={cn("flex w-full items-center justify-between rounded-lg p-2.5 text-left transition-all", isSelected ? "bg-neutral-100 text-neutral-900" : "text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900")}>
+                                        <div className="flex items-center gap-2.5">
+                                          <AssetIcon code={asset.asset_code} className="size-7 p-0.5" />
+                                          <p className="text-sm font-medium">{details.name}</p>
+                                        </div>
+                                        {isSelected ? <Check2 className="size-4 text-neutral-900" /> : null}
+                                      </button>
+                                    );
+                                  })}
                                 </div>
-                                <CopyButton
-                                  value={displayAmount}
-                                  className={cn("shrink-0", (disabled || isRefreshingRate) && "pointer-events-none opacity-50")}
-                                />
-                              </div>
-                            </div>
-                          </>
-                        </motion.div>
-                      ) : (
-                        <motion.div
-                          key="wallet"
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -10 }}
-                          transition={{ duration: 0.2 }}
-                          className="space-y-4"
-                        >
-                          {address ? (
-                            <div className="space-y-2">
-                              <ConnectedWallet
-                                address={address}
-                                networkLabel={
-                                  data.payment.environment === "production" ? "Public" : "Testnet"
-                                }
-                                compact
-                                className="text-center"
-                              />
-                              {onUpdateWallet ? (
-                                <Button
-                                  type="button"
-                                  variant="secondary"
-                                  className={cn(
-                                    "w-full",
-                                    disabled ? "h-8 text-xs rounded-lg" : "h-9",
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </div>
+                      ) : null}
+
+                      {/* Payment Method Selector Tabs */}
+                      <div className={cn("flex rounded-xl bg-neutral-100 p-1", disabled ? "h-9 items-center" : "", isRefreshingRate && "opacity-60")}>
+                        <button type="button" disabled={isRefreshingRate} onClick={() => setPaymentMode("wallet")} className={cn("flex-1 rounded-lg text-center font-semibold transition-all", disabled ? "py-1 text-xs" : "py-2 text-sm", paymentMode === "wallet" ? "bg-white text-neutral-900 shadow-sm" : "text-neutral-500 hover:text-neutral-950", isRefreshingRate && "cursor-not-allowed")}>
+                          Connect Wallet
+                        </button>
+                        <button type="button" disabled={isRefreshingRate} onClick={() => setPaymentMode("qr")} className={cn("flex-1 rounded-lg text-center font-semibold transition-all", disabled ? "py-1 text-xs" : "py-2 text-sm", paymentMode === "qr" ? "bg-white text-neutral-900 shadow-sm" : "text-neutral-500 hover:text-neutral-950", isRefreshingRate && "cursor-not-allowed")}>
+                          QR Code
+                        </button>
+                      </div>
+
+                      <AnimatePresence mode="wait">
+                        {paymentMode === "qr" ? (
+                          <motion.div key="qr" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }} className={cn(disabled ? "space-y-4" : "space-y-6")}>
+                            <>
+                              <div className="flex flex-col items-center justify-center">
+                                <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white p-3">
+                                  {showQrLoading ? (
+                                    <div className="flex size-[130px] items-center justify-center rounded-xl bg-neutral-50 animate-pulse">
+                                      <p className="text-xs font-medium text-neutral-400">{isRefreshingRate ? "Refreshing rate..." : "Loading..."}</p>
+                                    </div>
+                                  ) : (
+                                    <img src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`web+stellar:pay?destination=${encodeURIComponent(qrDestination)}&amount=${encodeURIComponent(displayAmount)}` + (selectedPaidAsset && selectedPaidAsset.asset_code !== "XLM" && selectedPaidAsset.issuer_address ? `&asset_code=${encodeURIComponent(selectedPaidAsset.asset_code)}&asset_issuer=${encodeURIComponent(selectedPaidAsset.issuer_address)}` : ""))}`} alt="Stellar QR Code" className={cn(disabled ? "size-[130px]" : "size-[200px]")} />
                                   )}
-                                  text="Update wallet"
-                                  disabled={disabled || isPaying || isConfirming || isRefreshingRate}
-                                  onClick={onUpdateWallet}
-                                />
-                              ) : null}
-                            </div>
-                          ) : null}
+                                </div>
+                              </div>
 
-                          {pendingTxHash && isConfirming ? (
-                            <Button
-                              type="button"
-                              variant="secondary"
-                              className={cn("w-full", disabled ? "h-8 text-xs rounded-lg" : "h-10")}
-                              text="Confirming payment..."
-                              loading
-                              disabled
-                            />
-                          ) : null}
+                              <div className="space-y-3">
+                                <div className="flex items-center justify-between gap-4">
+                                  <div className="min-w-0">
+                                    <p className={cn("font-medium text-neutral-900", disabled ? "text-[10px]" : "text-sm")}>Address</p>
+                                    <p className={cn("break-all font-mono text-neutral-500", disabled ? "text-xs" : "text-sm")}>{qrDestination}</p>
+                                  </div>
+                                  <CopyButton value={qrDestination} className={cn("shrink-0", (disabled || isRefreshingRate) && "pointer-events-none opacity-50")} />
+                                </div>
 
-                          {pendingTxHash && confirmExhausted && !isConfirming ? (
-                            <Button
-                              type="button"
-                              variant="secondary"
-                              className={cn("w-full", disabled ? "h-8 text-xs rounded-lg" : "h-10")}
-                              text="Retry payment confirmation"
-                              loading={isPaying}
-                              disabled={disabled || isRefreshingRate}
-                              onClick={disabled ? undefined : onRetryConfirm}
-                            />
-                          ) : null}
+                                <div className="flex items-center justify-between gap-4 border-t border-neutral-100 pt-3">
+                                  <div className="min-w-0">
+                                    <p className={cn("font-medium text-neutral-900", disabled ? "text-[10px]" : "text-sm")}>Amount</p>
+                                    <p className={cn("truncate font-mono text-neutral-500", disabled ? "text-xs" : "text-sm")}>{formatTokenWithAsset(displayAmount, displayAsset)}</p>
+                                  </div>
+                                  <CopyButton value={displayAmount} className={cn("shrink-0", (disabled || isRefreshingRate) && "pointer-events-none opacity-50")} />
+                                </div>
+                                {!disabled && onCheckDeposit ? <Button type="button" variant="secondary" className={cn("w-full", disabled ? "h-8 text-xs rounded-lg" : "h-10")} text="I have paid" disabled={disabled || isCheckingDeposit || isRefreshingRate || showQrLoading} onClick={onCheckDeposit} /> : null}
+                              </div>
+                            </>
+                          </motion.div>
+                        ) : (
+                          <motion.div key="wallet" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }} className="space-y-4">
+                            {address ? (
+                              <div className="space-y-2">
+                                <ConnectedWallet address={address} networkLabel={data.payment.environment === "production" ? "Public" : "Testnet"} compact className="text-center" />
+                                {onUpdateWallet ? <Button type="button" variant="secondary" className={cn("w-full", disabled ? "h-8 text-xs rounded-lg" : "h-9")} text="Update wallet" disabled={disabled || isPaying || isConfirming || isRefreshingRate} onClick={onUpdateWallet} /> : null}
+                              </div>
+                            ) : null}
 
-                          {!address ? (
-                            <Button
-                              type="button"
-                              className={cn("w-full", disabled ? "h-8 text-xs rounded-lg" : "h-10")}
-                              text="Connect wallet"
-                              loading={isConnecting}
-                              disabled={disabled || paymentBlocked || isRefreshingRate}
-                              onClick={disabled ? undefined : onConnectWallet}
-                            />
-                          ) : (
-                            <Button
-                              type="button"
-                              className={cn("w-full", disabled ? "h-8 text-xs rounded-lg" : "h-10")}
-                              text={`Pay ${formatTokenWithAsset(displayAmount, displayAsset)}`}
-                              loading={isPaying || isConfirming || isRefreshingRate}
-                              disabled={
-                                disabled ||
-                                paymentBlocked ||
-                                isRefreshingRate ||
-                                Boolean(pendingTxHash)
-                              }
-                              onClick={disabled ? undefined : onPay}
-                            />
-                          )}
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
-                )
+                            {pendingTxHash && confirmExhausted && !isConfirming ? <Button type="button" variant="secondary" className={cn("w-full", disabled ? "h-8 text-xs rounded-lg" : "h-10")} text="Retry payment confirmation" icon={isPaying ? <CheckoutPaymentSpinner /> : undefined} disabled={disabled || isRefreshingRate || isPaying} onClick={disabled ? undefined : onRetryConfirm} /> : null}
+
+                            {!address ? <Button type="button" className={cn("w-full", disabled ? "h-8 text-xs rounded-lg" : "h-10")} text={isFetchingQuote ? "Fetching quote..." : "Connect wallet"} icon={isConnecting || isFetchingQuote ? <CheckoutPaymentSpinner /> : undefined} disabled={disabled || paymentBlocked || isRefreshingRate || isConnecting} onClick={disabled ? undefined : onConnectWallet} /> : <Button type="button" className={cn("w-full", disabled ? "h-8 text-xs rounded-lg" : "h-10")} text={`Pay ${formatTokenWithAsset(displayAmount, displayAsset)}`} disabled={disabled || paymentBlocked || isRefreshingRate || Boolean(pendingTxHash)} onClick={disabled ? undefined : onPay} />}
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  )
                 ) : null}
               </div>
 
               {!embedded ? (
-              <div className={cn("mt-auto shrink-0 text-center", disabled ? "pt-3" : "pt-6")}>
-                {disabled ? (
-                  <span className="inline-flex items-center gap-1.5 text-xs text-neutral-400">
-                    <span>Powered by</span>
-                    <img src="/logo-full.png" alt="Payoes" className="h-4 w-auto brightness-90" />
-                  </span>
-                ) : (
-                  <a
-                    href="https://payoes.com"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 text-xs text-neutral-400 hover:text-neutral-600 transition-colors"
-                  >
-                    <span>Powered by</span>
-                    <img src="/logo-full.png" alt="Payoes" className="h-4 w-auto brightness-90" />
-                  </a>
-                )}
-              </div>
+                <div className={cn("mt-auto shrink-0 text-center", disabled ? "pt-3" : "pt-6")}>
+                  {disabled ? (
+                    <span className="inline-flex items-center gap-1.5 text-xs text-neutral-400">
+                      <span>Powered by</span>
+                      <img src="/logo-full.png" alt="Payoes" className="h-4 w-auto brightness-90" />
+                    </span>
+                  ) : (
+                    <a href="https://payoes.com" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-xs text-neutral-400 hover:text-neutral-600 transition-colors">
+                      <span>Powered by</span>
+                      <img src="/logo-full.png" alt="Payoes" className="h-4 w-auto brightness-90" />
+                    </a>
+                  )}
+                </div>
               ) : null}
             </div>
           </div>
         </div>
       </div>
-      <AnimatePresence mode="wait">
-        {checkoutAlert ? (
-          <CheckoutAlertBanner
-            key={checkoutAlert.key}
-            type={checkoutAlert.type}
-            message={checkoutAlert.message}
-          />
-        ) : null}
-      </AnimatePresence>
+      <AnimatePresence mode="wait">{checkoutAlert ? <CheckoutAlertBanner key={checkoutAlert.key} type={checkoutAlert.type} message={checkoutAlert.message} /> : null}</AnimatePresence>
     </div>
   );
 }

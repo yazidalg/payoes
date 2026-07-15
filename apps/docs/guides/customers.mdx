@@ -41,8 +41,8 @@ curl -X POST https://payoes.com/api/v1/payments \
   -H "Authorization: Bearer pk_test_YOUR_KEY" \
   -H "Content-Type: application/json" \
   -d '{
-    "amount": "25",
-    "asset": "USDC",
+    "pricing_currency": "USD",
+    "pricing_amount": "25.00",
     "customer_id": "cus_abc123xyz",
     "description": "Pro plan"
   }'

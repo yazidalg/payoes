@@ -154,14 +154,17 @@ export function SettlementsTable({
       },
       {
         id: "received",
-        header: "Received",
+        header: "Merchant receives",
         minSize: 120,
-        cell: ({ row }: { row: Row<SettlementConversionRow> }) => (
-          <AssetAmountCell
-            amount={row.original.quoted_settlement_amount}
-            asset={row.original.settlement_asset}
-          />
-        ),
+        cell: ({ row }: { row: Row<SettlementConversionRow> }) =>
+          row.original.merchant_settlement_amount ? (
+            <AssetAmountCell
+              amount={row.original.merchant_settlement_amount}
+              asset={row.original.settlement_asset}
+            />
+          ) : (
+            "-"
+          ),
       },
       {
         id: "invoice",

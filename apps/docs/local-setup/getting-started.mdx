@@ -144,7 +144,7 @@ Run a quick smoke test:
     curl -X POST http://localhost:3000/api/v1/payments \
       -H "Authorization: Bearer pk_test_YOUR_KEY" \
       -H "Content-Type: application/json" \
-      -d '{"amount": "1", "asset": "XLM", "description": "Local test"}'
+      -d '{"pricing_currency": "USD", "pricing_amount": "1.00", "description": "Local test"}'
     ```
   </Step>
   <Step title="Open checkout">

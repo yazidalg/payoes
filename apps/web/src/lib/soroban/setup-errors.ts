@@ -10,6 +10,7 @@ export type SorobanSetupErrorCode =
   | "payment_not_registered"
   | "payment_already_finalized"
   | "contract_paused"
+  | "insufficient_token_balance"
   | "simulation_failed";
 
 export type SorobanSetupErrorPayload = {
@@ -168,6 +169,21 @@ export function classifySorobanSimulationError(
     });
   }
 
+  if (
+    normalized.includes("transfer failed") ||
+    normalized.includes("resulting balance is not within the allowed range") ||
+    normalized.includes("insufficient balance") ||
+    (normalized.includes("error(contract") && normalized.includes("#10"))
+  ) {
+    return createSorobanSetupError({
+      code: "insufficient_token_balance",
+      environment,
+      message:
+        "Insufficient balance for this payment. Your wallet needs enough of the selected asset on Soroban (not just a classic Stellar balance). Fund the wallet or choose a different asset.",
+      setup: [],
+    });
+  }
+
   return createSorobanSetupError({
     code: "simulation_failed",
     environment,
@@ -177,6 +193,36 @@ export function classifySorobanSimulationError(
       "Check server logs for the raw Soroban simulation error.",
     ],
   });
+}
+
+export function isSorobanPaymentNotRegisteredError(error: unknown) {
+  if (error instanceof SorobanSetupError) {
+    return error.code === "payment_not_registered";
+  }
+
+  if (error instanceof Error) {
+    const normalized = error.message.toLowerCase();
+    return (
+      normalized.includes("paymentnotregistered") || normalized.includes("#7")
+    );
+  }
+
+  return false;
+}
+
+export function isSorobanPaymentAlreadyFinalizedError(error: unknown) {
+  if (error instanceof SorobanSetupError) {
+    return error.code === "payment_already_finalized";
+  }
+
+  if (error instanceof Error) {
+    const normalized = error.message.toLowerCase();
+    return (
+      normalized.includes("paymentalreadyfinalized") || normalized.includes("#8")
+    );
+  }
+
+  return false;
 }
 
 export function toSorobanErrorResponse(error: unknown) {

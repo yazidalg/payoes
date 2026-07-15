@@ -1,6 +1,6 @@
 import { and, eq, inArray, isNotNull, notInArray } from "drizzle-orm";
 import { Horizon } from "@stellar/stellar-sdk";
-import { findAllowedAsset } from "@/lib/assets/types";
+import { findAllowedAsset, allowedAssetsEquivalent } from "@/lib/assets/types";
 import type { AllowedAsset } from "@/lib/assets/types";
 import {
   calculateMerchantSettlementAmount,
@@ -43,8 +43,10 @@ import {
 } from "@/lib/stellar/errors";
 import { isSorobanConfigured } from "@/lib/soroban/config";
 import {
-  buildEscrowDepositTransaction,
-  confirmEscrowContractDeposit,
+  isSorobanPaymentAlreadyFinalizedError,
+  isSorobanPaymentNotRegisteredError,
+} from "@/lib/soroban/setup-errors";
+import {
   recordEscrowRefundOnContract,
   recordEscrowSettlementOnContract,
   refundHeldEscrowDepositOnContract,
@@ -52,9 +54,12 @@ import {
   releaseEscrowDepositToOperator,
   settleSameAssetEscrowDepositOnContract,
 } from "@/lib/soroban/escrow-contract";
-import { submitSorobanPaymentTransaction } from "@/lib/soroban/payment-router";
 import { getHorizonUrl } from "@/lib/stellar/network";
-import { verifyEscrowDepositByMemo } from "@/lib/stellar/payments";
+import {
+  buildPaymentTransactionXdr,
+  verifyEscrowDepositByMemo,
+} from "@/lib/stellar/payments";
+import { submitEscrowSignedXdr } from "@/lib/stellar/escrow/submit";
 import { dispatchWebhookEvent } from "@/lib/webhooks/delivery";
 import { isPaymentSessionExpired } from "@/lib/payments/quote-service";
 
@@ -277,6 +282,25 @@ async function executeRefund(
     await dispatchEscrowWebhook(refunded, "payment.refunded");
     return refunded;
   } catch {
+    const latest = (await getPaymentByPublicId(payment.publicId)) ?? refunding;
+
+    if (latest.settlementTxHash) {
+      const repaired = await patchPayment(latest, {
+        status: "completed",
+        refundReason: null,
+        txHash: latest.settlementTxHash,
+      });
+
+      await dispatchWebhookEvent({
+        organizationId: repaired.organizationId,
+        environment: repaired.environment,
+        event: "payment.completed",
+        payload: serializePayment(repaired),
+      });
+
+      return repaired;
+    }
+
     await patchPayment(refunding, {
       status: "settlement_failed",
       refundReason: reason,
@@ -338,7 +362,8 @@ function isWrongAsset(payment: Payment, received: AllowedAsset) {
   const allowedMatch = findAllowedAsset(
     allowed,
     received.asset_code,
-    received.issuer_address
+    received.issuer_address,
+    payment.environment,
   );
 
   if (!allowedMatch) {
@@ -354,14 +379,22 @@ function isWrongAsset(payment: Payment, received: AllowedAsset) {
     issuer_address: payment.paidAssetIssuer,
   };
 
-  return !assetsMatch(received, expected);
+  return !allowedAssetsEquivalent(received, expected, payment.environment);
 }
 
 async function releaseEscrowDepositIfNeeded(payment: Payment) {
+  if (!isSorobanConfigured(payment.environment)) {
+    return;
+  }
+
   try {
     await releaseEscrowDepositToOperator(payment);
   } catch (error) {
-    if (isEscrowDepositAlreadyReleasedError(error)) {
+    if (
+      isEscrowDepositAlreadyReleasedError(error) ||
+      isSorobanPaymentAlreadyFinalizedError(error) ||
+      isSorobanPaymentNotRegisteredError(error)
+    ) {
       return;
     }
 
@@ -434,17 +467,43 @@ async function settleCrossAssetEscrowPayment(input: {
   }
 }
 
+async function repairEscrowPaymentIfSettled(payment: Payment) {
+  if (payment.status !== "settlement_failed" || !payment.settlementTxHash) {
+    return payment;
+  }
+
+  const repaired = await patchPayment(payment, {
+    status: "completed",
+    refundReason: null,
+    txHash: payment.settlementTxHash,
+  });
+
+  await dispatchWebhookEvent({
+    organizationId: repaired.organizationId,
+    environment: repaired.environment,
+    event: "payment.completed",
+    payload: serializePayment(repaired),
+  });
+
+  return repaired;
+}
+
 export async function processEscrowSettlement(payment: Payment) {
   if (payment.paymentFlow !== "escrow") {
     return payment;
   }
 
+  payment = await repairEscrowPaymentIfSettled(payment);
+
   if (
     payment.status === "refunded" ||
     payment.status === "expired" ||
-    payment.status === "refunding" ||
     isEscrowRefundTerminal(payment)
   ) {
+    return payment;
+  }
+
+  if (payment.status === "refunding") {
     return payment;
   }
 
@@ -452,9 +511,15 @@ export async function processEscrowSettlement(payment: Payment) {
     return payment;
   }
 
+  const awaitingMerchantSettlement =
+    Boolean(payment.depositTxHash) &&
+    Boolean(payment.receivedAmount) &&
+    !payment.settlementTxHash;
+
   if (
     payment.depositTxHash &&
-    isDepositTxAlreadyHandled(payment, payment.depositTxHash)
+    isDepositTxAlreadyHandled(payment, payment.depositTxHash) &&
+    !awaitingMerchantSettlement
   ) {
     return payment;
   }
@@ -539,12 +604,38 @@ export async function processEscrowSettlement(payment: Payment) {
         settlement.merchantAmount
       );
 
+      await dispatchWebhookEvent({
+        organizationId: finalized.organizationId,
+        environment: finalized.environment,
+        event: "payment.completed",
+        payload: serializePayment(finalized),
+      });
+
       return finalized;
     }
 
     const result = await settleSameAssetEscrowDepositOnContract({
       payment: settling,
       payerAddress,
+    }).catch(async (contractError) => {
+      if (
+        !isSorobanPaymentAlreadyFinalizedError(contractError) &&
+        !isSorobanPaymentNotRegisteredError(contractError)
+      ) {
+        throw contractError;
+      }
+
+      return submitEscrowPayment({
+        keypair: escrow.keypair,
+        destinationPublicKey: settling.receivingAddress,
+        amount: merchantAmount,
+        asset: {
+          assetCode: receivedAsset.asset_code,
+          issuerAddress: receivedAsset.issuer_address,
+        },
+        environment: settling.environment,
+        memo: settling.memo,
+      });
     });
 
     const completed =
@@ -568,8 +659,35 @@ export async function processEscrowSettlement(payment: Payment) {
       merchantAmount
     );
 
+    await dispatchWebhookEvent({
+      organizationId: finalized.organizationId,
+      environment: finalized.environment,
+      event: "payment.completed",
+      payload: serializePayment(finalized),
+    });
+
     return finalized;
   } catch (error) {
+    const latest =
+      (await getPaymentByPublicId(payment.publicId)) ?? settling;
+
+    if (latest.settlementTxHash) {
+      const repaired = await patchPayment(latest, {
+        status: "completed",
+        refundReason: null,
+        txHash: latest.settlementTxHash,
+      });
+
+      await dispatchWebhookEvent({
+        organizationId: repaired.organizationId,
+        environment: repaired.environment,
+        event: "payment.completed",
+        payload: serializePayment(repaired),
+      });
+
+      return repaired;
+    }
+
     const reason =
       error instanceof Error &&
       isLiquiditySettlementError(error)
@@ -584,6 +702,144 @@ export async function processEscrowSettlement(payment: Payment) {
       { depositHeld: true },
     );
   }
+}
+
+export async function buildEscrowClassicDepositTransaction(input: {
+  payment: Payment;
+  payerAddress: string;
+  amount: string;
+  paidAsset: AllowedAsset;
+}) {
+  if (!input.payment.depositAddress) {
+    throw new Error("Escrow deposit address is not configured for this payment");
+  }
+
+  const xdr = await buildPaymentTransactionXdr({
+    sourcePublicKey: input.payerAddress,
+    destinationPublicKey: input.payment.depositAddress,
+    amount: input.amount,
+    asset: {
+      assetCode: input.paidAsset.asset_code,
+      issuerAddress: input.paidAsset.issuer_address,
+    },
+    environment: input.payment.environment,
+    memo: input.payment.depositAddress.startsWith("M")
+      ? null
+      : input.payment.memo ?? input.payment.publicId,
+  });
+
+  return { xdr };
+}
+
+export async function submitClassicEscrowDeposit(input: {
+  payment: Payment;
+  signedXdr: string;
+}) {
+  return submitEscrowSignedXdr({
+    signedXdr: input.signedXdr,
+    environment: input.payment.environment,
+  });
+}
+
+export async function confirmClassicEscrowDeposit(
+  payment: Payment,
+  txHash: string,
+) {
+  let fresh = (await getPaymentByPublicId(payment.publicId)) ?? payment;
+
+  if (fresh.status === "completed") {
+    return { ok: true as const, payment: fresh };
+  }
+
+  if (fresh.status === "refunded") {
+    return {
+      ok: false as const,
+      error: "Payment was refunded.",
+      payment: fresh,
+    };
+  }
+
+  const maxAttempts = 8;
+
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    if (attempt > 0) {
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      fresh = (await getPaymentByPublicId(payment.publicId)) ?? fresh;
+
+      if (fresh.status === "completed") {
+        return { ok: true as const, payment: fresh };
+      }
+
+      if (fresh.status === "refunded") {
+        return {
+          ok: false as const,
+          error: "Payment was refunded.",
+          payment: fresh,
+        };
+      }
+    }
+
+    const relayed = await relayManualEscrowDeposit(fresh, txHash);
+    fresh = (await getPaymentByPublicId(payment.publicId)) ?? fresh;
+
+    if (fresh.status === "completed") {
+      return { ok: true as const, payment: fresh };
+    }
+
+    if (relayed) {
+      fresh = (await getPaymentByPublicId(payment.publicId)) ?? fresh;
+      if (fresh.status === "completed") {
+        return { ok: true as const, payment: fresh };
+      }
+    }
+
+    if (
+      relayed ||
+      fresh.status === "deposit_received" ||
+      fresh.status === "settling"
+    ) {
+      const settled = await processEscrowSettlement(fresh);
+      fresh = (await getPaymentByPublicId(payment.publicId)) ?? settled;
+
+      if (fresh.status === "completed") {
+        return { ok: true as const, payment: fresh };
+      }
+
+      return {
+        ok: false as const,
+        pending: true as const,
+        status: fresh.status,
+        payment: fresh,
+      };
+    }
+  }
+
+  fresh = (await getPaymentByPublicId(payment.publicId)) ?? fresh;
+
+  if (fresh.status === "completed") {
+    return { ok: true as const, payment: fresh };
+  }
+
+  if (
+    fresh.status === "deposit_received" ||
+    fresh.status === "settling" ||
+    fresh.status === "refunding"
+  ) {
+    return {
+      ok: false as const,
+      pending: true as const,
+      status: fresh.status,
+      payment: fresh,
+    };
+  }
+
+  return {
+    ok: false as const,
+    pending: true as const,
+    status: fresh.status,
+    payment: fresh,
+    error: "Deposit not detected yet. Try again in a moment.",
+  };
 }
 
 export async function confirmEscrowDepositWithTxHash(
@@ -603,15 +859,20 @@ export async function confirmEscrowDepositWithTxHash(
     };
   }
 
-  if (payment.status === "completed") {
-    return { ok: true as const, payment };
+  const result = await confirmClassicEscrowDeposit(payment, txHash);
+
+  if (result.ok) {
+    return { ok: true as const, payment: result.payment };
   }
 
-  return {
-    ok: false as const,
-    error:
-      "Classic escrow deposit confirmation is no longer supported. Complete checkout through the Soroban escrow contract.",
-  };
+  if ("pending" in result && result.pending) {
+    return {
+      ok: false as const,
+      error: "Deposit is still processing.",
+    };
+  }
+
+  return { ok: false as const, error: result.error ?? "Unable to confirm deposit" };
 }
 
 export async function processPendingEscrowSettlements() {
@@ -641,9 +902,15 @@ export async function processPendingEscrowSettlements() {
       continue;
     }
 
+    const awaitingMerchantSettlement =
+      Boolean(payment.depositTxHash) &&
+      Boolean(payment.receivedAmount) &&
+      !payment.settlementTxHash;
+
     if (
       payment.depositTxHash &&
-      isDepositTxAlreadyHandled(payment, payment.depositTxHash)
+      isDepositTxAlreadyHandled(payment, payment.depositTxHash) &&
+      !awaitingMerchantSettlement
     ) {
       continue;
     }
@@ -673,18 +940,31 @@ async function relayManualEscrowDeposit(payment: Payment, txHash: string) {
     return false;
   }
 
+  if (
+    payment.depositTxHash === txHash &&
+    (payment.status === "deposit_received" ||
+      payment.status === "settling" ||
+      payment.status === "settlement_failed")
+  ) {
+    const result = await processEscrowSettlement(payment);
+    return result.status === "refunded" || result.status === "completed";
+  }
+
+  if (payment.status === "refunding") {
+    return false;
+  }
+
   if (isDepositTxAlreadyHandled(payment, txHash)) {
     return false;
   }
 
-  let activePayment = await patchPayment(payment, {
-    metadata: markDepositTxHandled(payment.metadata, txHash),
-  });
+  let activePayment = payment;
 
   const allowed = findAllowedAsset(
     activePayment.allowedAssets ?? [],
     inbound.paidAsset.asset_code,
     inbound.paidAsset.issuer_address,
+    activePayment.environment,
   );
 
   if (!allowed) {
@@ -700,6 +980,20 @@ async function relayManualEscrowDeposit(payment: Payment, txHash: string) {
   }
 
   try {
+    const selectedPaidAsset: AllowedAsset | null = activePayment.paidAsset
+      ? {
+          asset_code: activePayment.paidAsset,
+          issuer_address: activePayment.paidAssetIssuer,
+        }
+      : null;
+    const depositMatchesSelection =
+      selectedPaidAsset !== null &&
+      allowedAssetsEquivalent(
+        selectedPaidAsset,
+        inbound.paidAsset,
+        activePayment.environment,
+      );
+
     if (
       activePayment.pricingCurrency &&
       activePayment.pricingAmount &&
@@ -708,13 +1002,19 @@ async function relayManualEscrowDeposit(payment: Payment, txHash: string) {
       activePayment = (
         await refreshPaymentQuote(activePayment, allowed)
       ).payment;
-    } else if (!activePayment.paidAsset) {
+    } else if (!selectedPaidAsset || !depositMatchesSelection) {
       activePayment = await setPaymentPaidAsset(activePayment, allowed);
-      await registerEscrowPaymentOnContract(activePayment);
+      try {
+        await registerEscrowPaymentOnContract(activePayment);
+      } catch (error) {
+        if (!isSorobanPaymentAlreadyFinalizedError(error)) {
+          throw error;
+        }
+      }
     }
 
     const expectedAmount = activePayment.quotedPaidAmount ?? activePayment.amount;
-    if (inbound.receivedAmount !== expectedAmount) {
+    if (isUnderpay(activePayment, inbound.receivedAmount)) {
       const refunded = await refundManualEscrowDeposit(
         activePayment,
         txHash,
@@ -726,50 +1026,59 @@ async function relayManualEscrowDeposit(payment: Payment, txHash: string) {
       return refunded.status === "refunded";
     }
 
-    const escrow = getEscrowConfig(activePayment.environment);
-    const built = await buildEscrowDepositTransaction({
-      payment: activePayment,
-      payerAddress: escrow.publicKey,
-      payerKeypair: escrow.keypair,
-      amount: inbound.receivedAmount,
-    });
-    const submitted = await submitSorobanPaymentTransaction({
-      payment: activePayment,
-      signedXdr: built.xdr,
-    });
+    const deposited = await recordManualEscrowDeposit(
+      activePayment,
+      txHash,
+      inbound.payerAddress,
+      inbound.receivedAmount,
+      inbound.paidAsset,
+    );
 
-    if (!submitted.hash) {
-      throw new Error("Soroban escrow deposit was not submitted");
-    }
-
-    const confirmed = await confirmEscrowContractDeposit({
-      payment: activePayment,
-      txHash: submitted.hash,
-      payerAddress: escrow.publicKey,
-      recordedPayerAddress: inbound.payerAddress,
-      amount: inbound.receivedAmount,
+    const withHandled = await patchPayment(deposited, {
+      metadata: markDepositTxHandled(deposited.metadata, txHash),
     });
 
-    if (!confirmed.completed) {
-      if (confirmed.status === "FAILED") {
-        const refunded = await refundManualEscrowDeposit(
-          activePayment,
-          txHash,
-          inbound.payerAddress,
-          inbound.receivedAmount,
-          inbound.paidAsset,
-          REFUND_REASONS.settle_failed,
-        );
-        return refunded.status === "refunded";
+    try {
+      await registerEscrowPaymentOnContract(withHandled);
+    } catch (error) {
+      if (!isSorobanPaymentAlreadyFinalizedError(error)) {
+        throw error;
       }
-
-      return false;
     }
 
-    await processEscrowSettlement(confirmed.payment);
-    return true;
+    const settled = await processEscrowSettlement(withHandled);
+    return settled.status === "completed";
   } catch (error) {
     console.error("Failed to relay manual escrow deposit:", error);
+
+    const latest = (await getPaymentByPublicId(activePayment.publicId)) ?? activePayment;
+
+    if (latest.status === "completed") {
+      return true;
+    }
+
+    if (latest.depositTxHash === txHash) {
+      const settled = await processEscrowSettlement(latest);
+      if (settled.status === "completed") {
+        return true;
+      }
+    }
+
+    if (isSorobanPaymentAlreadyFinalizedError(error)) {
+      const deposited = await recordManualEscrowDeposit(
+        activePayment,
+        txHash,
+        inbound.payerAddress,
+        inbound.receivedAmount,
+        inbound.paidAsset,
+      );
+      const withHandled = await patchPayment(deposited, {
+        metadata: markDepositTxHandled(deposited.metadata, txHash),
+      });
+      const settled = await processEscrowSettlement(withHandled);
+      return settled.status === "refunded" || settled.status === "completed";
+    }
+
     const refunded = await refundManualEscrowDeposit(
       activePayment,
       txHash,
@@ -780,6 +1089,93 @@ async function relayManualEscrowDeposit(payment: Payment, txHash: string) {
     );
     return refunded.status === "refunded";
   }
+}
+
+export type EscrowDepositCheckResult = {
+  detected: boolean;
+  payment: Payment;
+};
+
+export async function detectEscrowDepositForPayment(
+  payment: Payment,
+): Promise<EscrowDepositCheckResult> {
+  let fresh = (await getPaymentByPublicId(payment.publicId)) ?? payment;
+
+  if (fresh.status === "completed" || fresh.status === "refunded") {
+    return { detected: true, payment: fresh };
+  }
+
+  if (fresh.status === "refunding") {
+    return { detected: true, payment: fresh };
+  }
+
+  if (
+    fresh.status === "deposit_received" ||
+    fresh.status === "settling" ||
+    fresh.status === "settlement_failed"
+  ) {
+    const updated = await processEscrowSettlement(fresh);
+    fresh = (await getPaymentByPublicId(payment.publicId)) ?? updated;
+    return {
+      detected:
+        fresh.status === "completed" ||
+        fresh.status === "refunded" ||
+        fresh.status === "processing" ||
+        fresh.status === "refunding" ||
+        fresh.status !== payment.status,
+      payment: fresh,
+    };
+  }
+
+  if (
+    fresh.paymentFlow !== "escrow" ||
+    !fresh.depositAddress ||
+    (fresh.status !== "pending" && fresh.status !== "processing")
+  ) {
+    return { detected: false, payment: fresh };
+  }
+
+  const escrow = getEscrowConfig(fresh.environment);
+  const server = new Horizon.Server(getHorizonUrl(fresh.environment));
+  const paymentsResponse = await server
+    .payments()
+    .forAccount(escrow.publicKey)
+    .order("desc")
+    .limit(50)
+    .call();
+
+  for (const record of paymentsResponse.records) {
+    if (record.type !== "payment") {
+      continue;
+    }
+
+    const destination =
+      "to_muxed" in record && record.to_muxed ? record.to_muxed : record.to;
+
+    if (destination !== fresh.depositAddress) {
+      continue;
+    }
+
+    if (await relayManualEscrowDeposit(fresh, record.transaction_hash)) {
+      const updated = await getPaymentByPublicId(fresh.publicId);
+      return { detected: true, payment: updated ?? fresh };
+    }
+  }
+
+  const updated = await getPaymentByPublicId(fresh.publicId);
+  const current = updated ?? fresh;
+
+  if (current.status !== fresh.status) {
+    return {
+      detected:
+        current.status === "completed" ||
+        current.status === "refunded" ||
+        current.status === "processing",
+      payment: current,
+    };
+  }
+
+  return { detected: false, payment: current };
 }
 
 export async function detectEscrowDepositsFromHorizon(

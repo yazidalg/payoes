@@ -1,6 +1,6 @@
 import { and, asc, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { paymentMethods } from "@/lib/db/schema";
+import { organizations, paymentMethods } from "@/lib/db/schema";
 import {
   DEFAULT_ORGANIZATION_ASSET_CODES,
   OFFICIAL_ASSETS,
@@ -13,6 +13,7 @@ import {
   type OfficialAssetCode,
 } from "@/lib/payment-methods/official-assets";
 import { validateCustomAssetOnHorizon } from "@/lib/stellar/validate-asset";
+import { syncEscrowOperatorTrustlines } from "@/lib/stellar/escrow/operator-trustlines";
 import type { Organization } from "@/lib/db/schema";
 
 export type PaymentMethod = typeof paymentMethods.$inferSelect;
@@ -33,6 +34,28 @@ export type SerializedPaymentMethod = {
 
 function normalizeIssuer(issuer: string | null | undefined) {
   return issuer?.trim() || null;
+}
+
+async function syncOperatorTrustlinesForOrganization(organizationId: string) {
+  const [organization] = await db
+    .select({ environment: organizations.environment })
+    .from(organizations)
+    .where(eq(organizations.id, organizationId))
+    .limit(1);
+
+  if (!organization) {
+    return;
+  }
+
+  const enabled = await listEnabledPaymentMethods(organizationId);
+
+  await syncEscrowOperatorTrustlines({
+    environment: organization.environment,
+    allowedAssets: enabled.map((method) => ({
+      asset_code: method.assetCode,
+      issuer_address: method.issuerAddress,
+    })),
+  });
 }
 
 export function serializePaymentMethod(method: PaymentMethod): SerializedPaymentMethod {
@@ -252,6 +275,16 @@ export async function addCustomPaymentMethod(input: {
     })
     .returning();
 
+  await syncEscrowOperatorTrustlines({
+    environment: input.environment,
+    allowedAssets: [
+      {
+        asset_code: input.assetCode.toUpperCase(),
+        issuer_address: input.issuerAddress,
+      },
+    ],
+  });
+
   return created;
 }
 
@@ -288,6 +321,14 @@ export async function updatePaymentMethod(
     })
     .where(eq(paymentMethods.id, methodId))
     .returning();
+
+  const becameEnabled =
+    input.isEnabled === true ||
+    (input.isEnabled === undefined && Boolean(updated?.isEnabled));
+
+  if (becameEnabled) {
+    await syncOperatorTrustlinesForOrganization(organizationId);
+  }
 
   return updated;
 }

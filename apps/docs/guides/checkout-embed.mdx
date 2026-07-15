@@ -75,7 +75,8 @@ const payment = await fetch("https://payoes.com/api/v1/payments", {
     "Content-Type": "application/json",
   },
   body: JSON.stringify({
-    amount: "25",
+    pricing_currency: "USD",
+    pricing_amount: "25",
     description: "Pro plan",
   }),
 }).then((response) => response.json());

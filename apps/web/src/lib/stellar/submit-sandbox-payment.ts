@@ -78,17 +78,15 @@ export async function submitSandboxPaymentTransaction(payment: Payment) {
     amount,
   });
 
-  if (!confirmResult.completed) {
+  if (!confirmResult.recorded) {
     throw new Error("Sandbox Soroban escrow deposit is still processing");
   }
 
-  void processEscrowSettlement(confirmResult.payment).catch((error) => {
-    console.error("Merchant settlement failed after sandbox deposit:", error);
-  });
+  const settled = await processEscrowSettlement(confirmResult.payment);
 
   return {
     txHash: submitResult.hash,
     payerAddress: keypair.publicKey(),
-    payment: confirmResult.payment,
+    payment: settled,
   };
 }

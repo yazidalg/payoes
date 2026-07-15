@@ -19,6 +19,7 @@ export type PaymentQuote = {
   settlement_quote_rate?: string;
   requires_path_payment?: boolean;
   expires_at: string;
+  deposit_trustline_error?: string | null;
 };
 
 export type AssetBalances = Record<string, string | null>;

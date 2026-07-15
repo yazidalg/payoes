@@ -69,12 +69,8 @@ const payment = await fetch("https://payoes.example.com/api/v1/payments", {
     "Content-Type": "application/json",
   },
   body: JSON.stringify({
-    amount: "25",
-    settlement_asset: { asset_code: "USDC", issuer_address: "..." },
-    allowed_assets: [
-      { asset_code: "USDC", issuer_address: "..." },
-      { asset_code: "XLM", issuer_address: null },
-    ],
+    pricing_currency: "USD",
+    pricing_amount: "25.00",
     description: "Pro plan (monthly)",
     metadata: { user_id: "usr_123" },
   }),

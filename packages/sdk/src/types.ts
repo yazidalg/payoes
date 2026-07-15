@@ -4,10 +4,13 @@ export type CheckoutCompleteResult = {
   txHash?: string | null;
 };
 
+export type CheckoutDisplayMode = "auto" | "mobile" | "desktop";
+
 export type OpenCheckoutOptions = {
   paymentId?: string;
   checkoutUrl?: string;
   baseUrl?: string;
+  displayMode?: CheckoutDisplayMode;
   onComplete?: (result: CheckoutCompleteResult) => void;
   onClose?: () => void;
   onError?: (error: Error) => void;

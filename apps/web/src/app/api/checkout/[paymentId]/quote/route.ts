@@ -4,8 +4,9 @@ import type { AllowedAsset } from "@/lib/assets/types";
 import { resolvePaymentForHostedCheckout } from "@/lib/checkout-sessions/service";
 import {
   ensurePayablePayment,
-  refreshPaymentQuote,
+  previewPaymentQuote,
 } from "@/lib/payments/quote-service";
+import { getEscrowDepositTrustlineError, syncEscrowOperatorTrustlines } from "@/lib/stellar/escrow/operator-trustlines";
 
 const quoteQuerySchema = z.object({
   paid_asset_code: z.string().min(1),
@@ -45,7 +46,16 @@ export async function GET(
   };
 
   try {
-    const { quote } = await refreshPaymentQuote(payable.payment, paidAsset);
+    await syncEscrowOperatorTrustlines({
+      environment: payable.payment.environment,
+      allowedAssets: payable.payment.allowedAssets ?? [],
+    });
+
+    const quote = await previewPaymentQuote(payable.payment, paidAsset);
+    const depositTrustlineError = await getEscrowDepositTrustlineError({
+      asset: paidAsset,
+      environment: payable.payment.environment,
+    });
 
     return NextResponse.json({
       pricing_amount: quote.pricing_amount,
@@ -58,6 +68,7 @@ export async function GET(
       settlement_quote_rate: quote.settlement_quote_rate,
       requires_path_payment: quote.requires_path_payment,
       expires_at: quote.expires_at.toISOString(),
+      deposit_trustline_error: depositTrustlineError,
     });
   } catch (error) {
     return NextResponse.json(

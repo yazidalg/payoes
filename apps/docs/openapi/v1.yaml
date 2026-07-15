@@ -459,10 +459,16 @@ components:
       nullable: true
     CreatePaymentRequest:
       type: object
-      required: [amount]
+      required: [pricing_currency, pricing_amount]
       properties:
-        amount:
-          $ref: "#/components/schemas/StellarAmount"
+        pricing_currency:
+          type: string
+          description: Fiat currency code for the charge amount (for example USD or IDR).
+          example: USD
+        pricing_amount:
+          type: string
+          description: Charge amount in the pricing currency.
+          example: "25.00"
         settlement_asset:
           $ref: "#/components/schemas/AssetRef"
           description: Optional. Defaults to the organization settlement asset.

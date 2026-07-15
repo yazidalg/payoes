@@ -12,7 +12,10 @@ import {
 import type { Organization } from "@/lib/db/schema";
 import { getNetworkLabel, getNetworkPassphrase } from "@/lib/stellar/network";
 
-export function useStellarWallet(environment: Organization["environment"]) {
+export function useStellarWallet(
+  environment: Organization["environment"],
+  { restoreSession = true }: { restoreSession?: boolean } = {},
+) {
   const [address, setAddress] = useState<string | null>(null);
   const [walletProvider, setWalletProvider] = useState<string | null>(null);
   const [networkError, setNetworkError] = useState<string | null>(null);
@@ -41,16 +44,22 @@ export function useStellarWallet(environment: Organization["environment"]) {
       }
     );
 
-    StellarWalletsKit.getAddress()
-      .then(({ address: connectedAddress }) => {
-        setAddress(connectedAddress);
-      })
-      .catch(() => {
+    if (restoreSession) {
+      StellarWalletsKit.getAddress()
+        .then(({ address: connectedAddress }) => {
+          setAddress(connectedAddress);
+        })
+        .catch(() => {
+          setAddress(null);
+        });
+    } else {
+      void StellarWalletsKit.disconnect().catch(() => {
         setAddress(null);
       });
+    }
 
     return unsubscribe;
-  }, [environment]);
+  }, [environment, restoreSession]);
 
   const validateNetwork = useCallback(async () => {
     const { networkPassphrase } = await StellarWalletsKit.getNetwork();

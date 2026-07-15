@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { findAllowedAsset } from "@/lib/assets/types";
+import { findAllowedAsset, resolveAllowedAsset } from "@/lib/assets/types";
 import { serializePaymentAssets } from "@/lib/assets/serialize";
 import { getCheckoutLineItems } from "@/lib/checkout/line-items";
 import { getCheckoutInvoiceDetails } from "@/lib/checkout/invoice-details";
@@ -19,11 +19,16 @@ import {
   formatRefundReasonForCheckout,
   isRetryableFailedPayment,
 } from "@/lib/payments/retry";
-import { processEscrowSettlement } from "@/lib/payments/settlement/escrow";
+import {
+  buildEscrowClassicDepositTransaction,
+  confirmClassicEscrowDeposit,
+  detectEscrowDepositForPayment,
+  processEscrowSettlement,
+  submitClassicEscrowDeposit,
+} from "@/lib/payments/settlement/escrow";
 import { setPaymentPaidAsset } from "@/lib/payments/service";
 import { simulateSandboxPayment } from "@/lib/payments/simulate-sandbox-payment";
 import {
-  buildEscrowDepositTransaction,
   confirmEscrowContractDeposit,
   ensureEscrowPaymentRegisteredForCheckout,
 } from "@/lib/soroban/escrow-contract";
@@ -46,6 +51,16 @@ const buildTxSchema = z.object({
   action: z.literal("build_transaction"),
   sourcePublicKey: z.string().min(1),
   paid_asset: paidAssetSchema,
+});
+
+const submitClassicSchema = z.object({
+  action: z.literal("submit_classic"),
+  signedXdr: z.string().min(1),
+});
+
+const confirmClassicDepositSchema = z.object({
+  action: z.literal("confirm_classic_deposit"),
+  txHash: z.string().min(1),
 });
 
 const submitSorobanSchema = z.object({
@@ -118,7 +133,8 @@ export async function GET(
       amount: payment.quotedPaidAmount ?? payment.amount,
       ...assets,
       status: payment.status,
-      session_error: payable.error ?? null,
+      session_error:
+        payment.status === "completed" ? null : (payable.error ?? null),
       last_attempt_error: lastAttemptError,
       description: payment.description,
       environment: payment.environment,
@@ -156,6 +172,104 @@ export async function POST(
 
   const body = await request.json();
 
+  if (body.action === "check_deposit") {
+    const payment = resolved.payment;
+    const txHash =
+      typeof body.tx_hash === "string" && body.tx_hash.trim().length > 0
+        ? body.tx_hash.trim()
+        : null;
+
+    if (payment.paymentFlow !== "escrow") {
+      return deprecatedPaymentFlowResponse();
+    }
+
+    if (payment.status === "completed") {
+      return NextResponse.json({ status: "completed", detected: true });
+    }
+
+    try {
+      if (txHash) {
+        const confirmed = await confirmClassicEscrowDeposit(payment, txHash);
+
+        if (confirmed.ok) {
+          return NextResponse.json({
+            status: "completed",
+            detected: true,
+            tx_hash: confirmed.payment.txHash,
+          });
+        }
+
+        if ("pending" in confirmed && confirmed.pending) {
+          const latest = confirmed.payment;
+          if (latest.status === "completed") {
+            return NextResponse.json({
+              status: "completed",
+              detected: true,
+              tx_hash: latest.txHash,
+            });
+          }
+
+          return NextResponse.json(
+            {
+              status: latest.status,
+              detected: true,
+              phase: "processing",
+            },
+            { status: 202 },
+          );
+        }
+      }
+
+      const result = await detectEscrowDepositForPayment(payment);
+
+      if (result.payment.status === "completed") {
+        return NextResponse.json({
+          status: "completed",
+          detected: true,
+          tx_hash: result.payment.txHash,
+        });
+      }
+
+      if (result.payment.status === "refunded") {
+        return NextResponse.json({
+          status: "refunded",
+          detected: true,
+        });
+      }
+
+      if (
+        result.payment.status === "processing" ||
+        result.payment.status === "deposit_received" ||
+        result.payment.status === "refunding" ||
+        result.payment.status === "settling"
+      ) {
+        return NextResponse.json(
+          { status: result.payment.status, detected: true, phase: "processing" },
+          { status: 202 },
+        );
+      }
+
+      if (result.payment.status === "settlement_failed") {
+        return NextResponse.json(
+          {
+            status: "settlement_failed",
+            detected: true,
+            error:
+              "Settlement could not be completed. Please contact the merchant if your funds were not returned.",
+          },
+          { status: 409 },
+        );
+      }
+
+      return NextResponse.json({
+        status: result.payment.status,
+        detected: result.detected,
+      });
+    } catch (error) {
+      return sorobanErrorResponse(error, 502);
+    }
+  }
+
   if (body.action === "simulate_payment") {
     const paidAsset = body.paid_asset
       ? {
@@ -192,6 +306,42 @@ export async function POST(
 
   const { payment } = { payment: payable.payment };
 
+  if (body.action === "confirm_classic_deposit") {
+    const parsed = confirmClassicDepositSchema.safeParse(body);
+
+    if (!parsed.success || payment.paymentFlow !== "escrow") {
+      return deprecatedPaymentFlowResponse();
+    }
+
+    try {
+      const result = await confirmClassicEscrowDeposit(payment, parsed.data.txHash);
+
+      if (result.ok) {
+        return NextResponse.json({
+          status: result.payment.status,
+          tx_hash: result.payment.txHash,
+        });
+      }
+
+      if ("pending" in result && result.pending) {
+        return NextResponse.json(
+          {
+            status: result.status,
+            error: result.error ?? "Deposit is still processing.",
+          },
+          { status: 202 },
+        );
+      }
+
+      return NextResponse.json(
+        { error: result.error ?? "Unable to confirm deposit" },
+        { status: 400 },
+      );
+    } catch (error) {
+      return sorobanErrorResponse(error, 502);
+    }
+  }
+
   if (body.action === "confirm_escrow_contract") {
     const parsed = confirmEscrowContractSchema.safeParse(body);
 
@@ -208,20 +358,39 @@ export async function POST(
         amount: depositAmount,
       });
 
-      if (!result.completed) {
+      if (!result.recorded) {
         return NextResponse.json({ status: result.status }, { status: 202 });
       }
 
-      void processEscrowSettlement(result.payment).catch((error) => {
-        console.error("Merchant settlement failed after customer deposit:", error);
-      });
+      const settled = await processEscrowSettlement(result.payment);
 
       return NextResponse.json({
-        status: result.payment.status,
-        tx_hash: result.payment.txHash,
+        status: settled.status,
+        tx_hash: settled.txHash,
       });
     } catch (error) {
       return sorobanErrorResponse(error, 502);
+    }
+  }
+
+  if (body.action === "submit_classic") {
+    const parsed = submitClassicSchema.safeParse(body);
+
+    if (!parsed.success || payment.paymentFlow !== "escrow") {
+      return deprecatedPaymentFlowResponse();
+    }
+
+    try {
+      const result = await submitClassicEscrowDeposit({
+        payment,
+        signedXdr: parsed.data.signedXdr,
+      });
+
+      return NextResponse.json({ tx_hash: result.hash, status: "processing" });
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Unable to submit payment";
+      return NextResponse.json({ error: message }, { status: 400 });
     }
   }
 
@@ -264,7 +433,8 @@ export async function POST(
     const match = findAllowedAsset(
       allowed,
       paidAsset.asset_code,
-      paidAsset.issuer_address
+      paidAsset.issuer_address,
+      payment.environment,
     );
 
     if (!match) {
@@ -275,16 +445,27 @@ export async function POST(
     }
 
     try {
-      let activePayment = await setPaymentPaidAsset(payment, paidAsset);
+      const canonicalPaidAsset = resolveAllowedAsset(match, payment.environment);
+      let activePayment = payment;
       let quoteRefreshHandledRegistration = false;
 
-      if (activePayment.pricingCurrency && activePayment.pricingAmount) {
-        if (needsPaymentQuoteRefresh(activePayment, paidAsset)) {
-          const refreshed = await refreshPaymentQuote(activePayment, paidAsset);
-          activePayment = refreshed.payment;
-          quoteRefreshHandledRegistration = true;
-        }
+      const shouldRefreshQuote =
+        payment.pricingCurrency &&
+        payment.pricingAmount &&
+        needsPaymentQuoteRefresh(payment, canonicalPaidAsset);
 
+      if (shouldRefreshQuote) {
+        const refreshed = await refreshPaymentQuote(
+          payment,
+          canonicalPaidAsset,
+        );
+        activePayment = refreshed.payment;
+        quoteRefreshHandledRegistration = true;
+      } else {
+        activePayment = await setPaymentPaidAsset(payment, canonicalPaidAsset);
+      }
+
+      if (activePayment.pricingCurrency && activePayment.pricingAmount) {
         if (!activePayment.quotedPaidAmount) {
           return NextResponse.json(
             { error: "Payment quote is missing. Try again in a moment." },
@@ -298,15 +479,16 @@ export async function POST(
       await ensureEscrowPaymentRegisteredForCheckout(activePayment, {
         skipIfQuoteRefreshHandled: quoteRefreshHandledRegistration,
       });
-      const soroban = await buildEscrowDepositTransaction({
+      const classicDeposit = await buildEscrowClassicDepositTransaction({
         payment: activePayment,
         payerAddress: parsed.data.sourcePublicKey,
         amount: depositAmount,
+        paidAsset: canonicalPaidAsset,
       });
 
       return NextResponse.json({
-        ...soroban,
-        payment_type: "escrow_contract_deposit",
+        xdr: classicDeposit.xdr,
+        payment_type: "escrow_classic_deposit",
       });
     } catch (error) {
       return sorobanErrorResponse(error);

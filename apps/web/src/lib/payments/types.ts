@@ -14,6 +14,8 @@ export type PaymentRow = {
   quoted_paid_amount?: string | null;
   received_amount?: string | null;
   quoted_settlement_amount?: string | null;
+  platform_fee_amount?: string | null;
+  merchant_settlement_amount?: string | null;
   quote_rate?: string | null;
   settlement_quote_rate?: string | null;
   quote_expires_at?: string | null;
@@ -39,6 +41,8 @@ export type SettlementConversionRow = {
   quoted_paid_amount: string;
   settlement_asset: AllowedAssetRef;
   quoted_settlement_amount: string;
+  platform_fee_amount?: string | null;
+  merchant_settlement_amount?: string | null;
   pricing_amount: string | null;
   pricing_currency: string | null;
   quote_rate: string | null;

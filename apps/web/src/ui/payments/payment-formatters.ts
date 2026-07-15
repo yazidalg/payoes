@@ -67,22 +67,32 @@ export function formatPaidAmount(payment: PaymentRow) {
   return formatAssetAmount(getPaidAmountValue(payment), getPaidAsset(payment));
 }
 
-export function formatSettlementTarget(payment: PaymentRow) {
-  if (payment.pricing_amount && payment.pricing_currency) {
-    return formatAmountWithUnit(payment.pricing_amount, payment.pricing_currency);
-  }
+export function getMerchantSettlementAmount(payment: PaymentRow) {
+  return payment.merchant_settlement_amount ?? null;
+}
 
-  if (payment.quoted_settlement_amount) {
+export function formatMerchantSettlementAmount(payment: PaymentRow) {
+  if (payment.merchant_settlement_amount) {
     return formatAssetAmount(
-      payment.quoted_settlement_amount,
+      payment.merchant_settlement_amount,
       payment.settlement_asset,
     );
   }
 
-  return formatAssetAmount(payment.amount, payment.settlement_asset);
+  return "-";
 }
 
-export function formatSettlementAmount(payment: PaymentRow) {
+export function formatPlatformFeeAmount(payment: PaymentRow) {
+  const fee = payment.platform_fee_amount;
+
+  if (!fee || Number(fee) <= 0) {
+    return "-";
+  }
+
+  return formatAssetAmount(fee, payment.settlement_asset);
+}
+
+export function formatGrossSettlementAmount(payment: PaymentRow) {
   if (payment.quoted_settlement_amount) {
     return formatAssetAmount(
       payment.quoted_settlement_amount,
@@ -91,6 +101,26 @@ export function formatSettlementAmount(payment: PaymentRow) {
   }
 
   return "-";
+}
+
+export function hasDistinctGrossSettlementQuote(payment: PaymentRow) {
+  if (!payment.quoted_settlement_amount || !payment.merchant_settlement_amount) {
+    return false;
+  }
+
+  return payment.quoted_settlement_amount !== payment.merchant_settlement_amount;
+}
+
+export function formatSettlementTarget(payment: PaymentRow) {
+  if (payment.pricing_amount && payment.pricing_currency) {
+    return formatAmountWithUnit(payment.pricing_amount, payment.pricing_currency);
+  }
+
+  return formatGrossSettlementAmount(payment);
+}
+
+export function formatSettlementAmount(payment: PaymentRow) {
+  return formatMerchantSettlementAmount(payment);
 }
 
 export function formatInvoiceTotal(payment: PaymentRow) {

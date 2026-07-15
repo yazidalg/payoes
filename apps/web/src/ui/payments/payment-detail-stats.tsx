@@ -4,8 +4,8 @@ import { SmoothSkeleton } from "@/ui/shared/smooth-skeleton";
 import { cn } from "@dub/utils";
 import type { CSSProperties } from "react";
 import {
+  formatMerchantSettlementAmount,
   formatPaidAmount,
-  formatSettlementTarget,
   formatSourceType,
   getPaymentStatusVariant,
 } from "./payment-formatters";
@@ -23,8 +23,8 @@ export function PaymentDetailStats({
       value: payment ? formatPaidAmount(payment) : undefined,
     },
     {
-      label: "Settlement target",
-      value: payment ? formatSettlementTarget(payment) : undefined,
+      label: "Merchant receives",
+      value: payment ? formatMerchantSettlementAmount(payment) : undefined,
     },
     {
       label: "Status",

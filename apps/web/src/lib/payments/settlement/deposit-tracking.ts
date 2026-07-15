@@ -30,11 +30,33 @@ export function isDepositTxAlreadyHandled(
     return false;
   }
 
-  if (payment.depositTxHash === txHash && payment.refundTxHash) {
+  const handledHashes = getHandledDepositTxHashes(payment.metadata);
+
+  // Retry reopened after refund: metadata remembers a refunded deposit.
+  if (
+    handledHashes.includes(txHash) &&
+    !payment.depositTxHash &&
+    payment.status === "pending" &&
+    payment.refundTxHash
+  ) {
     return true;
   }
 
-  return getHandledDepositTxHashes(payment.metadata).includes(txHash);
+  if (payment.depositTxHash !== txHash) {
+    return false;
+  }
+
+  // Terminal outcomes for this deposit.
+  if (payment.status === "completed") {
+    return true;
+  }
+
+  if (isEscrowRefundTerminal(payment)) {
+    return true;
+  }
+
+  // deposit_received / refunding / settling still need processing.
+  return false;
 }
 
 export function markDepositTxHandled(

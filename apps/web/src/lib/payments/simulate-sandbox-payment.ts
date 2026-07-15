@@ -36,6 +36,7 @@ export async function simulateSandboxPayment(
       payment.allowedAssets ?? [],
       paidAsset.asset_code,
       paidAsset.issuer_address,
+      payment.environment,
     );
 
     if (!match) {
@@ -45,7 +46,17 @@ export async function simulateSandboxPayment(
       };
     }
 
-    payment = await setPaymentPaidAsset(payment, paidAsset);
+    const shouldRefreshQuote =
+      payment.pricingCurrency &&
+      payment.pricingAmount &&
+      needsPaymentQuoteRefresh(payment, paidAsset);
+
+    if (shouldRefreshQuote) {
+      const refreshed = await refreshPaymentQuote(payment, paidAsset);
+      payment = refreshed.payment;
+    } else {
+      payment = await setPaymentPaidAsset(payment, paidAsset);
+    }
   }
 
   const payable = await ensurePayablePayment(payment);
@@ -55,22 +66,6 @@ export async function simulateSandboxPayment(
   }
 
   payment = payable.payment;
-
-  const activePaidAsset: AllowedAsset = {
-    asset_code: payment.paidAsset ?? payment.settlementAsset,
-    issuer_address: payment.paidAsset
-      ? payment.paidAssetIssuer
-      : payment.settlementAssetIssuer,
-  };
-
-  if (
-    payment.pricingCurrency &&
-    payment.pricingAmount &&
-    needsPaymentQuoteRefresh(payment, activePaidAsset)
-  ) {
-    const refreshed = await refreshPaymentQuote(payment, activePaidAsset);
-    payment = refreshed.payment;
-  }
 
   try {
     const submitted = await submitSandboxPaymentTransaction(payment);

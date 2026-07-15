@@ -59,6 +59,7 @@ type UseCheckoutQuotesOptions = {
   allowedAssets: AllowedAsset[];
   selectedPaidAsset: AllowedAsset | null;
   hasPricing: boolean;
+  disabled?: boolean;
 };
 
 export function useCheckoutQuotes({
@@ -66,6 +67,7 @@ export function useCheckoutQuotes({
   allowedAssets,
   selectedPaidAsset,
   hasPricing,
+  disabled = false,
 }: UseCheckoutQuotesOptions) {
   const [quotesByAssetKey, setQuotesByAssetKey] = useState<
     Record<string, PaymentQuote>
@@ -121,7 +123,7 @@ export function useCheckoutQuotes({
 
   const refreshQuoteForAsset = useCallback(
     async (asset: AllowedAsset, { force = false } = {}) => {
-      if (!hasPricing) {
+      if (!hasPricing || disabled) {
         return;
       }
 
@@ -188,11 +190,11 @@ export function useCheckoutQuotes({
         markLoading(key, false);
       }
     },
-    [fetchQuoteForAsset, hasPricing, markLoading, paymentId],
+    [disabled, fetchQuoteForAsset, hasPricing, markLoading, paymentId],
   );
 
   const prefetchAllQuotes = useCallback(async () => {
-    if (!hasPricing || allowedAssets.length === 0) {
+    if (!hasPricing || allowedAssets.length === 0 || disabled) {
       setQuotesByAssetKey({});
       setQuoteErrorsByAssetKey({});
       setLoadingAssetKeys(new Set());
@@ -226,15 +228,17 @@ export function useCheckoutQuotes({
     await Promise.all(
       assetsToFetch.map((asset) => refreshQuoteForAsset(asset)),
     );
-  }, [allowedAssets, hasPricing, paymentId, refreshQuoteForAsset]);
+  }, [allowedAssets, disabled, hasPricing, paymentId, refreshQuoteForAsset]);
 
   const loadQuote = useCallback(async () => {
-    if (!selectedPaidAsset || !hasPricing) {
+    if (!hasPricing || allowedAssets.length === 0 || disabled) {
       return;
     }
 
-    await refreshQuoteForAsset(selectedPaidAsset, { force: true });
-  }, [hasPricing, refreshQuoteForAsset, selectedPaidAsset]);
+    await Promise.all(
+      allowedAssets.map((asset) => refreshQuoteForAsset(asset, { force: true })),
+    );
+  }, [allowedAssets, disabled, hasPricing, refreshQuoteForAsset]);
 
   useEffect(() => {
     setQuotesByAssetKey({});
@@ -248,12 +252,23 @@ export function useCheckoutQuotes({
   }, [prefetchAllQuotes]);
 
   useEffect(() => {
-    if (!selectedPaidAsset || !hasPricing) {
+    if (!selectedPaidAsset || !hasPricing || disabled) {
       return;
     }
 
     void refreshQuoteForAsset(selectedPaidAsset);
-  }, [hasPricing, refreshQuoteForAsset, selectedPaidAsset]);
+  }, [disabled, hasPricing, refreshQuoteForAsset, selectedPaidAsset]);
+
+  useEffect(() => {
+    if (!disabled) {
+      return;
+    }
+
+    setQuotesByAssetKey({});
+    setQuoteErrorsByAssetKey({});
+    setLoadingAssetKeys(new Set());
+    inFlightRef.current = new Set();
+  }, [disabled]);
 
   const selectedAssetKey = selectedPaidAsset ? assetKey(selectedPaidAsset) : null;
   const quote = selectedAssetKey

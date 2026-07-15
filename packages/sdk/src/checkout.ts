@@ -67,12 +67,16 @@ export function openCheckout(options: OpenCheckoutOptions) {
 
   teardownModal(false);
 
-  const modal = createCheckoutModal(target.embedUrl, () => {
-    if (activeModal?.iframe) {
-      postCloseMessage(activeModal.iframe);
-    }
-    teardownModal(true);
-  });
+  const modal = createCheckoutModal(
+    target.embedUrl,
+    () => {
+      if (activeModal?.iframe) {
+        postCloseMessage(activeModal.iframe);
+      }
+      teardownModal(true);
+    },
+    options.displayMode ?? "auto",
+  );
 
   activeModal = modal;
 

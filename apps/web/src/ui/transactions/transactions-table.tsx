@@ -154,16 +154,17 @@ export function TransactionsTable({
       },
       {
         id: "settlement",
-        header: "Settlement",
+        header: "Merchant receives",
         minSize: 120,
-        cell: ({ row }: { row: Row<PaymentRow> }) => (
-          <AssetAmountCell
-            amount={
-              row.original.quoted_settlement_amount ?? row.original.amount
-            }
-            asset={row.original.settlement_asset}
-          />
-        ),
+        cell: ({ row }: { row: Row<PaymentRow> }) =>
+          row.original.merchant_settlement_amount ? (
+            <AssetAmountCell
+              amount={row.original.merchant_settlement_amount}
+              asset={row.original.settlement_asset}
+            />
+          ) : (
+            "-"
+          ),
       },
       {
         id: "pricing",

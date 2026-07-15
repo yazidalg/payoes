@@ -27,7 +27,7 @@ Instead of integrating wallets, building checkout flows, monitoring Horizon, and
     Create an organization in the dashboard and connect a **settlement wallet**: the Stellar address where payments are sent.
   </Step>
   <Step title="Create a payment">
-    Use the dashboard or `POST /api/v1/payments` to create a payment with an amount and asset (USDC or XLM).
+    Use the dashboard or `POST /api/v1/payments` to create a fiat-priced payment with `pricing_currency` and `pricing_amount`.
   </Step>
   <Step title="Share the checkout link">
     Payoes returns a `checkout_url`. Send it to your customer by email, chat, or embed it in your product.

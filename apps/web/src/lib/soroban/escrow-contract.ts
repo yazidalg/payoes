@@ -1,6 +1,5 @@
 import { createHash } from "node:crypto";
 import {
-  Asset,
   Address,
   BASE_FEE,
   Contract,
@@ -12,11 +11,12 @@ import {
   authorizeEntry,
   xdr,
 } from "@stellar/stellar-sdk";
-import type { AllowedAsset } from "@/lib/assets/types";
+import { resolveAllowedAsset, type AllowedAsset } from "@/lib/assets/types";
 import type { Payment } from "@/lib/db/schema";
-import { recordEscrowContractDepositReceived, updatePaymentStatus } from "@/lib/payments/service";
+import { recordEscrowContractDepositReceived } from "@/lib/payments/service";
 import { assetsMatch } from "@/lib/pricing/quotes";
 import { getNetworkPassphrase, getHorizonUrl } from "@/lib/stellar/network";
+import { resolveStellarAsset } from "@/lib/stellar/assets";
 import { getSorobanConfig } from "@/lib/soroban/config";
 import { getSorobanSimulationErrorMessage } from "@/lib/soroban/simulation";
 import {
@@ -26,6 +26,7 @@ import {
 import {
   assertSorobanConfigured,
   classifySorobanSimulationError,
+  isSorobanPaymentAlreadyFinalizedError,
 } from "@/lib/soroban/setup-errors";
 import { REFUND_REASONS, type RefundReason } from "@/lib/payments/settlement/constants";
 
@@ -37,9 +38,14 @@ function assetContractId(
   asset: AllowedAsset,
   environment: Payment["environment"]
 ) {
-  const stellarAsset = asset.issuer_address
-    ? new Asset(asset.asset_code, asset.issuer_address)
-    : Asset.native();
+  const resolved = resolveAllowedAsset(asset, environment);
+  const stellarAsset = resolveStellarAsset(
+    {
+      assetCode: resolved.asset_code,
+      issuerAddress: resolved.issuer_address,
+    },
+    environment,
+  );
 
   return stellarAsset.contractId(getNetworkPassphrase(environment));
 }
@@ -70,12 +76,15 @@ function refundReasonCode(reason: RefundReason) {
 }
 
 function paidAsset(payment: Payment): AllowedAsset {
-  return {
-    asset_code: payment.paidAsset ?? payment.settlementAsset,
-    issuer_address: payment.paidAsset
-      ? payment.paidAssetIssuer
-      : payment.settlementAssetIssuer,
-  };
+  return resolveAllowedAsset(
+    {
+      asset_code: payment.paidAsset ?? payment.settlementAsset,
+      issuer_address: payment.paidAsset
+        ? payment.paidAssetIssuer
+        : payment.settlementAssetIssuer,
+    },
+    payment.environment,
+  );
 }
 
 export function isSameAssetEscrowDeposit(payment: Payment) {
@@ -356,18 +365,21 @@ export async function ensureEscrowPaymentRegistered(payment: Payment) {
   }
 
   assertSorobanConfigured(payment.environment);
-  await registerEscrowPaymentOnContract(payment);
+
+  try {
+    await registerEscrowPaymentOnContract(payment);
+  } catch (error) {
+    if (isSorobanPaymentAlreadyFinalizedError(error)) {
+      return;
+    }
+
+    throw error;
+  }
 }
 
 export type EscrowContractDepositConfirmResult =
-  | { completed: true; payment: Payment }
-  | {
-      completed: false;
-      status: "deposit_received";
-      payment: Payment;
-      receivedAmount: string;
-    }
-  | { completed: false; status: string };
+  | { recorded: true; payment: Payment }
+  | { recorded: false; status: string };
 
 export async function confirmEscrowContractDeposit(input: {
   payment: Payment;
@@ -404,13 +416,13 @@ export async function confirmEscrowContractDeposit(input: {
   const status = payload.result?.status;
 
   if (status !== "SUCCESS") {
-    return { completed: false as const, status: status ?? "NOT_FOUND" };
+    return { recorded: false as const, status: status ?? "NOT_FOUND" };
   }
 
   const asset = paidAsset(input.payment);
   const recordedPayerAddress = input.recordedPayerAddress ?? input.payerAddress;
 
-  const withDeposit = await recordEscrowContractDepositReceived({
+  const payment = await recordEscrowContractDepositReceived({
     payment: input.payment,
     txHash: input.txHash,
     payerAddress: recordedPayerAddress,
@@ -418,12 +430,5 @@ export async function confirmEscrowContractDeposit(input: {
     paidAsset: asset,
   });
 
-  const payment = await updatePaymentStatus(withDeposit, "completed", {
-    txHash: input.txHash,
-    confirmedAt: new Date(),
-    payerAddress: recordedPayerAddress,
-    paidAsset: asset,
-  });
-
-  return { completed: true as const, payment };
+  return { recorded: true as const, payment };
 }

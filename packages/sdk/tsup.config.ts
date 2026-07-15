@@ -6,27 +6,41 @@ import { defineConfig } from "tsup";
 const packageDir = dirname(fileURLToPath(import.meta.url));
 const publicSdkDir = join(packageDir, "../../apps/web/public/sdk");
 
-export default defineConfig({
-  entry: {
-    index: "src/index.ts",
-    checkout: "src/script.ts",
+export default defineConfig([
+  {
+    entry: {
+      index: "src/index.ts",
+    },
+    format: ["esm"],
+    dts: true,
+    minify: true,
+    clean: true,
+    splitting: false,
+    outExtension() {
+      return {
+        js: ".mjs",
+      };
+    },
   },
-  format: ["esm", "iife"],
-  dts: true,
-  minify: true,
-  clean: true,
-  splitting: false,
-  globalName: "Payoes",
-  outExtension({ format }) {
-    return {
-      js: format === "iife" ? ".js" : ".mjs",
-    };
+  {
+    entry: {
+      checkout: "src/script.ts",
+    },
+    format: ["iife"],
+    platform: "browser",
+    minify: true,
+    splitting: false,
+    outExtension() {
+      return {
+        js: ".js",
+      };
+    },
+    onSuccess: async () => {
+      mkdirSync(publicSdkDir, { recursive: true });
+      copyFileSync(
+        join(packageDir, "dist/checkout.js"),
+        join(publicSdkDir, "checkout.js"),
+      );
+    },
   },
-  onSuccess: async () => {
-    mkdirSync(publicSdkDir, { recursive: true });
-    copyFileSync(
-      join(packageDir, "dist/checkout.js"),
-      join(publicSdkDir, "checkout.js"),
-    );
-  },
-});
+]);

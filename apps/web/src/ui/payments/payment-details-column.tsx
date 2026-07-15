@@ -12,8 +12,8 @@ import { cn } from "@dub/utils";
 import type { HTMLProps } from "react";
 import { SmoothSkeleton } from "@/ui/shared/smooth-skeleton";
 import {
+  formatMerchantSettlementAmount,
   formatPaidAmount,
-  formatSettlementTarget,
   getPaymentStatusVariant,
 } from "./payment-formatters";
 
@@ -156,7 +156,7 @@ export function PaymentDetailsColumn({
                   {formatPaidAmount(payment)}
                 </span>
                 <span className="text-xs text-neutral-500">
-                  Settlement target: {formatSettlementTarget(payment)}
+                  Merchant receives: {formatMerchantSettlementAmount(payment)}
                 </span>
                 <CopyText
                   value={payment.id}

@@ -5,6 +5,7 @@ export { SDK_VERSION } from "./constants";
 export { closeCheckout, openCheckout } from "./checkout";
 export type {
   CheckoutCompleteResult,
+  CheckoutDisplayMode,
   OpenCheckoutOptions,
   PayoesCheckoutGlobal,
 } from "./types";

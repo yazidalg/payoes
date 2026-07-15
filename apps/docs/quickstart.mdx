@@ -28,8 +28,8 @@ curl -X POST https://payoes.com/api/v1/payments \
   -H "Authorization: Bearer pk_test_YOUR_KEY" \
   -H "Content-Type: application/json" \
   -d '{
-    "amount": "2",
-    "asset": "XLM",
+    "pricing_currency": "USD",
+    "pricing_amount": "2.00",
     "description": "Quickstart payment"
   }'
 ```
@@ -39,8 +39,9 @@ Example response:
 ```json
 {
   "id": "pay_nLU2gUDk-v3tdyd6",
-  "amount": "2.0000000",
-  "asset": "XLM",
+  "amount": "0.0000001",
+  "pricing_currency": "USD",
+  "pricing_amount": "2.00",
   "status": "pending",
   "description": "Quickstart payment",
   "metadata": null,
