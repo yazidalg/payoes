@@ -10,7 +10,10 @@ import { getOfficialAsset } from "@/lib/payment-methods/official-assets";
 import { ConnectedWallet } from "@/ui/wallet/connected-wallet";
 import { CheckoutSandboxBanner } from "@/components/checkout/checkout-sandbox-banner";
 import { CheckoutAlertBanner } from "@/components/checkout/checkout-error-banner";
-import { getCheckoutPaymentSubtitle } from "@/lib/checkout/payment-state";
+import {
+  getCheckoutPaymentSubtitle,
+  getCheckoutSessionExpiredMessage,
+} from "@/lib/checkout/payment-state";
 import { BusinessMark } from "@/components/business/business-mark";
 import { formatInvoiceAmount } from "@/lib/invoices/amount";
 import { formatAmountWithUnit, formatTokenWithAsset } from "@/lib/format/amount";
@@ -189,9 +192,19 @@ export type CheckoutViewProps = {
   onCustomerInputChange?: (value: PaymentLinkCustomerInput) => void;
 };
 
-function getCheckoutErrorMessage(input: { isSessionExpired: boolean; sessionError?: string | null; error: string | null; quoteError: string | null; depositTrustlineError?: string | null; networkError: string | null; connectError: string | null; isRefreshingRate: boolean }) {
+function getCheckoutErrorMessage(input: {
+  isSessionExpired: boolean;
+  sessionError?: string | null;
+  invoice?: { due_at?: string | null } | null;
+  error: string | null;
+  quoteError: string | null;
+  depositTrustlineError?: string | null;
+  networkError: string | null;
+  connectError: string | null;
+  isRefreshingRate: boolean;
+}) {
   if (input.isSessionExpired) {
-    return input.sessionError ?? "This payment has expired. Ask the merchant to send a new payment link.";
+    return input.sessionError ?? getCheckoutSessionExpiredMessage({ invoice: input.invoice });
   }
 
   return input.error ?? input.depositTrustlineError ?? (!input.isRefreshingRate ? input.quoteError : null) ?? input.networkError ?? input.connectError ?? null;
@@ -203,7 +216,7 @@ type CheckoutAlert = {
   key: string;
 };
 
-function getCheckoutAlert(input: { disabled?: boolean; isCompleted?: boolean; isDetailsPanel: boolean; isPaymentPanel: boolean; detailsError: string | null; isSessionExpired: boolean; sessionError?: string | null; error: string | null; quoteError: string | null; depositTrustlineError?: string | null; networkError: string | null; connectError: string | null; isRefreshingRate: boolean; lastAttemptError: string | null | undefined; depositCheckInfo?: string | null }): CheckoutAlert | null {
+function getCheckoutAlert(input: { disabled?: boolean; isCompleted?: boolean; isDetailsPanel: boolean; isPaymentPanel: boolean; detailsError: string | null; isSessionExpired: boolean; sessionError?: string | null; invoice?: { due_at?: string | null } | null; error: string | null; quoteError: string | null; depositTrustlineError?: string | null; networkError: string | null; connectError: string | null; isRefreshingRate: boolean; lastAttemptError: string | null | undefined; depositCheckInfo?: string | null }): CheckoutAlert | null {
   if (input.disabled || input.isCompleted) {
     return null;
   }
@@ -219,6 +232,7 @@ function getCheckoutAlert(input: { disabled?: boolean; isCompleted?: boolean; is
   const checkoutErrorMessage = getCheckoutErrorMessage({
     isSessionExpired: input.isSessionExpired,
     sessionError: input.sessionError,
+    invoice: input.invoice,
     error: input.error,
     quoteError: input.quoteError,
     depositTrustlineError: input.depositTrustlineError,
@@ -305,6 +319,7 @@ export function CheckoutView({ data, isCompleted, isProcessing = false, isSessio
     detailsError,
     isSessionExpired,
     sessionError: data.payment.session_error,
+    invoice: data.invoice,
     error,
     quoteError,
     depositTrustlineError,
@@ -335,6 +350,7 @@ export function CheckoutView({ data, isCompleted, isProcessing = false, isSessio
     isProcessing,
     isSessionExpired,
     hasLastAttemptError: Boolean(lastAttemptError),
+    invoice: data.invoice,
     paymentWaitingVariant,
   });
 
@@ -562,7 +578,9 @@ export function CheckoutView({ data, isCompleted, isProcessing = false, isSessio
                   ) : paymentWaitingVariant ? (
                     <CheckoutPaymentWaitingBanner variant={paymentWaitingVariant} />
                   ) : isSessionExpired ? (
-                    <p className="text-sm text-neutral-500">This payment can no longer be completed.</p>
+                    <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-4 py-4 text-sm text-neutral-600">
+                      <p className="font-medium text-neutral-900">Payment unavailable</p>
+                    </div>
                   ) : (
                     <div className={cn(disabled ? "space-y-4" : "space-y-5")}>
                       {allowedAssets.length > 1 ? (

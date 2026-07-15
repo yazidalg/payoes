@@ -3,7 +3,9 @@ title: Webhook retry worker
 description: Schedule webhook retries when you self-host Payoes.
 ---
 
-This guide is for teams that deploy the `apps/web` stack themselves. Integrating merchants never touch `CRON_SECRET` — they only receive signed webhooks ([Webhooks](/guides/webhooks)).
+import { GithubRepoLink } from "/snippets/github-link";
+
+This guide is for teams that deploy the `apps/web` stack themselves. Integrating merchants never touch `CRON_SECRET`: they only receive signed webhooks ([Webhooks](/guides/webhooks)).
 
 ## How retries work
 
@@ -96,7 +98,7 @@ Put `CRON_SECRET` in repository secrets and `PAYOES_URL` in repository variables
 
 cron-job.org, Railway cron, Render cron, or a plain `crontab` on a VPS all work — any service that can `POST` with the bearer token.
 
-For VPS setup, use the scripts in [`scripts/cron`](https://github.com/payoes/payoes/tree/main/scripts/cron) at the repository root (`run-settlement.sh`, `run-webhook-retries.sh`, and `README.md`).
+For VPS setup, use the scripts in <GithubRepoLink path="tree/main/scripts/cron">`scripts/cron`</GithubRepoLink> at the repository root (`run-settlement.sh`, `run-webhook-retries.sh`, and `README.md`).
 
 ## Troubleshooting
 

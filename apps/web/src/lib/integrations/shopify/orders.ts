@@ -48,15 +48,25 @@ export async function registerShopifyOrderWebhook(
 
   const payload = (await response.json()) as {
     webhook?: { id?: number };
-    errors?: string;
+    errors?: string | Record<string, string[]>;
   };
 
   if (!response.ok || !payload.webhook?.id) {
-    throw new Error(
-      typeof payload.errors === "string"
-        ? payload.errors
-        : "Unable to register Shopify webhook",
-    );
+    const errors = payload.errors;
+    let message = "Unable to register Shopify webhook";
+
+    if (typeof errors === "string") {
+      message = errors;
+    } else if (errors && typeof errors === "object") {
+      const parts = Object.entries(errors).flatMap(([field, messages]) =>
+        messages.map((entry) => `${field}: ${entry}`),
+      );
+      if (parts.length > 0) {
+        message = parts.join("; ");
+      }
+    }
+
+    throw new Error(message);
   }
 
   return String(payload.webhook.id);

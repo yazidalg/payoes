@@ -13,8 +13,13 @@ export function PaidAmountCell({ payment }: { payment: PaymentRow }) {
     return "-";
   }
 
-  const asset = getPaidAsset(payment);
   const amount = getPaidAmountValue(payment);
+
+  if (!amount) {
+    return "-";
+  }
+
+  const asset = getPaidAsset(payment);
 
   return (
     <span className="flex items-center gap-2">

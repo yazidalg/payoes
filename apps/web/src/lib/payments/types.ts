@@ -120,6 +120,7 @@ export type InvoiceRow = {
   object: string;
   invoice_number: string;
   status: string;
+  display_status?: string;
   amount: string;
   currency_code: string;
   settlement_asset: AllowedAssetRef | null;

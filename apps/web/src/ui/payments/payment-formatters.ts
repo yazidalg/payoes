@@ -7,7 +7,7 @@ import {
   type PaymentLinkRow,
   type PaymentRow,
 } from "@/lib/payments/types";
-import { getInvoiceDisplayStatus } from "@/lib/invoices/status";
+import { formatInvoiceStatusLabel, getInvoiceDisplayStatus } from "@/lib/invoices/status";
 
 export function getPaymentStatusVariant(status: string) {
   switch (status) {
@@ -51,12 +51,16 @@ export function paymentHasReceivedFunds(payment: PaymentRow) {
   return PAYMENT_RECEIVED_STATUSES.has(payment.status);
 }
 
-export function getPaidAmountValue(payment: PaymentRow) {
-  return (
-    payment.received_amount ??
-    payment.quoted_paid_amount ??
-    payment.amount
-  );
+export function getPaidAmountValue(payment: PaymentRow): string | null {
+  if (payment.received_amount) {
+    return payment.received_amount;
+  }
+
+  if (!paymentHasReceivedFunds(payment)) {
+    return null;
+  }
+
+  return payment.quoted_paid_amount ?? payment.amount;
 }
 
 export function getPaidAsset(payment: PaymentRow) {
@@ -64,7 +68,13 @@ export function getPaidAsset(payment: PaymentRow) {
 }
 
 export function formatPaidAmount(payment: PaymentRow) {
-  return formatAssetAmount(getPaidAmountValue(payment), getPaidAsset(payment));
+  const amount = getPaidAmountValue(payment);
+
+  if (!amount) {
+    return "-";
+  }
+
+  return formatAssetAmount(amount, getPaidAsset(payment));
 }
 
 export function getMerchantSettlementAmount(payment: PaymentRow) {
@@ -174,7 +184,7 @@ export function getInvoiceRowStatusVariant(invoice: InvoiceRow) {
 }
 
 export function getInvoiceRowStatusLabel(invoice: InvoiceRow) {
-  return getInvoiceDisplayStatus(invoice);
+  return formatInvoiceStatusLabel(getInvoiceDisplayStatus(invoice));
 }
 
 export function getPaymentLinkStatusVariant(active: boolean) {

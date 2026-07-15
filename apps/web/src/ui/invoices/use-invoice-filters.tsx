@@ -21,6 +21,7 @@ export function useInvoiceFilters() {
         options: [
           { value: "draft", label: "Draft" },
           { value: "open", label: "Open" },
+          { value: "overdue", label: "Overdue" },
           { value: "paid", label: "Paid" },
           { value: "void", label: "Void" },
         ],

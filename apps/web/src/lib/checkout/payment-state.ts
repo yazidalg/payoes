@@ -1,3 +1,28 @@
+import {
+  getInvoiceCheckoutSessionExpiredMessage,
+  getInvoiceCheckoutSessionExpiredSubtitle,
+} from "@/lib/invoices/status";
+
+export function getCheckoutSessionExpiredSubtitle(input: {
+  invoice?: { due_at?: string | null } | null;
+}) {
+  if (input.invoice) {
+    return getInvoiceCheckoutSessionExpiredSubtitle(input.invoice);
+  }
+
+  return "This checkout session has expired.";
+}
+
+export function getCheckoutSessionExpiredMessage(input: {
+  invoice?: { due_at?: string | null } | null;
+}) {
+  if (input.invoice) {
+    return getInvoiceCheckoutSessionExpiredMessage(input.invoice);
+  }
+
+  return "This checkout session has expired. Ask the merchant to send a new payment link.";
+}
+
 export const PAYMENT_IN_PROGRESS_STATUSES = [
   "deposit_received",
   "refunding",
@@ -47,6 +72,7 @@ export function getCheckoutPaymentSubtitle(input: {
   isProcessing: boolean;
   isSessionExpired: boolean;
   hasLastAttemptError: boolean;
+  invoice?: { due_at?: string | null } | null;
   paymentWaitingVariant?:
     | "paying"
     | "confirming"
@@ -76,7 +102,7 @@ export function getCheckoutPaymentSubtitle(input: {
   }
 
   if (input.isSessionExpired) {
-    return "This payment can no longer be completed.";
+    return getCheckoutSessionExpiredSubtitle({ invoice: input.invoice });
   }
 
   if (input.hasLastAttemptError) {

@@ -138,6 +138,7 @@ export function InvoicePreviewPanel({
       },
       invoice: {
         invoice_number: presentation.invoiceNumber,
+        status: "open",
         due_at: presentation.dueAt?.toISOString() ?? null,
         memo: presentation.description,
         customer: {

@@ -1,8 +1,10 @@
 import { getDocsUrl } from "@/lib/docs/url";
+import { getGithubUrl } from "@/lib/github/url";
 
 export const SITE_HOST = "payoes.com";
 
 const docsUrl = getDocsUrl();
+const githubUrl = getGithubUrl();
 
 export const HOMEPAGE_UTM_PARAMS = {
   utm_source: "Marketing",
@@ -20,7 +22,7 @@ export const HERO_CONTENT = {
   primaryCta: { label: "Start for free", href: "/register" },
   githubCta: {
     label: "Star on GitHub",
-    href: "https://github.com/payoesteam/payoes",
+    href: githubUrl,
   },
   learnMoreHref: docsUrl,
 };

@@ -20,7 +20,7 @@ const listInvoicesQuerySchema = z.object({
   pageSize: z.coerce.number().int().min(1).max(100).optional(),
   sortOrder: z.enum(["asc", "desc"]).optional(),
   search: z.string().optional(),
-  status: z.enum(["draft", "open", "paid", "void"]).optional(),
+  status: z.enum(["draft", "open", "overdue", "paid", "void"]).optional(),
 });
 
 const createInvoiceSchema = z

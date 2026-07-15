@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import { and, asc, count, desc, eq, ilike, inArray, or, type SQL } from "drizzle-orm";
+import { and, asc, count, desc, eq, ilike, inArray, lt, or, type SQL } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
   customers,
@@ -42,6 +42,7 @@ import {
   getCheckoutSessionUrl,
 } from "@/lib/checkout-sessions/service";
 import { normalizeStellarAmount } from "@/lib/stellar/amount";
+import { getInvoiceDisplayStatus } from "@/lib/invoices/status";
 
 function createInvoicePublicId() {
   return `inv_${randomBytes(12).toString("base64url")}`;
@@ -132,7 +133,7 @@ export type ListInvoicesQuery = {
   page?: number;
   pageSize?: number;
   search?: string;
-  status?: "draft" | "open" | "paid" | "void";
+  status?: "draft" | "open" | "paid" | "void" | "overdue";
   sortOrder?: InvoiceSortOrder;
 };
 
@@ -171,7 +172,13 @@ export async function listInvoicesPaginated(
     );
   }
 
-  if (query.status) {
+  if (query.status === "overdue") {
+    whereClause = and(
+      whereClause,
+      eq(invoices.status, "open"),
+      lt(invoices.dueAt, new Date()),
+    );
+  } else if (query.status) {
     whereClause = and(whereClause, eq(invoices.status, query.status));
   }
 
@@ -907,6 +914,10 @@ export function serializeInvoice(
     object: "invoice",
     invoice_number: invoice.invoiceNumber ?? invoice.publicId,
     status: invoice.status,
+    display_status: getInvoiceDisplayStatus({
+      status: invoice.status,
+      due_at: invoice.dueAt,
+    }),
     amount: invoice.amount,
     currency_code: invoice.currencyCode ?? "USD",
     settlement_asset: options?.settlementAsset

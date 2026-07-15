@@ -61,7 +61,7 @@ Accept stablecoin payments, manage invoices and checkout flows, and integrate wi
 
 **Payoes** is a Stellar payments platform for organizations. Configure a settlement wallet, accept USDC and other Stellar assets, and operate payment links, checkout sessions, and invoices from a unified dashboard or REST API.
 
-> **Repository:** [`payoes/payoes`](https://github.com/payoes/payoes)
+> **Repository:** [`payoesteam/payoes`](https://github.com/payoesteam/payoes) (override with `NEXT_PUBLIC_GITHUB_URL` in `apps/web/.env.local`)
 
 ---
 
@@ -110,7 +110,7 @@ Accept stablecoin payments, manage invoices and checkout flows, and integrate wi
 ## Quick Start
 
 ```bash
-git clone git@github.com:payoes/payoes.git
+git clone git@github.com:payoesteam/payoes.git
 cd payoes
 npm install
 npm run docker:up
@@ -213,5 +213,5 @@ Built for organizations that want modern payment infrastructure on Stellar, stan
 - [Mintlify](https://mintlify.com/): developer documentation
 
 <div align="center">
-<sub>Stellar payment infrastructure for modern businesses · <a href="https://github.com/payoes/payoes">payoes/payoes</a></sub>
+<sub>Stellar payment infrastructure for modern businesses · <a href="https://github.com/payoesteam/payoes">payoesteam/payoes</a></sub>
 </div>

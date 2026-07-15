@@ -7,6 +7,7 @@ import { formatAmountWithUnit } from "@/lib/format/amount";
 import type { Organization } from "@/lib/db/schema";
 import type { PaymentRow } from "@/lib/payments/types";
 import { AssetAmountCell } from "@/ui/assets/asset-amount-cell";
+import { PaidAmountCell } from "@/ui/payments/paid-amount-cell";
 import { getStellarExpertTxUrlIfValid } from "@/lib/stellar/explorer";
 import { TransactionsFilters } from "@/ui/transactions/use-transaction-filters";
 import { TransactionsTableSkeleton } from "@/ui/transactions/transactions-table-skeleton";
@@ -146,10 +147,7 @@ export function TransactionsTable({
         header: "Paid",
         minSize: 120,
         cell: ({ row }: { row: Row<PaymentRow> }) => (
-          <AssetAmountCell
-            amount={row.original.quoted_paid_amount ?? row.original.amount}
-            asset={row.original.paid_asset ?? row.original.settlement_asset}
-          />
+          <PaidAmountCell payment={row.original} />
         ),
       },
       {

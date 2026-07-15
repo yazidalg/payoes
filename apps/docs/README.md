@@ -51,6 +51,7 @@ mintlify dev
 3. Enable **monorepo** mode with path `/apps/docs`
 4. Add custom domain (e.g. `docs.payoes.com`) in Mintlify dashboard
 5. Set `NEXT_PUBLIC_DOCS_URL` in the web app to the docs URL
+6. Optional: set `NEXT_PUBLIC_GITHUB_URL` in Mintlify deployment env (or `apps/docs/.env` locally) so docs links match your fork
 
 ## Updating the API reference
 

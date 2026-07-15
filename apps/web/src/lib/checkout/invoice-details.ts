@@ -4,6 +4,7 @@ import { customers, invoices, type Payment } from "@/lib/db/schema";
 
 export type CheckoutInvoiceDetails = {
   invoice_number: string;
+  status: string;
   due_at: string | null;
   memo: string | null;
   customer: {
@@ -23,6 +24,7 @@ export async function getCheckoutInvoiceDetails(
     .select({
       invoiceNumber: invoices.invoiceNumber,
       publicId: invoices.publicId,
+      status: invoices.status,
       dueAt: invoices.dueAt,
       description: invoices.description,
       customerName: customers.name,
@@ -39,6 +41,7 @@ export async function getCheckoutInvoiceDetails(
 
   return {
     invoice_number: row.invoiceNumber ?? row.publicId,
+    status: row.status,
     due_at: row.dueAt?.toISOString() ?? null,
     memo: row.description,
     customer: {

@@ -8,6 +8,7 @@ import type { AllowedAsset } from "@/lib/assets/types";
 import { db } from "@/lib/db";
 import { invoices, payments, type Payment } from "@/lib/db/schema";
 import { isInvoiceCurrencyCode } from "@/lib/invoices/currencies";
+import { getInvoiceCheckoutSessionExpiredMessage } from "@/lib/invoices/status";
 import { DEFAULT_PAYMENT_SESSION_HOURS } from "@/constants/payments/defaults";
 import { buildPaymentQuote, isQuoteExpired } from "@/lib/pricing/quotes";
 import { applyPaymentQuote, setPaymentPaidAsset, updatePaymentStatus } from "@/lib/payments/service";
@@ -78,6 +79,22 @@ async function resolveInvoiceSessionExpiry(payment: Payment) {
   );
 }
 
+async function resolveInvoicePaymentSessionExpiredError(payment: Payment) {
+  if (!payment.invoiceId) {
+    return "This checkout session has expired. Ask the merchant to send a new payment link.";
+  }
+
+  const [invoice] = await db
+    .select({ dueAt: invoices.dueAt })
+    .from(invoices)
+    .where(eq(invoices.id, payment.invoiceId))
+    .limit(1);
+
+  return getInvoiceCheckoutSessionExpiredMessage({
+    due_at: invoice?.dueAt ?? null,
+  });
+}
+
 export async function ensurePayablePayment(
   payment: Payment
 ): Promise<{ payment: Payment; error?: string }> {
@@ -108,8 +125,7 @@ export async function ensurePayablePayment(
       await updatePaymentStatus(payment, "expired");
       return {
         payment,
-        error:
-          "This payment session has expired. Ask the merchant to send a new invoice link.",
+        error: await resolveInvoicePaymentSessionExpiredError(payment),
       };
     }
 
@@ -135,6 +151,13 @@ export async function ensurePayablePayment(
   }
 
   if (payment.status !== "pending" && payment.status !== "failed") {
+    if (payment.status === "expired") {
+      return {
+        payment,
+        error: await resolveInvoicePaymentSessionExpiredError(payment),
+      };
+    }
+
     return { payment, error: `Payment is ${payment.status}` };
   }
 
@@ -142,8 +165,7 @@ export async function ensurePayablePayment(
     await updatePaymentStatus(payment, "expired");
     return {
       payment,
-      error:
-        "This payment session has expired. Ask the merchant to send a new invoice link.",
+      error: await resolveInvoicePaymentSessionExpiredError(payment),
     };
   }
 

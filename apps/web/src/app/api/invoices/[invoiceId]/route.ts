@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getPublicInvoiceDetail } from "@/lib/invoices/service";
 import { isInvoiceCurrencyCode } from "@/lib/invoices/currencies";
+import { getInvoiceDisplayStatus } from "@/lib/invoices/status";
 
 export async function GET(
   _request: Request,
@@ -21,6 +22,10 @@ export async function GET(
     invoice: {
       id: detail.invoice.publicId,
       status: detail.invoice.status,
+      display_status: getInvoiceDisplayStatus({
+        status: detail.invoice.status,
+        due_at: detail.invoice.dueAt,
+      }),
       amount: detail.invoice.amount,
       currency_code: currencyCode,
       environment: detail.invoice.environment,
