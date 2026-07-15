@@ -93,6 +93,106 @@ Payoes bridges this gap by providing a developer first payment infrastructure th
 - **Platform Integrations**  
   Connect Payoes with popular commerce platforms, business applications, and developer tools through ready to use integrations, plugins, APIs, and webhooks.
 
+## Stellar Usage
+
+Payoes is built on Stellar as the settlement layer. customers pay through wallets or QR codes; funds move through on-chain payment routing, path payments, and on-chain verification on Testnet or Mainnet.
+
+**Payment flow**
+
+1. Customer pays via wallet or QR deposit
+2. Hosted checkout (Stellar Wallets Kit)
+3. Muxed deposit address (SEP-23), detected by Horizon
+4. Soroban settlement contract: register, deposit, settle or refund
+5. Same asset: settle on contract (merchant + platform fee)
+6. Cross asset: release to operator, Path Payment via DEX, record settlement
+7. Merchant settlement wallet, webhooks, and explorer links
+
+### Soroban Smart Contract
+
+The `Payoes` contract in [`contracts/`](contracts/) is the on-chain payment router for every new payment.
+
+| Capability                            | What it does                                                                        |
+| ------------------------------------- | ----------------------------------------------------------------------------------- |
+| `register_payment`                    | Locks payment terms: merchant, paid token, settlement amount, platform fee, expiry  |
+| `deposit`                             | Holds customer funds on-chain; auto-refunds if the amount is too low                |
+| `settle_same_asset_deposit`           | Atomically pays the merchant and platform fee when paid and settlement assets match |
+| `release_deposit_to_operator`         | Releases held funds for cross-asset conversion by the settlement worker             |
+| `record_settlement` / `record_refund` | Finalizes contract state after Horizon settlement or refund                         |
+| Admin controls                        | Pause switch, fee recipient, authorization signer rotation                          |
+
+Contract events (`payment_registered`, `payment_deposit_received`, `payment_settled`, `payment_refunded`) provide an auditable on-chain trail. Rust unit tests cover legacy pay, same-asset settlement, and underpayment refunds.
+
+See the settlement flow diagram in [`docs/architecture/`](docs/architecture/).
+
+### Path Payments and DEX Liquidity
+
+Customers can pay in one Stellar asset while merchants settle in another (for example, pay in XLM, receive USDC).
+
+1. Payoes quotes the required paid amount using live pricing and slippage buffers.
+2. The settlement worker queries Horizon `strictReceivePaths` to find the best route through the Stellar DEX.
+3. The operator submits a `pathPaymentStrictReceive` transaction to deliver the exact settlement amount to the merchant wallet.
+4. The Soroban contract records the final settlement on-chain.
+
+This uses Stellar's native order books and liquidity paths instead of custom swap logic.
+
+### Trustlines
+
+Issued assets on Stellar (such as USDC) require trustlines before an account can hold them.
+
+Payoes validates trustlines before checkout and settlement:
+
+- **Customers** must trust the asset they pay with (clear error if missing).
+- **Merchants** must trust settlement assets on their receiving wallet.
+- **Operator accounts** auto-sync trustlines for accepted merchant assets during payment creation and quote refresh.
+
+Merchants can add missing trustlines from the dashboard via `changeTrust` transactions signed in their connected wallet.
+
+### Muxed Accounts (SEP-23)
+
+Each payment gets a **unique muxed deposit address** (`M...`) derived from the operator account and the payment ID. This gives Payoes:
+
+- One deposit destination per checkout without creating a new keypair per payment
+- Easier reconciliation when many customers pay in parallel
+- QR-friendly deposit URLs that map to a single payment intent
+
+Horizon deposit detection matches both classic and muxed destination fields when confirming payments.
+
+### Horizon API
+
+[Horizon](https://developers.stellar.org/docs/data/apis/horizon) is Payoes' read and submit layer for classic Stellar operations:
+
+| Use case                 | Horizon capability                                                        |
+| ------------------------ | ------------------------------------------------------------------------- |
+| Build payment XDR        | Load account sequence, network passphrase                                 |
+| Path finding             | `strictReceivePaths` for cross-asset quotes and settlement                |
+| Payment verification     | Fetch transaction + operations; validate destination, asset, amount, memo |
+| QR / background deposits | Poll payments to muxed operator addresses                                 |
+| Explorer links           | Tx hashes surfaced in the dashboard link to Stellar Expert                |
+
+A cron settlement worker scans Horizon for inbound deposits and drives on-chain settlement for both sandbox and production environments.
+
+### Network Duality
+
+Every organization runs in **sandbox** or **production**. Payoes maps environments directly to Stellar networks:
+
+| Payoes environment | Stellar network | Horizon         | Soroban                |
+| ------------------ | --------------- | --------------- | ---------------------- |
+| `sandbox`          | Testnet         | Testnet Horizon | Testnet contract + RPC |
+| `production`       | Mainnet         | Mainnet Horizon | Mainnet contract + RPC |
+
+API keys, payments, webhooks, and settlement wallets are scoped per environment. The dashboard mode switcher lets merchants test on Testnet before going live on Mainnet with the same integration code.
+
+### Wallet Integration
+
+Hosted checkout connects to the Stellar wallet ecosystem through [**Stellar Wallets Kit**](https://github.com/Creit-Tech/Stellar-Wallets-Kit):
+
+- **Freighter**, **Albedo**, and **xBull** supported out of the box
+- Network validation ensures the wallet matches the checkout environment (Testnet vs Mainnet)
+- Customers sign deposit transactions in-wallet; operator secrets never reach the browser
+- **QR mode** generates `web+stellar:pay` URIs for wallet apps that support URI scanning
+
+Merchants connect a **settlement wallet** (for example via Freighter) during onboarding to receive funds.
+
 ---
 
 ## Resources
