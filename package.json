@@ -21,8 +21,6 @@
     "db:generate": "npm run db:generate --workspace=web",
     "db:migrate": "npm run db:migrate --workspace=web",
     "db:setup": "npm run db:setup --workspace=web",
-    "db:seed": "npm run db:seed --workspace=web",
-    "db:seed:force": "npm run db:seed:force --workspace=web",
     "db:studio": "npm run db:studio --workspace=web",
     "soroban:deploy": "bash scripts/soroban-deploy-contract.sh",
     "email:dev": "npm run dev --workspace=@payoes/email",
