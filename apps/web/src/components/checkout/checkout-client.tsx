@@ -8,6 +8,7 @@ import { BusinessMark } from "@/components/business/business-mark";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { useStellarWallet } from "@/hooks/use-stellar-wallet";
 import { usePaymentQuoteCountdown } from "@/hooks/use-payment-quote-countdown";
+import { useCheckoutEmbed } from "@/hooks/use-checkout-embed";
 import { formatInvoiceAmount } from "@/lib/invoices/amount";
 import { formatAmountWithUnit, formatTokenWithAsset } from "@/lib/format/amount";
 import type { CheckoutLineItem } from "@/lib/checkout/line-items";
@@ -114,7 +115,13 @@ function CheckoutLoadingState() {
 }
 
 
-export function CheckoutClient({ paymentId }: { paymentId: string }) {
+export function CheckoutClient({
+  paymentId,
+  embedded = false,
+}: {
+  paymentId: string;
+  embedded?: boolean;
+}) {
   const [data, setData] = useState<CheckoutData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPaying, setIsPaying] = useState(false);
@@ -720,6 +727,14 @@ export function CheckoutClient({ paymentId }: { paymentId: string }) {
     }
   }
 
+  useCheckoutEmbed({
+    embedded,
+    paymentId,
+    status: data?.payment.status,
+    txHash: pendingTxHash,
+    isLoaded: Boolean(data),
+  });
+
   if (isLoading) {
     return <CheckoutLoadingState />;
   }
@@ -812,6 +827,7 @@ export function CheckoutClient({ paymentId }: { paymentId: string }) {
       }}
       customerInput={customerInput}
       onCustomerInputChange={setCustomerInput}
+      embedded={embedded}
     />
   );
 }

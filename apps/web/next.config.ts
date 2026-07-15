@@ -9,6 +9,19 @@ const nextConfig: NextConfig = {
   reactCompiler: true,
   ...(allowedDevOrigins.length > 0 ? { allowedDevOrigins } : {}),
   transpilePackages: ["@dub/ui", "@dub/utils", "@payoes/email"],
+  async headers() {
+    return [
+      {
+        source: "/c/:path*",
+        headers: [
+          {
+            key: "Content-Security-Policy",
+            value: "frame-ancestors *",
+          },
+        ],
+      },
+    ];
+  },
   images: {
     remotePatterns: [
       {

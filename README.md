@@ -75,7 +75,7 @@ Accept stablecoin payments, manage invoices and checkout flows, and integrate wi
 - **Sandbox & production**: separate environments for testing and live operations.
 - **REST API (v1)**: programmatic access to customers, payments, invoices, and checkout sessions.
 - **Developer tools**: API keys, webhooks with delivery retries, and request logs.
-- **Payoes SDK**: TypeScript client for wallet and payment flows on Stellar (in progress).
+- **Payoes SDK**: JavaScript embed for hosted checkout (`@payoes/sdk`) plus npm and script tag distribution.
 - **Mintlify docs**: OpenAPI-backed developer documentation with local setup guides.
 - **Team & onboarding**: organization setup, member invites, and wallet onboarding flows.
 - **Responsive UI**: shadcn/ui dashboard with collapsible sidebar and mobile-friendly layouts.
@@ -157,7 +157,7 @@ payoes/
 │   │       └── lib/                 # DB schema, auth, Stellar helpers
 │   └── docs/                   # Mintlify developer documentation
 ├── packages/
-│   ├── sdk/                    # @payoes/sdk (TypeScript client)
+│   ├── sdk/                    # @payoes/sdk checkout embed
 │   ├── ui/                     # Shared UI primitives
 │   └── utils/                  # Shared utilities
 ├── docker-compose.yml          # PostgreSQL + MinIO for local dev
@@ -181,7 +181,7 @@ payoes/
 | -------------- | ------------------------------------------------ |
 | `apps/web`     | Main Next.js application and API                 |
 | `apps/docs`    | Mintlify developer documentation                 |
-| `@payoes/sdk`  | Core TypeScript SDK (placeholder, in progress)   |
+| `@payoes/sdk`  | Checkout embed SDK (npm + script tag)            |
 | `@payoes/ui`   | Shared UI components                             |
 | `@payoes/utils`| Shared utility functions                         |
 

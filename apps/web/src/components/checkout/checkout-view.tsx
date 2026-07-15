@@ -196,6 +196,7 @@ export type CheckoutViewProps = {
   onPay?: () => void;
   onRetryConfirm?: () => void;
   disabled?: boolean;
+  embedded?: boolean;
   countdown?: string;
   customerInput?: PaymentLinkCustomerInput;
   onCustomerInputChange?: (value: PaymentLinkCustomerInput) => void;
@@ -250,6 +251,7 @@ export function CheckoutView({
   onPay,
   onRetryConfirm,
   disabled = false,
+  embedded = false,
   countdown = "",
   customerInput,
   onCustomerInputChange,
@@ -309,8 +311,8 @@ export function CheckoutView({
   }
 
   return (
-    <div className={cn("relative bg-white text-left flex flex-col flex-1 @container", disabled ? "min-h-full h-full" : "min-h-svh")}>
-      <div className={cn("relative z-10 flex flex-col flex-1", disabled ? "h-full" : "min-h-svh")}>
+    <div className={cn("relative bg-white text-left flex flex-col flex-1 @container", disabled || embedded ? "min-h-full h-full" : "min-h-svh")}>
+      <div className={cn("relative z-10 flex flex-col flex-1", disabled || embedded ? "h-full" : "min-h-svh")}>
         {/* Hide sandbox banner when in preview (disabled) */}
         {isSandbox && !disabled ? (
           <CheckoutSandboxBanner
@@ -1056,6 +1058,7 @@ export function CheckoutView({
                 ) : null}
               </div>
 
+              {!embedded ? (
               <div className={cn("mt-auto shrink-0 text-center", disabled ? "pt-3" : "pt-6")}>
                 {disabled ? (
                   <span className="inline-flex items-center gap-1.5 text-xs text-neutral-400">
@@ -1074,6 +1077,7 @@ export function CheckoutView({
                   </a>
                 )}
               </div>
+              ) : null}
             </div>
           </div>
         </div>

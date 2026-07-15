@@ -1,0 +1,151 @@
+---
+title: Embedded checkout
+description: Open the hosted Payoes checkout in a modal on your site with the JavaScript SDK.
+---
+
+Use the Payoes checkout embed SDK when you want customers to pay without leaving your site. The SDK opens the same hosted checkout page in an iframe modal, so wallet flows and UI updates stay in sync with Payoes automatically.
+
+## Embed vs redirect
+
+| Approach | Best for |
+|----------|----------|
+| **Redirect** to `checkout_url` | Simplest integration, email links, mobile apps |
+| **Embed** with `@payoes/sdk` | On-site checkout, SaaS billing pages, marketplaces |
+
+Always verify payment status on your server with webhooks or `GET /api/v1/payments/{id}`. Client-side callbacks are for UX only.
+
+## Installation
+
+### npm
+
+```bash
+npm install @payoes/sdk
+```
+
+```typescript
+import { Payoes } from "@payoes/sdk";
+
+Payoes.openCheckout({
+  paymentId: "pay_...",
+  onComplete: (result) => {
+    console.log(result.status, result.txHash);
+  },
+  onClose: () => {
+    console.log("Checkout closed");
+  },
+});
+```
+
+### Script tag
+
+After `npm run build`, the IIFE bundle is served from your Payoes host:
+
+```html
+<script src="https://payoes.com/sdk/checkout.js"></script>
+<script>
+  Payoes.openCheckout({
+    paymentId: "pay_...",
+    onComplete: (result) => console.log(result),
+  });
+</script>
+```
+
+For local development, use `baseUrl: "http://localhost:3000"`.
+
+## End-to-end flow
+
+<Steps>
+  <Step title="Create a payment on your server">
+    Use your secret API key to create a payment and read `id` or `checkout_url`.
+  </Step>
+  <Step title="Open checkout in the browser">
+    Call `Payoes.openCheckout({ paymentId })` after the customer clicks Pay.
+  </Step>
+  <Step title="Handle completion">
+    Use `onComplete` to update UI. Confirm the payment with webhooks before fulfilling orders.
+  </Step>
+</Steps>
+
+```typescript
+// Server
+const payment = await fetch("https://payoes.com/api/v1/payments", {
+  method: "POST",
+  headers: {
+    Authorization: `Bearer ${process.env.PAYOES_API_KEY}`,
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    amount: "25",
+    description: "Pro plan",
+  }),
+}).then((response) => response.json());
+
+// Browser
+Payoes.openCheckout({
+  paymentId: payment.id,
+  onComplete: ({ status }) => {
+    if (status === "completed") {
+      window.location.href = "/success";
+    }
+  },
+});
+```
+
+## API
+
+### `Payoes.openCheckout(options)`
+
+| Option | Type | Description |
+|--------|------|-------------|
+| `paymentId` | `string` | Payment ID (`pay_...`). Required unless `checkoutUrl` is set. |
+| `checkoutUrl` | `string` | Full hosted checkout URL. Alternative to `paymentId`. |
+| `baseUrl` | `string` | Payoes host. Defaults to `https://payoes.com`. |
+| `onComplete` | `function` | Called when checkout reports `completed` or `refunded`. |
+| `onClose` | `function` | Called when the modal closes (user dismiss or completion). |
+| `onError` | `function` | Called when options are invalid or message handling fails. |
+
+### `Payoes.closeCheckout()`
+
+Programmatically closes the modal and notifies the iframe.
+
+## Modal behavior
+
+| Viewport | Behavior |
+|----------|----------|
+| **Mobile** (`< 768px`) | Fullscreen modal (`100dvh`) |
+| **Desktop** | Centered modal, max width `1024px`, max height `90dvh` |
+
+Customers can close with the X button, backdrop click, or Escape.
+
+## postMessage protocol
+
+The iframe loads `/c/{payment_id}?embed=1` and communicates with the parent page:
+
+| Event | Direction | Payload |
+|-------|-----------|---------|
+| `payoes:checkout:ready` | iframe → parent | `{ paymentId }` |
+| `payoes:checkout:completed` | iframe → parent | `{ paymentId, status, txHash? }` |
+| `payoes:checkout:closed` | iframe → parent | `{ paymentId }` |
+| `payoes:checkout:close` | parent → iframe | `{}` |
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Iframe blocked or blank">
+    Ensure your Payoes host allows embedding. Checkout routes send `Content-Security-Policy: frame-ancestors *` in v1.
+  </Accordion>
+  <Accordion title="Wallet popup does not open on mobile">
+  Some mobile wallets open in a separate app. After paying, return to the browser tab that opened the embed.
+  </Accordion>
+  <Accordion title="onComplete never fires">
+    Confirm the payment reached `completed` or `refunded` status. Use webhooks as the source of truth.
+  </Accordion>
+  <Accordion title="Local development">
+    Pass `baseUrl: "http://localhost:3000"` and create sandbox payments with a sandbox API key.
+  </Accordion>
+</AccordionGroup>
+
+## Related
+
+- [Hosted checkout](/guides/checkout): redirect flow and customer experience
+- [Webhooks](/guides/webhooks): reliable payment confirmation

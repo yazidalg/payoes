@@ -12,10 +12,14 @@ function checkoutPathFromUrl(url: string) {
 
 export default async function CheckoutPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ paymentId: string }>;
+  searchParams: Promise<{ embed?: string }>;
 }) {
   const { paymentId } = await params;
+  const { embed } = await searchParams;
+  const embedded = embed === "1";
 
   if (paymentId.startsWith("plink_")) {
     let result;
@@ -58,5 +62,5 @@ export default async function CheckoutPage({
     redirect(checkoutPathFromUrl(result.checkoutUrl));
   }
 
-  return <CheckoutClient paymentId={paymentId} />;
+  return <CheckoutClient paymentId={paymentId} embedded={embedded} />;
 }

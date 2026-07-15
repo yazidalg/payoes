@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Payoes checkout embed demo</title>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        margin: 2rem;
+      }
+
+      button {
+        padding: 0.75rem 1rem;
+        border: 0;
+        border-radius: 0.5rem;
+        background: #0f172a;
+        color: #fff;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Payoes checkout embed</h1>
+    <p>Replace the payment ID below with a sandbox payment from your dashboard.</p>
+    <button id="open-checkout" type="button">Open checkout</button>
+    <pre id="log"></pre>
+
+    <script src="../../apps/web/public/sdk/checkout.js"></script>
+    <script>
+      const log = document.getElementById("log");
+
+      function write(message) {
+        log.textContent += message + "\n";
+      }
+
+      document.getElementById("open-checkout").addEventListener("click", () => {
+        Payoes.openCheckout({
+          paymentId: "pay_REPLACE_ME",
+          baseUrl: "http://localhost:3000",
+          onComplete: (result) => write("completed: " + JSON.stringify(result)),
+          onClose: () => write("closed"),
+        });
+      });
+    </script>
+  </body>
+</html>

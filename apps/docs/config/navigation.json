@@ -20,6 +20,7 @@
           "group": "Payments",
           "pages": [
             "guides/checkout",
+            "guides/checkout-embed",
             "guides/settlement-wallet",
             "guides/webhooks",
             "guides/analytics",

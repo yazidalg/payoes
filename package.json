@@ -11,8 +11,9 @@
   },
   "scripts": {
     "build:packages": "npm run build --workspace=@dub/utils && npm run build --workspace=@dub/ui",
+    "build:sdk": "npm run build --workspace=@payoes/sdk",
     "dev": "npm run dev --workspace=web",
-    "build": "npm run build:packages && npm run build --workspace=web",
+    "build": "npm run build:packages && npm run build:sdk && npm run build --workspace=web",
     "start": "npm run start --workspace=web",
     "lint": "npm run lint --workspace=web",
     "docker:up": "docker compose up -d",
