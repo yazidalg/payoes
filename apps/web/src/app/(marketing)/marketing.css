@@ -33,37 +33,3 @@
     filter: blur(2px);
   }
 }
-
-@keyframes hero-scribble-draw {
-  from {
-    stroke-dashoffset: 1;
-  }
-
-  to {
-    stroke-dashoffset: 0;
-  }
-}
-
-.marketing-theme .hero-scribble-underline {
-  transform: translateY(35%) rotate(1.4deg);
-  transform-origin: 8% bottom;
-}
-
-.marketing-theme .hero-scribble-path {
-  stroke-dasharray: 1;
-  stroke-dashoffset: 1;
-}
-
-.marketing-theme .hero-scribble-underline .hero-scribble-path {
-  animation: hero-scribble-draw 1.2s cubic-bezier(0.16, 1, 0.3, 1) 0.4s forwards;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .marketing-theme .hero-scribble-underline .hero-scribble-path {
-    animation: none;
-  }
-
-  .marketing-theme .hero-scribble-path {
-    stroke-dashoffset: 0;
-  }
-}

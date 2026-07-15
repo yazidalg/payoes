@@ -9,30 +9,11 @@ export function Hero() {
     <section className="relative overflow-hidden bg-white">
       <div className="mx-auto max-w-grid-width px-4 sm:px-12">
         <div className="flex flex-col items-center pt-16 text-center sm:pt-20 lg:pt-24">
-          <div className="relative inline-block max-w-full overflow-visible pb-2 animate-slide-up-fade [--offset:20px] [animation-delay:100ms] [animation-duration:1s] [animation-fill-mode:both] motion-reduce:animate-fade-in">
-            <h1 className="font-display text-4xl font-medium text-neutral-900 sm:text-5xl sm:leading-[1.15] text-pretty">
-              {HERO_CONTENT.titlePrefix}
-              <HeroRotatingWord words={HERO_CONTENT.rotatingWords} />
-              {HERO_CONTENT.titleSuffix}
-            </h1>
-            <svg
-              className="hero-scribble-underline pointer-events-none absolute -bottom-1 left-[6%] z-10 h-5 w-[88%] overflow-visible text-primary/40 sm:-bottom-1.5 sm:left-[4%] sm:h-6 sm:w-[94%]"
-              viewBox="0 0 120 28"
-              preserveAspectRatio="none"
-              fill="none"
-              aria-hidden="true"
-            >
-              <path
-                d="M 11 24.2 C 14.5 18.5 16.8 27.5 21.2 19.8 C 25.8 11.2 28.4 26.2 33.6 17.4 C 38.8 8.2 41.2 25.8 46.8 14.6 C 52.4 4.8 55.6 24.2 61.2 13.4 C 66.8 3.6 70.4 22.8 76.4 12.2 C 82.4 2.8 86.2 21.4 91.8 11.6 C 97.4 2.2 101.6 19.8 106.4 9.4 C 110.2 2.6 112.8 6.8 114.6 4.2"
-                stroke="currentColor"
-                strokeWidth="2.25"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                pathLength="1"
-                className="hero-scribble-path"
-              />
-            </svg>
-          </div>
+          <h1 className="font-display text-4xl font-medium text-neutral-900 sm:text-5xl sm:leading-[1.15] text-pretty animate-slide-up-fade [--offset:20px] [animation-delay:100ms] [animation-duration:1s] [animation-fill-mode:both] motion-reduce:animate-fade-in">
+            {HERO_CONTENT.titlePrefix}
+            <HeroRotatingWord words={HERO_CONTENT.rotatingWords} />
+            {HERO_CONTENT.titleSuffix}
+          </h1>
           <p className="mt-5 max-w-2xl text-pretty text-base text-neutral-600 sm:text-xl animate-slide-up-fade [--offset:10px] [animation-delay:200ms] [animation-duration:1s] [animation-fill-mode:both] motion-reduce:animate-fade-in">
             {HERO_CONTENT.description}
           </p>
