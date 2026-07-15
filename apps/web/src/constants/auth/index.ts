@@ -42,7 +42,9 @@ export const AUTH_JS_ERROR_MESSAGES: Record<string, string> = {
   OAuthSignin:
     "There was an issue signing you in. Please ensure your provider settings are correct.",
   OAuthCallback:
-    "We faced a problem while processing the response from the OAuth provider. Please try again.",
+    "Sign-in was cancelled. You can try again.",
+  OAuthCallbackError:
+    "Sign-in was cancelled. You can try again.",
   OAuthAccountNotLinked:
     "It looks like you already have an account with this email. Please sign in with your account email instead.",
   CredentialsSignin: "Invalid email or password.",

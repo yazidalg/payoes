@@ -16,8 +16,10 @@ import { AuthLayout } from "@/ui/layout/auth-layout";
 
 const ERROR_HEADINGS: Record<string, string> = {
   Configuration: "Sign-in unavailable",
-  AccessDenied: "Access denied",
+  AccessDenied: "Sign-in cancelled",
   Verification: "Sign-in link expired",
+  OAuthCallback: "Sign-in cancelled",
+  OAuthCallbackError: "Sign-in cancelled",
 };
 
 export default function AuthErrorPage() {

@@ -8,6 +8,12 @@ const { auth } = NextAuth(authConfig);
 export default auth((req) => {
   const isLoggedIn = !!req.auth;
   const { pathname } = req.nextUrl;
+
+  if (pathname === "/api/auth/error") {
+    const errorUrl = new URL("/auth/error", req.nextUrl.origin);
+    errorUrl.search = req.nextUrl.search;
+    return NextResponse.redirect(errorUrl);
+  }
   const requestHeaders = new Headers(req.headers);
   requestHeaders.set("x-pathname", pathname);
   const callbackUrl = getSafePostAuthRedirect(
@@ -51,6 +57,7 @@ export default auth((req) => {
 
 export const config = {
   matcher: [
+    "/api/auth/error",
     "/dashboard/:path*",
     "/onboarding/:path*",
     "/onboarding",
