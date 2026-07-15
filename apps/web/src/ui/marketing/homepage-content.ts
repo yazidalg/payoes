@@ -32,6 +32,7 @@ export const FEATURES_SECTION_CONTENT = {
 };
 
 export const CTA_CONTENT = {
+  logosCopy: "Works with the Stellar assets and wallets you already use",
   title: "Start accepting Stellar payments today",
   subtitle: "See why teams choose Payoes for stablecoin checkout, payment links, and developer-first APIs.",
   primaryCta: { label: "Start for free", href: "/register" },
