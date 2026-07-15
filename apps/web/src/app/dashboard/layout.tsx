@@ -5,6 +5,7 @@ import {
   userHasOrganization,
 } from "@/lib/organizations/service";
 import { getActiveOrganizationForUser } from "@/lib/organizations/active-organization";
+import { getUserProfile } from "@/lib/users/service";
 import { DashboardChrome } from "@/ui/layout/dashboard-chrome";
 import { DashboardMainNav } from "@/ui/layout/dashboard-main-nav";
 import { headers } from "next/headers";
@@ -53,8 +54,15 @@ export default async function DashboardLayout({
     redirect("/onboarding");
   }
 
-  const organizations = await getOrganizationsForUser(userId);
-  const activeOrganization = await getActiveOrganizationForUser(userId);
+  const [organizations, activeOrganization, dbUser] = await Promise.all([
+    getOrganizationsForUser(userId),
+    getActiveOrganizationForUser(userId),
+    getUserProfile(userId),
+  ]);
+
+  if (!dbUser) {
+    redirect("/login?error=SessionExpired");
+  }
 
   if (!activeOrganization) {
     redirect("/onboarding");
@@ -71,7 +79,11 @@ export default async function DashboardLayout({
 
   return (
     <DashboardMainNav
-      user={session.user}
+      user={{
+        name: dbUser.name,
+        email: dbUser.email,
+        image: dbUser.image,
+      }}
       organizations={organizations}
       initialActiveOrganization={activeOrganization}
     >

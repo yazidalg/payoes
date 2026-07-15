@@ -3,12 +3,17 @@
 import { createContext, useContext } from "react";
 import type { Organization } from "@/lib/db/schema";
 
+export type DashboardShellUser = {
+  name?: string | null;
+  email?: string | null;
+  image?: string | null;
+};
+
 export type DashboardShellContextValue = {
-  user: {
-    name?: string | null;
-    email?: string | null;
-    image?: string | null;
-  };
+  user: DashboardShellUser;
+  setUser: (
+    user: DashboardShellUser | ((current: DashboardShellUser) => DashboardShellUser),
+  ) => void;
   organizations: Organization[];
   setOrganizations: (
     organizations:

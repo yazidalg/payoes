@@ -1,15 +1,24 @@
 "use client";
 
 import type { UserProfile } from "@/lib/users/service";
+import { useDashboardShell } from "@/ui/layout/dashboard-shell-context";
 import { Avatar, FileUpload, Button } from "@dub/ui";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useState } from "react";
 import { toast } from "sonner";
 
-export function UploadProfileAvatar({ user }: { user: UserProfile }) {
+export function UploadProfileAvatar({
+  user,
+  onUserUpdated,
+}: {
+  user: UserProfile;
+  onUserUpdated?: (user: UserProfile) => void;
+}) {
   const router = useRouter();
   const { update } = useSession();
+  const { setUser: setShellUser } = useDashboardShell();
+  const [savedImage, setSavedImage] = useState<string | null>(user.image ?? null);
   const [image, setImage] = useState<string | null>(user.image ?? null);
   const [uploading, setUploading] = useState(false);
 
@@ -27,7 +36,10 @@ export function UploadProfileAvatar({ user }: { user: UserProfile }) {
           body: JSON.stringify({ image }),
         });
 
-        const data = (await response.json()) as { error?: string };
+        const data = (await response.json()) as {
+          error?: string;
+          user?: UserProfile;
+        };
 
         if (!response.ok) {
           toast.error(data.error ?? "Unable to upload profile picture");
@@ -35,7 +47,22 @@ export function UploadProfileAvatar({ user }: { user: UserProfile }) {
           return;
         }
 
-        await update();
+        const updatedImage = data.user?.image ?? null;
+        setSavedImage(updatedImage);
+        setImage(updatedImage);
+        if (data.user) {
+          onUserUpdated?.(data.user);
+        }
+        const nextUser = data.user ?? user;
+        setShellUser({
+          name: nextUser.name,
+          email: nextUser.email,
+          image: updatedImage,
+        });
+        await update({
+          name: nextUser.name,
+          image: updatedImage,
+        });
         toast.success("Successfully updated your profile picture!");
         router.refresh();
         setUploading(false);
@@ -61,7 +88,7 @@ export function UploadProfileAvatar({ user }: { user: UserProfile }) {
             imageSrc={image}
             placeholder={
               <Avatar
-                imageUrl={user.image}
+                imageUrl={savedImage}
                 identifier={user.email}
                 className="size-full"
               />
@@ -84,7 +111,7 @@ export function UploadProfileAvatar({ user }: { user: UserProfile }) {
           <Button
             text="Save changes"
             loading={uploading}
-            disabled={!image || image === (user.image ?? null)}
+            disabled={!image || image === savedImage}
           />
         </div>
       </div>

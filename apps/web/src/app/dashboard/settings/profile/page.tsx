@@ -11,5 +11,5 @@ export default async function ProfileSettingsPage() {
     redirect("/login");
   }
 
-  return <ProfileSettingsPanel user={user} />;
+  return <ProfileSettingsPanel key={user.updatedAt.toString()} user={user} />;
 }

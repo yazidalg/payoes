@@ -1,4 +1,5 @@
 import { SmoothSkeleton } from "@/ui/shared/smooth-skeleton";
+import { TeamMembersTableSkeleton } from "@/ui/team/team-members-table-skeleton";
 import { cn } from "@dub/utils";
 
 function GenericTableSkeleton({
@@ -100,6 +101,50 @@ export function DashboardAnalyticsPageLoading() {
         ))}
       </div>
       <SmoothSkeleton className="h-72 w-full rounded-xl" />
+    </div>
+  );
+}
+
+function SettingsFormSectionSkeleton() {
+  return (
+    <div className="rounded-xl border border-neutral-200 bg-white">
+      <div className="flex flex-col space-y-6 p-6">
+        <div className="flex flex-col space-y-2">
+          <SmoothSkeleton className="h-5 w-36" />
+          <SmoothSkeleton className="h-4 w-full max-w-md" />
+        </div>
+        <SmoothSkeleton className="h-9 w-full max-w-md" />
+      </div>
+      <div className="flex items-center justify-between gap-4 rounded-b-xl border-t border-neutral-200 bg-neutral-50 px-5 py-3">
+        <SmoothSkeleton className="h-4 w-32" />
+        <SmoothSkeleton className="h-9 w-20" />
+      </div>
+    </div>
+  );
+}
+
+export function DashboardSettingsPageLoading() {
+  return (
+    <div
+      className="mb-6 space-y-6"
+      aria-busy="true"
+      aria-label="Loading settings"
+    >
+      {Array.from({ length: 3 }).map((_, index) => (
+        <SettingsFormSectionSkeleton key={index} />
+      ))}
+    </div>
+  );
+}
+
+export function DashboardSettingsTeamPageLoading() {
+  return (
+    <div
+      className="mb-6"
+      aria-busy="true"
+      aria-label="Loading team members"
+    >
+      <TeamMembersTableSkeleton />
     </div>
   );
 }

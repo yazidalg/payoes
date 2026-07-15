@@ -3,12 +3,14 @@
 import type { UserProfile } from "@/lib/users/service";
 import { UploadProfileAvatar } from "@/ui/profile/upload-profile-avatar";
 import { ProfileDetailsCard } from "@/ui/profile/profile-details-card";
+import { useDashboardShell } from "@/ui/layout/dashboard-shell-context";
 import { Form } from "@dub/ui";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
+import { useState } from "react";
 import { toast } from "sonner";
 
-async function patchUser(data: Record<string, string>) {
+async function patchUser(data: Record<string, string | null>) {
   const response = await fetch("/api/user", {
     method: "PATCH",
     headers: {
@@ -17,16 +19,27 @@ async function patchUser(data: Record<string, string>) {
     body: JSON.stringify(data),
   });
 
-  const result = (await response.json()) as { error?: string };
+  const result = (await response.json()) as {
+    error?: string;
+    user?: UserProfile;
+  };
 
   if (!response.ok) {
     throw new Error(result.error ?? "Unable to update profile");
   }
+
+  if (!result.user) {
+    throw new Error("Unable to update profile");
+  }
+
+  return result.user;
 }
 
-export function ProfileSettingsPanel({ user }: { user: UserProfile }) {
+export function ProfileSettingsPanel({ user: initialUser }: { user: UserProfile }) {
   const router = useRouter();
   const { update } = useSession();
+  const { setUser: setShellUser } = useDashboardShell();
+  const [user, setUser] = useState(initialUser);
   const formKey = user.updatedAt.toString();
 
   async function handleFieldUpdate(
@@ -34,8 +47,17 @@ export function ProfileSettingsPanel({ user }: { user: UserProfile }) {
     successMessage: string,
   ) {
     try {
-      await patchUser(data);
-      await update();
+      const updatedUser = await patchUser(data);
+      setUser(updatedUser);
+      setShellUser({
+        name: updatedUser.name,
+        email: updatedUser.email,
+        image: updatedUser.image,
+      });
+      await update({
+        name: updatedUser.name,
+        image: updatedUser.image,
+      });
       toast.success(successMessage);
       router.refresh();
     } catch (error) {
@@ -85,7 +107,11 @@ export function ProfileSettingsPanel({ user }: { user: UserProfile }) {
         </div>
       </div>
 
-      <UploadProfileAvatar user={user} />
+      <UploadProfileAvatar
+        key={user.updatedAt.toString()}
+        user={user}
+        onUserUpdated={setUser}
+      />
 
       <ProfileDetailsCard user={user} />
     </div>

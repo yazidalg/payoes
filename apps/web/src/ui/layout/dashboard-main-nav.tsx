@@ -2,7 +2,10 @@
 
 import type { Organization } from "@/lib/db/schema";
 import { useEffect, useState } from "react";
-import { DashboardShellProvider } from "./dashboard-shell-context";
+import {
+  DashboardShellProvider,
+  type DashboardShellUser,
+} from "./dashboard-shell-context";
 
 export function DashboardMainNav({
   user,
@@ -10,19 +13,24 @@ export function DashboardMainNav({
   initialActiveOrganization,
   children,
 }: {
-  user: {
-    name?: string | null;
-    email?: string | null;
-    image?: string | null;
-  };
+  user: DashboardShellUser;
   organizations: Organization[];
   initialActiveOrganization: Organization;
   children: React.ReactNode;
 }) {
+  const [userState, setUser] = useState(user);
   const [activeOrganization, setActiveOrganization] = useState(
     initialActiveOrganization,
   );
   const [organizationsState, setOrganizations] = useState(organizations);
+
+  useEffect(() => {
+    setUser({
+      name: user.name,
+      email: user.email,
+      image: user.image,
+    });
+  }, [user.name, user.email, user.image]);
 
   useEffect(() => {
     setActiveOrganization(initialActiveOrganization);
@@ -35,7 +43,8 @@ export function DashboardMainNav({
   return (
     <DashboardShellProvider
       value={{
-        user,
+        user: userState,
+        setUser,
         organizations: organizationsState,
         setOrganizations,
         activeOrganization,

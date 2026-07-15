@@ -83,7 +83,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
       return true;
     },
-    async jwt({ token, user, trigger }) {
+    async jwt({ token, user, trigger, session: clientSession }) {
       if (user?.id) {
         token.id = user.id;
         token.name = user.name;
@@ -100,13 +100,26 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }
       }
 
-      if (trigger === "update" && token.id) {
-        const dbUser = await findUserById(token.id as string);
+      if (trigger === "update") {
+        const dbUser = token.id
+          ? await findUserById(token.id as string)
+          : typeof token.email === "string"
+            ? await findUserByEmail(token.email)
+            : null;
 
         if (dbUser) {
+          token.id = dbUser.id;
           token.name = dbUser.name;
           token.email = dbUser.email;
           token.picture = dbUser.image;
+        }
+
+        if (clientSession?.name !== undefined) {
+          token.name = clientSession.name;
+        }
+
+        if (clientSession?.image !== undefined) {
+          token.picture = clientSession.image;
         }
       }
 
