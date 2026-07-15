@@ -9,6 +9,7 @@ WASM_PATH="${CONTRACTS_ROOT}/target/wasm32v1-none/release/payoes.wasm"
 
 NETWORK="testnet"
 OPERATOR_ACCOUNT=""
+OPERATOR_SECRET_INPUT=""
 SOURCE_ACCOUNT=""
 
 die() {
@@ -43,15 +44,66 @@ assert_identity_exists() {
   fi
 }
 
+validate_operator_secret() {
+  local secret="$1"
+
+  if [[ ! "${secret}" =~ ^S[A-Z2-7]{55}$ ]]; then
+    die "Invalid --operator-secret: expected a Stellar secret key (56 characters, starting with S)"
+  fi
+}
+
+derive_public_key_from_secret() {
+  local secret="$1"
+  local sdk_dir=""
+
+  if [[ -d "${REPO_ROOT}/node_modules/@stellar/stellar-sdk" ]]; then
+    sdk_dir="${REPO_ROOT}/node_modules/@stellar/stellar-sdk"
+  elif [[ -d "${REPO_ROOT}/apps/web/node_modules/@stellar/stellar-sdk" ]]; then
+    sdk_dir="${REPO_ROOT}/apps/web/node_modules/@stellar/stellar-sdk"
+  else
+    die "Cannot derive public key from --operator-secret: run npm install, or use --operator-account"
+  fi
+
+  if ! command -v node >/dev/null 2>&1; then
+    die "Node.js is required when using --operator-secret. Use --operator-account instead."
+  fi
+
+  local derived=""
+  if ! derived="$(
+    OPERATOR_SECRET_FOR_DERIVE="${secret}" node -e "
+      const { Keypair } = require('${sdk_dir}');
+      console.log(Keypair.fromSecret(process.env.OPERATOR_SECRET_FOR_DERIVE).publicKey());
+    " 2>/dev/null
+  )"; then
+    die "Invalid --operator-secret: could not derive public key"
+  fi
+
+  echo "${derived}"
+}
+
+validate_operator_auth() {
+  if [[ -n "${OPERATOR_ACCOUNT}" && -n "${OPERATOR_SECRET_INPUT}" ]]; then
+    die "Use only one of --operator-account or --operator-secret, not both"
+  fi
+
+  if [[ -z "${OPERATOR_ACCOUNT}" && -z "${OPERATOR_SECRET_INPUT}" ]]; then
+    usage
+    die "One of --operator-account or --operator-secret is required"
+  fi
+}
+
 usage() {
   cat <<'EOF'
 Deploy and initialize the Payoes Soroban escrow contract.
 
 Usage:
-  ./scripts/soroban-deploy-contract.sh --operator-account <name> [options]
+  ./scripts/soroban-deploy-contract.sh (--operator-account <name> | --operator-secret <key>) --source-account <name> [options]
 
-Required:
+Required (choose one operator auth mode):
   --operator-account <name>     Contract operator identity (admin / authorization_signer)
+  --operator-secret <key>       Contract operator secret key (Stellar S... strkey)
+
+Also required:
   --source-account <name>       Identity that pays deploy transaction fees
 
 Options:
@@ -64,14 +116,22 @@ Networks:
 
 Notes:
   Deploy fees are paid by --source-account.
-  Initialize is signed by --operator-account because it must authorize as admin.
+  Initialize is signed by the operator because it must authorize as admin.
+  Provide the operator as a named identity (--operator-account) or a raw secret key (--operator-secret), not both.
+  With --operator-secret, Node.js and npm dependencies are required to derive the operator public key.
 
-Example:
+Examples:
+  # Named operator identity
   stellar keys generate --global payoes-operator
   stellar keys generate --global payoes-funder
   curl "https://friendbot.stellar.org?addr=$(stellar keys address payoes-funder)"
   ./scripts/soroban-deploy-contract.sh \
     --operator-account payoes-operator \
+    --source-account payoes-funder
+
+  # Raw operator secret key
+  ./scripts/soroban-deploy-contract.sh \
+    --operator-secret "$PAYOES_OPERATOR_SECRET" \
     --source-account payoes-funder
 EOF
 }
@@ -84,6 +144,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --operator-account)
       OPERATOR_ACCOUNT="$2"
+      shift 2
+      ;;
+    --operator-secret)
+      OPERATOR_SECRET_INPUT="$2"
       shift 2
       ;;
     --source-account)
@@ -100,10 +164,7 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-if [[ -z "${OPERATOR_ACCOUNT}" ]]; then
-  usage
-  die "--operator-account is required"
-fi
+validate_operator_auth
 
 if [[ -z "${SOURCE_ACCOUNT}" ]]; then
   usage
@@ -115,16 +176,27 @@ if ! command -v stellar >/dev/null 2>&1; then
 fi
 
 validate_network "${NETWORK}"
-assert_identity_exists "${OPERATOR_ACCOUNT}" "operator"
 assert_identity_exists "${SOURCE_ACCOUNT}" "source account"
 
-OPERATOR_SECRET="$(stellar keys secret "${OPERATOR_ACCOUNT}" -q)"
-OPERATOR_PUBLIC_KEY="$(stellar keys public-key "${OPERATOR_ACCOUNT}" -q)"
+if [[ -n "${OPERATOR_ACCOUNT}" ]]; then
+  assert_identity_exists "${OPERATOR_ACCOUNT}" "operator"
+  OPERATOR_SECRET="$(stellar keys secret "${OPERATOR_ACCOUNT}" -q)"
+  OPERATOR_PUBLIC_KEY="$(stellar keys public-key "${OPERATOR_ACCOUNT}" -q)"
+  OPERATOR_INVOKE_SOURCE="${OPERATOR_ACCOUNT}"
+  OPERATOR_AUTH_LABEL="${OPERATOR_ACCOUNT}"
+else
+  validate_operator_secret "${OPERATOR_SECRET_INPUT}"
+  OPERATOR_SECRET="${OPERATOR_SECRET_INPUT}"
+  OPERATOR_PUBLIC_KEY="$(derive_public_key_from_secret "${OPERATOR_SECRET}")"
+  OPERATOR_INVOKE_SOURCE="${OPERATOR_SECRET}"
+  OPERATOR_AUTH_LABEL="(secret key)"
+fi
+
 SOURCE_PUBLIC_KEY="$(stellar keys public-key "${SOURCE_ACCOUNT}" -q)"
 
 echo "Payoes Soroban contract deploy"
 echo "Network: ${NETWORK}"
-echo "Operator account: ${OPERATOR_ACCOUNT}"
+echo "Operator auth: ${OPERATOR_AUTH_LABEL}"
 echo "Operator public key: ${OPERATOR_PUBLIC_KEY}"
 echo "Source account: ${SOURCE_ACCOUNT}"
 echo "Source public key: ${SOURCE_PUBLIC_KEY}"
@@ -158,12 +230,12 @@ if [[ -z "${CONTRACT_ID}" ]]; then
 fi
 
 echo ""
-echo "> stellar contract invoke --id ${CONTRACT_ID} --network ${NETWORK} --source-account ${OPERATOR_ACCOUNT} -- initialize ..."
+echo "> stellar contract invoke --id ${CONTRACT_ID} --network ${NETWORK} --source-account ${OPERATOR_AUTH_LABEL} -- initialize ..."
 
 run stellar contract invoke \
   --id "${CONTRACT_ID}" \
   --network "${NETWORK}" \
-  --source-account "${OPERATOR_ACCOUNT}" \
+  --source-account "${OPERATOR_INVOKE_SOURCE}" \
   -- initialize \
   --admin "${OPERATOR_PUBLIC_KEY}" \
   --authorization_signer "${OPERATOR_PUBLIC_KEY}" \
