@@ -9,14 +9,29 @@ import {
 
 const RETRYABLE_STATUSES = new Set<Payment["status"]>(["refunded"]);
 
+const NON_RETRYABLE_REFUND_REASONS = new Set<RefundReason>([
+  REFUND_REASONS.expired,
+]);
+
 export function isRetryableFailedPayment(payment: Payment) {
-  return RETRYABLE_STATUSES.has(payment.status);
+  if (RETRYABLE_STATUSES.has(payment.status)) {
+    return !(
+      payment.refundReason &&
+      NON_RETRYABLE_REFUND_REASONS.has(payment.refundReason as RefundReason)
+    );
+  }
+
+  if (payment.status === "settlement_failed" && !payment.settlementTxHash) {
+    return Boolean(payment.refundReason);
+  }
+
+  return false;
 }
 
 export function formatRefundReasonForCheckout(reason: string | null | undefined) {
   switch (reason as RefundReason | undefined) {
     case REFUND_REASONS.underpay:
-      return "The amount received was less than required. Your funds were refunded.";
+      return "The amount received was less than required. Your funds were refunded. You can pay again.";
     case REFUND_REASONS.wrong_asset:
       return "The payment was sent in an unsupported asset. Your funds were refunded.";
     case REFUND_REASONS.expired:

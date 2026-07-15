@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { cn } from "@dub/utils";
 import { Badge, Button, CopyButton, Tooltip } from "@dub/ui";
 import { Check2, LoadingSpinner } from "@dub/ui/icons";
-import { getAssetIconUrl } from "@/lib/assets/icons";
+import { AssetIcon } from "@/ui/assets/asset-icon";
 import { getOfficialAsset } from "@/lib/payment-methods/official-assets";
 import { ConnectedWallet } from "@/ui/wallet/connected-wallet";
 import { CheckoutSandboxBanner } from "@/components/checkout/checkout-sandbox-banner";
@@ -26,20 +26,6 @@ import {
   getCheckoutPaymentWaitingVariant,
 } from "@/components/checkout/checkout-payment-loading";
 import type { AllowedAsset, CheckoutData, PaymentQuote } from "./checkout-types";
-
-export function AssetIcon({ code, className }: { code: string; className?: string }) {
-  const iconUrl = getAssetIconUrl(code);
-
-  if (iconUrl) {
-    return (
-      <div className={cn("flex size-10 shrink-0 items-center justify-center rounded-full bg-neutral-50 border border-neutral-200/50 p-1.5 overflow-hidden", className)}>
-        <img src={iconUrl} alt={code} className="size-full object-contain" />
-      </div>
-    );
-  }
-
-  return <div className={cn("flex size-10 shrink-0 items-center justify-center rounded-full bg-neutral-100 text-neutral-600 font-bold text-xs uppercase", className)}>{code.slice(0, 3)}</div>;
-}
 
 export function getAssetDetails(asset: AllowedAsset) {
   const code = asset.asset_code;
@@ -202,9 +188,17 @@ function getCheckoutErrorMessage(input: {
   networkError: string | null;
   connectError: string | null;
   isRefreshingRate: boolean;
+  lastAttemptError?: string | null;
 }) {
   if (input.isSessionExpired) {
     return input.sessionError ?? getCheckoutSessionExpiredMessage({ invoice: input.invoice });
+  }
+
+  if (
+    input.lastAttemptError &&
+    input.error?.includes("Settlement could not be completed")
+  ) {
+    return null;
   }
 
   return input.error ?? input.depositTrustlineError ?? (!input.isRefreshingRate ? input.quoteError : null) ?? input.networkError ?? input.connectError ?? null;
@@ -239,6 +233,7 @@ function getCheckoutAlert(input: { disabled?: boolean; isCompleted?: boolean; is
     networkError: input.networkError,
     connectError: input.connectError,
     isRefreshingRate: input.isRefreshingRate,
+    lastAttemptError: input.lastAttemptError,
   });
 
   if (checkoutErrorMessage) {
@@ -260,7 +255,9 @@ function getCheckoutAlert(input: { disabled?: boolean; isCompleted?: boolean; is
   if (input.isPaymentPanel && input.lastAttemptError) {
     return {
       type: "info",
-      message: `${input.lastAttemptError} You can try again below using the same payment link.`,
+      message: input.lastAttemptError.includes("You can pay again")
+        ? input.lastAttemptError
+        : `${input.lastAttemptError} You can pay again below using the same payment link.`,
       key: `last-attempt:${input.lastAttemptError}`,
     };
   }
@@ -590,7 +587,7 @@ export function CheckoutView({ data, isCompleted, isProcessing = false, isSessio
                             <button type="button" disabled={disabled || isRefreshingRate} onClick={() => setIsAssetDropdownOpen(!isAssetDropdownOpen)} className={cn("flex w-full items-center justify-between rounded-lg bg-white text-left font-semibold text-neutral-900 shadow-sm transition-all", disabled ? "p-2 text-xs" : "p-2.5 text-sm", isRefreshingRate && "cursor-not-allowed")}>
                               {selectedPaidAsset && (
                                 <div className="flex min-w-0 items-center gap-2.5">
-                                  <AssetIcon code={selectedPaidAsset.asset_code} className={cn(disabled ? "size-7 p-0.5" : "size-8 p-1")} />
+                                  <AssetIcon assetCode={selectedPaidAsset.asset_code} className={cn(disabled ? "size-7" : "size-8")} />
                                   <div className="min-w-0">
                                     <p className="truncate text-neutral-900">{getAssetDetails(selectedPaidAsset).name}</p>
                                     <p className="truncate text-[10px] font-normal text-neutral-500">{getAssetDetails(selectedPaidAsset).description}</p>
@@ -626,7 +623,7 @@ export function CheckoutView({ data, isCompleted, isProcessing = false, isSessio
                                         }}
                                         className={cn("flex w-full items-center justify-between rounded-lg p-2.5 text-left transition-all", isSelected ? "bg-neutral-100 text-neutral-900" : "text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900")}>
                                         <div className="flex items-center gap-2.5">
-                                          <AssetIcon code={asset.asset_code} className="size-7 p-0.5" />
+                                          <AssetIcon assetCode={asset.asset_code} className="size-7" />
                                           <p className="text-sm font-medium">{details.name}</p>
                                         </div>
                                         {isSelected ? <Check2 className="size-4 text-neutral-900" /> : null}

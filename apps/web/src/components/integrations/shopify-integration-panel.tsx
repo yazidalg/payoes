@@ -65,16 +65,43 @@ export function ShopifyIntegrationPanel({
   }, [loadIntegration]);
 
   useEffect(() => {
-    if (searchParams.get("connected") === "1") {
+    const connected = searchParams.get("connected");
+    const error = searchParams.get("error");
+
+    if (connected === "1") {
       toast.success("Shopify connected");
       router.replace("/dashboard/integrations/shopify");
+      return;
     }
 
-    if (searchParams.get("error")) {
-      toast.error("Unable to connect Shopify");
-      router.replace("/dashboard/integrations/shopify");
+    if (!error) {
+      return;
     }
-  }, [router, searchParams]);
+
+    void (async () => {
+      try {
+        const response = await fetch(
+          `/api/organizations/${organizationId}/integrations/shopify`,
+        );
+        const data = (await response.json()) as {
+          integration?: OrganizationIntegration | null;
+        };
+
+        const lastError = data.integration?.lastError;
+        toast.error(lastError ?? "Unable to connect Shopify");
+        setIntegration(data.integration ?? null);
+        if (data.integration?.storeIdentifier) {
+          setShop(
+            data.integration.storeIdentifier.replace(".myshopify.com", ""),
+          );
+        }
+      } catch {
+        toast.error("Unable to connect Shopify");
+      } finally {
+        router.replace("/dashboard/integrations/shopify");
+      }
+    })();
+  }, [organizationId, router, searchParams]);
 
   async function handleConnect() {
     setIsConnecting(true);

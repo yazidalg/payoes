@@ -7,6 +7,27 @@ export function getShopifyWebhookUrl() {
   return `${baseUrl}/api/webhooks/shopify`;
 }
 
+export function formatShopifyConnectError(rawMessage: string) {
+  const lower = rawMessage.toLowerCase();
+  const isScopeOrTopicError =
+    lower.includes("invalid topic") ||
+    lower.includes("missing access scope") ||
+    lower.includes("protected customer data") ||
+    lower.includes("topics allowed");
+
+  if (isScopeOrTopicError) {
+    return (
+      `${rawMessage} ` +
+      "Your Shopify Partner app needs Admin API scopes read_orders and write_orders, " +
+      "plus Protected customer data access (Partners Dashboard → App → API access requests). " +
+      "Save those settings, then disconnect and reconnect the store. " +
+      "See Payoes docs: Shopify integration → Partner app setup."
+    );
+  }
+
+  return rawMessage;
+}
+
 export async function shopifyAdminFetch(
   integration: OrganizationIntegration,
   path: string,
@@ -66,7 +87,7 @@ export async function registerShopifyOrderWebhook(
       }
     }
 
-    throw new Error(message);
+    throw new Error(formatShopifyConnectError(message));
   }
 
   return String(payload.webhook.id);

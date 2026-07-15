@@ -36,8 +36,7 @@ export function isDepositTxAlreadyHandled(
   if (
     handledHashes.includes(txHash) &&
     !payment.depositTxHash &&
-    payment.status === "pending" &&
-    payment.refundTxHash
+    payment.status === "pending"
   ) {
     return true;
   }
@@ -55,7 +54,17 @@ export function isDepositTxAlreadyHandled(
     return true;
   }
 
-  // deposit_received / refunding / settling still need processing.
+  // Another worker already owns an in-flight refund.
+  if (payment.status === "refunding") {
+    return true;
+  }
+
+  // Refund already attempted for this deposit (including failed re-refund).
+  if (payment.status === "settlement_failed" && payment.refundReason) {
+    return true;
+  }
+
+  // deposit_received / settling still need processing (settlement uses claimSettlementAttempt).
   return false;
 }
 

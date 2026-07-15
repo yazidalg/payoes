@@ -294,6 +294,7 @@ export function CheckoutClient({
           if (statusData.payment.status === "refunded") {
             setPendingTxHash(null);
             sessionStorage.removeItem(`payoes:checkout-tx:${paymentId}`);
+            setError(null);
             setData(statusData);
             return;
           }
@@ -360,6 +361,13 @@ export function CheckoutClient({
 
     if (response.ok) {
       setData(json);
+      if (
+        json.payment.status === "pending" &&
+        json.payment.last_attempt_error
+      ) {
+        setError(null);
+        setDepositCheckInfo(null);
+      }
     }
 
     return json;
@@ -514,6 +522,18 @@ export function CheckoutClient({
         }
 
         if (refreshed.payment?.status === "completed") {
+          setPendingTxHash(null);
+          setConfirmExhausted(false);
+          sessionStorage.removeItem(`payoes:checkout-tx:${paymentId}`);
+          setIsConfirming(false);
+          setError(null);
+          return;
+        }
+
+        if (
+          refreshed.payment?.status === "pending" &&
+          refreshed.payment.last_attempt_error
+        ) {
           setPendingTxHash(null);
           setConfirmExhausted(false);
           sessionStorage.removeItem(`payoes:checkout-tx:${paymentId}`);
@@ -704,7 +724,10 @@ export function CheckoutClient({
       }
 
       if (payload.status === "refunded") {
+        setPendingTxHash(null);
+        sessionStorage.removeItem(`payoes:checkout-tx:${paymentId}`);
         setDepositCheckInfo(null);
+        setError(null);
         await reloadCheckoutData();
         return;
       }

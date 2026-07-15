@@ -142,24 +142,140 @@ export async function appendWooCommerceOrderMeta(input: {
   );
 }
 
+type WooCommerceAmountLine = {
+  total?: string | number;
+  subtotal?: string | number;
+};
+
 export type WooCommerceOrderPayload = {
   id: number | string;
-  number?: string;
+  number?: string | number;
+  order_number?: string | number;
   status?: string;
-  total?: string;
+  total?: string | number;
+  current_total?: string | number;
+  total_price?: string | number;
+  subtotal?: string | number;
+  total_tax?: string | number;
+  shipping_total?: string | number;
+  total_shipping?: string | number;
+  discount_total?: string | number;
+  total_discount?: string | number;
   currency?: string;
   billing?: {
     email?: string;
   };
+  billing_address?: {
+    email?: string;
+  };
+  customer?: {
+    email?: string;
+  };
+  line_items?: WooCommerceAmountLine[];
+  shipping_lines?: WooCommerceAmountLine[];
+  fee_lines?: WooCommerceAmountLine[];
 };
+
+function parseWooCommerceAmount(value: unknown) {
+  if (value === null || value === undefined || value === "") {
+    return null;
+  }
+
+  const parsed =
+    typeof value === "number" ? value : Number.parseFloat(String(value));
+
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function sumWooCommerceLineAmounts(items: WooCommerceAmountLine[] | undefined) {
+  if (!items?.length) {
+    return 0;
+  }
+
+  return items.reduce((sum, item) => {
+    const amount =
+      parseWooCommerceAmount(item.total) ??
+      parseWooCommerceAmount(item.subtotal) ??
+      0;
+
+    return sum + amount;
+  }, 0);
+}
+
+function formatWooCommerceAmount(
+  amount: number,
+  original?: string | number,
+) {
+  if (original !== undefined && original !== null && original !== "") {
+    const originalAmount = parseWooCommerceAmount(original);
+    if (originalAmount === amount) {
+      return String(original);
+    }
+  }
+
+  if (Number.isInteger(amount)) {
+    return String(amount);
+  }
+
+  return amount.toFixed(2);
+}
+
+export function resolveWooCommerceOrderTotal(order: WooCommerceOrderPayload) {
+  const primaryTotals: Array<string | number | undefined> = [
+    order.total,
+    order.current_total,
+    order.total_price,
+  ];
+
+  for (const field of primaryTotals) {
+    const amount = parseWooCommerceAmount(field);
+    if (amount !== null && amount > 0) {
+      return formatWooCommerceAmount(amount, field);
+    }
+  }
+
+  const subtotal = parseWooCommerceAmount(order.subtotal);
+  const tax = parseWooCommerceAmount(order.total_tax) ?? 0;
+  const shipping =
+    parseWooCommerceAmount(order.shipping_total) ??
+    parseWooCommerceAmount(order.total_shipping) ??
+    0;
+  const discount =
+    parseWooCommerceAmount(order.discount_total) ??
+    parseWooCommerceAmount(order.total_discount) ??
+    0;
+
+  if (subtotal !== null && subtotal > 0) {
+    const computed = subtotal + tax + shipping - discount;
+    if (computed > 0) {
+      return formatWooCommerceAmount(computed);
+    }
+  }
+
+  const lineItemsTotal = sumWooCommerceLineAmounts(order.line_items);
+  const shippingLinesTotal = sumWooCommerceLineAmounts(order.shipping_lines);
+  const feeLinesTotal = sumWooCommerceLineAmounts(order.fee_lines);
+  const summed = lineItemsTotal + shippingLinesTotal + feeLinesTotal;
+
+  if (summed > 0) {
+    const withTax = summed + tax;
+    return formatWooCommerceAmount(withTax > summed ? withTax : summed);
+  }
+
+  return null;
+}
 
 export function parseWooCommerceOrderPayload(payload: unknown) {
   if (!payload || typeof payload !== "object") {
     return null;
   }
 
-  const order = payload as WooCommerceOrderPayload;
-  if (!order.id) {
+  const root = payload as Record<string, unknown>;
+  const order = (
+    root.id ? root : (root.order as WooCommerceOrderPayload | undefined)
+  ) as WooCommerceOrderPayload | undefined;
+
+  if (!order || typeof order !== "object" || !order.id) {
     return null;
   }
 

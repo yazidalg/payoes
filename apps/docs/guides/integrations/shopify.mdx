@@ -11,6 +11,49 @@ Connect Shopify from **Dashboard → Integrations → Shopify**.
 - Payoes settlement wallet configured
 - A Payoes Shopify app configured on your Payoes host (`SHOPIFY_CLIENT_ID`, `SHOPIFY_CLIENT_SECRET`)
 
+## Partner app setup
+
+Configure your app in the [Shopify Partners Dashboard](https://partners.shopify.com) **before** connecting a store. OAuth and webhook registration fail if these steps are missing.
+
+<Steps>
+  <Step title="Create or open your app">
+    In Partners Dashboard, go to **Apps** and create a custom app or open your existing Payoes app. Copy the **Client ID** and **Client secret** into `SHOPIFY_CLIENT_ID` and `SHOPIFY_CLIENT_SECRET`.
+  </Step>
+  <Step title="Configure Admin API scopes">
+    Under **Configuration → Admin API integration**, enable at least:
+
+    - `read_orders`
+    - `write_orders`
+
+    These must match `SHOPIFY_SCOPES` on your Payoes host (default: `read_orders,write_orders`).
+  </Step>
+  <Step title="Set the redirect URL">
+    Add your Payoes callback URL to allowed redirect URLs:
+
+    ```
+    {AUTH_URL}/api/integrations/shopify/callback
+    ```
+
+    Replace `{AUTH_URL}` with your public Payoes host (same value as the `AUTH_URL` env var).
+  </Step>
+  <Step title="Choose a distribution method">
+    Under **App setup → Distribution**, select a distribution method (for example, custom distribution for a single merchant or public distribution). Shopify requires this before you can request protected customer data access.
+  </Step>
+  <Step title="Request Protected customer data access">
+    Go to **API access requests → Protected customer data access → Request access**.
+
+    1. Select **Protected customer data** and briefly explain that Payoes creates checkout payments from new Shopify orders.
+    2. Click **Save**.
+
+    The `orders/create` webhook includes order data that Shopify treats as protected customer data. Without this approval, webhook registration returns an error and only app-level topics (such as `app/uninstalled`) are allowed.
+
+    For apps installed only on development stores, completing step 1 and saving is enough. You do not need to submit the app for review to test on dev stores.
+  </Step>
+  <Step title="Reconnect after changes">
+    If you change scopes or protected data access after a store already authorized the app, disconnect Shopify in Payoes and connect again so Shopify issues a new access token with the updated permissions.
+  </Step>
+</Steps>
+
 ## Connect from the dashboard
 
 <Steps>
@@ -47,11 +90,21 @@ SHOPIFY_SCOPES=read_orders,write_orders
 INTEGRATIONS_STATE_SECRET=
 ```
 
-`INTEGRATIONS_STATE_SECRET` signs OAuth state during the connect flow. Generate it like `AUTH_SECRET`.
+`SHOPIFY_SCOPES` must match the Admin API scopes configured in your Partner app. `INTEGRATIONS_STATE_SECRET` signs OAuth state during the connect flow. Generate it like `AUTH_SECRET`.
 
 ## Troubleshooting
 
 <AccordionGroup>
+  <Accordion title="Webhook topic error (orders/create not allowed)">
+    If connect fails with `Invalid topic specified: orders/create` or a list of allowed topics that only includes app-level events (`app/uninstalled`, `app/scopes_update`, `shop/update`, ...):
+
+    1. In Partners Dashboard, confirm **Admin API integration** includes `read_orders` and `write_orders`.
+    2. Open **API access requests → Protected customer data access** and complete the request (select Protected customer data, save).
+    3. Confirm a **distribution method** is selected under App setup.
+    4. Disconnect Shopify in Payoes and connect again.
+
+    The topic name `orders/create` and API version `2024-10` are correct. This error means the access token does not include order scopes or protected customer data approval.
+  </Accordion>
   <Accordion title="OAuth redirect fails">
     Confirm `AUTH_URL` matches your public Payoes host and the redirect URL is allowed in your Shopify app settings: `{AUTH_URL}/api/integrations/shopify/callback`.
   </Accordion>

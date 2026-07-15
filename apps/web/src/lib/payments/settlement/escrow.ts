@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNotNull, notInArray } from "drizzle-orm";
+import { and, eq, inArray, isNotNull, isNull, notInArray } from "drizzle-orm";
 import { Horizon } from "@stellar/stellar-sdk";
 import { findAllowedAsset, allowedAssetsEquivalent } from "@/lib/assets/types";
 import type { AllowedAsset } from "@/lib/assets/types";
@@ -192,6 +192,38 @@ export async function registerEscrowDeposit(input: {
   return processEscrowSettlement(withDeposit);
 }
 
+async function claimSettlementAttempt(payment: Payment) {
+  if (payment.settlementTxHash) {
+    return null;
+  }
+
+  if (
+    payment.status === "refunding" ||
+    payment.status === "refunded" ||
+    isEscrowRefundTerminal(payment)
+  ) {
+    return null;
+  }
+
+  const [claimed] = await db
+    .update(payments)
+    .set({ status: "settling", updatedAt: new Date() })
+    .where(
+      and(
+        eq(payments.id, payment.id),
+        isNull(payments.settlementTxHash),
+        inArray(payments.status, [
+          "deposit_received",
+          "settlement_failed",
+          "completed",
+        ]),
+      ),
+    )
+    .returning();
+
+  return claimed ?? null;
+}
+
 async function claimRefundAttempt(payment: Payment, reason: RefundReason) {
   const depositTxHash = payment.depositTxHash;
 
@@ -224,6 +256,14 @@ async function executeRefund(
   options?: { depositHeld?: boolean; forceDirect?: boolean }
 ) {
   if (isEscrowRefundTerminal(payment)) {
+    return payment;
+  }
+
+  if (payment.refundTxHash) {
+    if (payment.status !== "refunded") {
+      return patchPayment(payment, { status: "refunded" });
+    }
+
     return payment;
   }
 
@@ -336,6 +376,14 @@ async function refundManualEscrowDeposit(
   receivedAsset: AllowedAsset,
   reason: RefundReason,
 ) {
+  if (
+    payment.refundTxHash ||
+    isEscrowRefundTerminal(payment) ||
+    isDepositTxAlreadyHandled(payment, txHash)
+  ) {
+    return payment;
+  }
+
   const deposited = await recordManualEscrowDeposit(
     payment,
     txHash,
@@ -344,8 +392,12 @@ async function refundManualEscrowDeposit(
     receivedAsset,
   );
 
+  const withHandled = await patchPayment(deposited, {
+    metadata: markDepositTxHandled(deposited.metadata, txHash),
+  });
+
   return executeRefund(
-    deposited,
+    withHandled,
     reason,
     receivedAmount,
     payerAddress,
@@ -508,6 +560,10 @@ export async function processEscrowSettlement(payment: Payment) {
     return payment;
   }
 
+  if (payment.status === "settling" && !payment.settlementTxHash) {
+    return (await getPaymentByPublicId(payment.publicId)) ?? payment;
+  }
+
   if (payment.status === "completed" && payment.settlementTxHash) {
     return payment;
   }
@@ -563,10 +619,12 @@ export async function processEscrowSettlement(payment: Payment) {
     );
   }
 
-  const settling =
-    payment.status === "completed"
-      ? payment
-      : await patchPayment(payment, { status: "settling" });
+  const claimed = await claimSettlementAttempt(payment);
+  if (!claimed) {
+    return (await getPaymentByPublicId(payment.publicId)) ?? payment;
+  }
+
+  const settling = claimed;
   const escrow = getEscrowConfig(payment.environment);
   const merchantAmount =
     payment.merchantSettlementAmount ??
@@ -789,16 +847,28 @@ export async function confirmClassicEscrowDeposit(
 
     if (relayed) {
       fresh = (await getPaymentByPublicId(payment.publicId)) ?? fresh;
+
       if (fresh.status === "completed") {
         return { ok: true as const, payment: fresh };
       }
+
+      if (fresh.status === "refunded") {
+        return {
+          ok: false as const,
+          error: "Payment was refunded.",
+          payment: fresh,
+        };
+      }
+
+      return {
+        ok: false as const,
+        pending: true as const,
+        status: fresh.status,
+        payment: fresh,
+      };
     }
 
-    if (
-      relayed ||
-      fresh.status === "deposit_received" ||
-      fresh.status === "settling"
-    ) {
+    if (fresh.status === "deposit_received" || fresh.status === "settlement_failed") {
       const settled = await processEscrowSettlement(fresh);
       fresh = (await getPaymentByPublicId(payment.publicId)) ?? settled;
 
@@ -806,6 +876,23 @@ export async function confirmClassicEscrowDeposit(
         return { ok: true as const, payment: fresh };
       }
 
+      if (fresh.status === "refunded") {
+        return {
+          ok: false as const,
+          error: "Payment was refunded.",
+          payment: fresh,
+        };
+      }
+
+      return {
+        ok: false as const,
+        pending: true as const,
+        status: fresh.status,
+        payment: fresh,
+      };
+    }
+
+    if (fresh.status === "settling" || fresh.status === "refunding") {
       return {
         ok: false as const,
         pending: true as const,
@@ -903,6 +990,10 @@ export async function processPendingEscrowSettlements() {
       continue;
     }
 
+    if (payment.status === "settling" && !payment.settlementTxHash) {
+      continue;
+    }
+
     const awaitingMerchantSettlement =
       Boolean(payment.depositTxHash) &&
       Boolean(payment.receivedAmount) &&
@@ -944,14 +1035,13 @@ async function relayManualEscrowDeposit(payment: Payment, txHash: string) {
   if (
     payment.depositTxHash === txHash &&
     (payment.status === "deposit_received" ||
-      payment.status === "settling" ||
       payment.status === "settlement_failed")
   ) {
     const result = await processEscrowSettlement(payment);
     return result.status === "refunded" || result.status === "completed";
   }
 
-  if (payment.status === "refunding") {
+  if (payment.status === "settling" || payment.status === "refunding") {
     return false;
   }
 
@@ -1112,7 +1202,6 @@ export async function detectEscrowDepositForPayment(
 
   if (
     fresh.status === "deposit_received" ||
-    fresh.status === "settling" ||
     fresh.status === "settlement_failed"
   ) {
     const updated = await processEscrowSettlement(fresh);
@@ -1126,6 +1215,10 @@ export async function detectEscrowDepositForPayment(
         fresh.status !== payment.status,
       payment: fresh,
     };
+  }
+
+  if (fresh.status === "settling" || fresh.status === "refunding") {
+    return { detected: true, payment: fresh };
   }
 
   if (

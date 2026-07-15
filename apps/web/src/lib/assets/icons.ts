@@ -9,7 +9,7 @@ const ASSET_ICON_URLS: Record<string, string> = {
   USDC: "https://cryptologos.cc/logos/usd-coin-usdc-logo.png",
   EURC: "https://assets.coingecko.com/coins/images/26045/small/euro-coin.png",
   PYUSD: "https://cryptologos.cc/logos/paypal-usd-pyusd-logo.png",
-  AUDD: "https://assets.coingecko.com/coins/images/37082/small/novatti-australian-digital-dollar.png",
+  AUDD: "https://cdn.audd.digital/AUDD-Logo-Blue-512x512px.png",
 };
 
 /**

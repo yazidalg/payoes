@@ -121,14 +121,6 @@ export async function ensurePayablePayment(
   }
 
   if (isRetryableFailedPayment(payment)) {
-    if (isPaymentSessionExpired(payment)) {
-      await updatePaymentStatus(payment, "expired");
-      return {
-        payment,
-        error: await resolveInvoicePaymentSessionExpiredError(payment),
-      };
-    }
-
     const reopened = await resetPaymentForRetry(payment);
     return { payment: reopened };
   }
