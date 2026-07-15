@@ -2,6 +2,7 @@ import { and, eq, inArray, isNotNull, notInArray } from "drizzle-orm";
 import { Horizon } from "@stellar/stellar-sdk";
 import { findAllowedAsset, allowedAssetsEquivalent } from "@/lib/assets/types";
 import type { AllowedAsset } from "@/lib/assets/types";
+import { isPaymentInProgressStatus } from "@/lib/checkout/payment-state";
 import {
   calculateMerchantSettlementAmount,
 } from "@/constants/payments/defaults";
@@ -1120,8 +1121,8 @@ export async function detectEscrowDepositForPayment(
       detected:
         fresh.status === "completed" ||
         fresh.status === "refunded" ||
-        fresh.status === "processing" ||
         fresh.status === "refunding" ||
+        isPaymentInProgressStatus(fresh.status) ||
         fresh.status !== payment.status,
       payment: fresh,
     };
@@ -1130,7 +1131,7 @@ export async function detectEscrowDepositForPayment(
   if (
     fresh.paymentFlow !== "escrow" ||
     !fresh.depositAddress ||
-    (fresh.status !== "pending" && fresh.status !== "processing")
+    fresh.status !== "pending"
   ) {
     return { detected: false, payment: fresh };
   }
@@ -1170,7 +1171,7 @@ export async function detectEscrowDepositForPayment(
       detected:
         current.status === "completed" ||
         current.status === "refunded" ||
-        current.status === "processing",
+        isPaymentInProgressStatus(current.status),
       payment: current,
     };
   }

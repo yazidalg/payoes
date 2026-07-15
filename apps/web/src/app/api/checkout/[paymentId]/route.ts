@@ -6,6 +6,7 @@ import { serializePaymentAssets } from "@/lib/assets/serialize";
 import { getCheckoutLineItems } from "@/lib/checkout/line-items";
 import { getCheckoutInvoiceDetails } from "@/lib/checkout/invoice-details";
 import { getCheckoutCustomerCollection } from "@/lib/checkout/customer-collection";
+import { isPaymentInProgressStatus } from "@/lib/checkout/payment-state";
 import { resolvePaymentForHostedCheckout } from "@/lib/checkout-sessions/service";
 import { db } from "@/lib/db";
 import { organizations } from "@/lib/db/schema";
@@ -237,12 +238,7 @@ export async function POST(
         });
       }
 
-      if (
-        result.payment.status === "processing" ||
-        result.payment.status === "deposit_received" ||
-        result.payment.status === "refunding" ||
-        result.payment.status === "settling"
-      ) {
+      if (isPaymentInProgressStatus(result.payment.status)) {
         return NextResponse.json(
           { status: result.payment.status, detected: true, phase: "processing" },
           { status: 202 },

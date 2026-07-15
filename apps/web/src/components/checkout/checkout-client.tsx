@@ -367,8 +367,8 @@ export function CheckoutClient({
 
   useEffect(() => {
     const shouldPoll =
-      Boolean(data) &&
-      (isCheckoutProcessingStatus(data.payment.status) || Boolean(pendingTxHash));
+      (data != null && isCheckoutProcessingStatus(data.payment.status)) ||
+      Boolean(pendingTxHash);
 
     if (!shouldPoll) {
       return;

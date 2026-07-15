@@ -1,8 +1,21 @@
-export const CHECKOUT_PROCESSING_STATUSES = [
-  "processing",
+export const PAYMENT_IN_PROGRESS_STATUSES = [
   "deposit_received",
   "refunding",
   "settling",
+] as const;
+
+export type PaymentInProgressStatus =
+  (typeof PAYMENT_IN_PROGRESS_STATUSES)[number];
+
+export function isPaymentInProgressStatus(
+  status: string,
+): status is PaymentInProgressStatus {
+  return (PAYMENT_IN_PROGRESS_STATUSES as readonly string[]).includes(status);
+}
+
+export const CHECKOUT_PROCESSING_STATUSES = [
+  "processing",
+  ...PAYMENT_IN_PROGRESS_STATUSES,
 ] as const;
 
 export type CheckoutProcessingStatus =
