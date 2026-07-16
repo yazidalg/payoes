@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { useAsyncData } from "@/hooks/use-async-data";
 import { formatAmountWithUnit } from "@/lib/format/amount";
 import type { Organization } from "@/lib/db/schema";
-import { formatAssetAmount, type PaymentRow } from "@/lib/payments/types";
+import type { PaymentRow } from "@/lib/payments/types";
+import { AssetAmountCell } from "@/ui/assets/asset-amount-cell";
 import { getStellarExpertTxUrlIfValid } from "@/lib/stellar/explorer";
 import { TransactionsFilters } from "@/ui/transactions/use-transaction-filters";
 import { TransactionsTableSkeleton } from "@/ui/transactions/transactions-table-skeleton";
@@ -144,23 +145,25 @@ export function TransactionsTable({
         id: "paid",
         header: "Paid",
         minSize: 120,
-        cell: ({ row }: { row: Row<PaymentRow> }) =>
-          formatAssetAmount(
-            row.original.quoted_paid_amount ?? row.original.amount,
-            row.original.paid_asset ?? row.original.settlement_asset,
-          ),
+        cell: ({ row }: { row: Row<PaymentRow> }) => (
+          <AssetAmountCell
+            amount={row.original.quoted_paid_amount ?? row.original.amount}
+            asset={row.original.paid_asset ?? row.original.settlement_asset}
+          />
+        ),
       },
       {
         id: "settlement",
         header: "Settlement",
         minSize: 120,
-        cell: ({ row }: { row: Row<PaymentRow> }) =>
-          row.original.quoted_settlement_amount
-            ? formatAssetAmount(
-                row.original.quoted_settlement_amount,
-                row.original.settlement_asset,
-              )
-            : formatAssetAmount(row.original.amount, row.original.settlement_asset),
+        cell: ({ row }: { row: Row<PaymentRow> }) => (
+          <AssetAmountCell
+            amount={
+              row.original.quoted_settlement_amount ?? row.original.amount
+            }
+            asset={row.original.settlement_asset}
+          />
+        ),
       },
       {
         id: "pricing",

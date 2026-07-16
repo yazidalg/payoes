@@ -5,7 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAsyncData } from "@/hooks/use-async-data";
 import type { Organization } from "@/lib/db/schema";
-import { formatAssetAmount, type SettlementConversionRow } from "@/lib/payments/types";
+import type { SettlementConversionRow } from "@/lib/payments/types";
+import { AssetAmountCell } from "@/ui/assets/asset-amount-cell";
 import { getStellarExpertTxUrlIfValid } from "@/lib/stellar/explorer";
 import { SettlementsFilters } from "@/ui/settlements/use-settlement-filters";
 import { SettlementsTableSkeleton } from "@/ui/settlements/settlements-table-skeleton";
@@ -144,21 +145,23 @@ export function SettlementsTable({
         id: "paid",
         header: "Paid",
         minSize: 120,
-        cell: ({ row }: { row: Row<SettlementConversionRow> }) =>
-          formatAssetAmount(
-            row.original.quoted_paid_amount,
-            row.original.paid_asset,
-          ),
+        cell: ({ row }: { row: Row<SettlementConversionRow> }) => (
+          <AssetAmountCell
+            amount={row.original.quoted_paid_amount}
+            asset={row.original.paid_asset}
+          />
+        ),
       },
       {
         id: "received",
         header: "Received",
         minSize: 120,
-        cell: ({ row }: { row: Row<SettlementConversionRow> }) =>
-          formatAssetAmount(
-            row.original.quoted_settlement_amount,
-            row.original.settlement_asset,
-          ),
+        cell: ({ row }: { row: Row<SettlementConversionRow> }) => (
+          <AssetAmountCell
+            amount={row.original.quoted_settlement_amount}
+            asset={row.original.settlement_asset}
+          />
+        ),
       },
       {
         id: "invoice",
