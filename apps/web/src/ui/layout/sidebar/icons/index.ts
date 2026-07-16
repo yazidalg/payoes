@@ -1,6 +1,7 @@
 export { ArrowsOppositeDirectionX } from "./arrows-opposite-direction-x";
 export { BookOpen } from "./book-open";
 export { Code } from "./code";
+export { ConnectedDots4 } from "./connected-dots4";
 export { Cube } from "./cube";
 export { Gauge6 } from "./gauge6";
 export { Gear2 } from "./gear2";
