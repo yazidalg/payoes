@@ -49,12 +49,9 @@ export default function AuthRouteLayout({
       <div className="relative flex min-h-[100dvh] min-h-screen w-full justify-center">
         <Link
           href="/"
-          className="absolute left-1/2 top-4 z-10 flex -translate-x-1/2 items-center gap-2"
+          className="absolute left-1/2 top-4 z-10 flex -translate-x-1/2 items-center"
         >
-          <Logo className="size-8" />
-          <span className="text-lg font-semibold text-neutral-900">
-            Payoes
-          </span>
+          <Logo className="h-8 w-auto" />
         </Link>
         {children}
       </div>

@@ -49,7 +49,7 @@ function formatDate(date: Date | null) {
 
 function getWordmarkUrl() {
   const appUrl = process.env.AUTH_URL ?? DEFAULT_AUTH_URL;
-  return `${appUrl.replace(/\/$/, "")}/logo.svg`;
+  return `${appUrl.replace(/\/$/, "")}/logo-full.png`;
 }
 
 export function mapInvoicePresentationToEmailProps(

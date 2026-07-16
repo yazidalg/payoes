@@ -1,6 +1,6 @@
 "use client";
 
-import { Wordmark } from "@dub/ui";
+import { Logo } from "@/components/shared/logo";
 import { Menu } from "lucide-react";
 import Link from "next/link";
 import { useKycSidebar } from "@/ui/kyc/kyc-sidebar-context";
@@ -20,7 +20,7 @@ export function CreateBusinessHeader() {
           <Menu className="size-5 text-neutral-600" />
         </button>
         <Link href="/dashboard/payments" className="flex items-center">
-          <Wordmark className="h-7" />
+          <Logo className="h-7 w-auto" />
         </Link>
         <h1 className="text-base font-semibold text-neutral-700">
           Create business

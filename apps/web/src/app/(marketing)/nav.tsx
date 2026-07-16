@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { type ComponentType, useEffect, useRef, useState } from "react";
-import { Wordmark } from "@dub/ui";
+import { Logo } from "@/components/shared/logo";
 import { getDocsUrl } from "@/lib/docs/url";
 import { cn } from "@/lib/utils";
 import {
@@ -212,7 +212,7 @@ export function Nav() {
           href="/"
           className="block rounded-lg outline-none transition-opacity focus-visible:ring-2 focus-visible:ring-primary/50"
         >
-          <Wordmark className="h-5 overflow-visible" />
+          <Logo className="h-5 w-auto overflow-visible" />
         </Link>
 
         <nav className="hidden items-center gap-8 md:flex">

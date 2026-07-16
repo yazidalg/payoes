@@ -1060,8 +1060,7 @@ export function CheckoutView({
                 {disabled ? (
                   <span className="inline-flex items-center gap-1.5 text-xs text-neutral-400">
                     <span>Powered by</span>
-                    <img src="/logo.svg" alt="Payoes logo" className="h-4 w-auto brightness-90" />
-                    <span className="font-semibold text-neutral-500">Payoes</span>
+                    <img src="/logo-full.png" alt="Payoes" className="h-4 w-auto brightness-90" />
                   </span>
                 ) : (
                   <a
@@ -1071,8 +1070,7 @@ export function CheckoutView({
                     className="inline-flex items-center gap-1.5 text-xs text-neutral-400 hover:text-neutral-600 transition-colors"
                   >
                     <span>Powered by</span>
-                    <img src="/logo.svg" alt="Payoes logo" className="h-4 w-auto brightness-90" />
-                    <span className="font-semibold text-neutral-500">Payoes</span>
+                    <img src="/logo-full.png" alt="Payoes" className="h-4 w-auto brightness-90" />
                   </a>
                 )}
               </div>

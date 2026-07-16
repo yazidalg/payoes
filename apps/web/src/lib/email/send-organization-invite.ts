@@ -7,7 +7,7 @@ function getAppUrl() {
 }
 
 function getWordmarkUrl() {
-  return `${getAppUrl().replace(/\/$/, "")}/logo.svg`;
+  return `${getAppUrl().replace(/\/$/, "")}/logo-full.png`;
 }
 
 export async function sendOrganizationInviteEmail(input: {
