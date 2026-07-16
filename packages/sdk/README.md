@@ -104,14 +104,14 @@ document.getElementById("pay-button")?.addEventListener("click", () => {
 
 Opens the hosted checkout in a modal iframe.
 
-| Option | Type | Required | Description |
-|--------|------|----------|-------------|
-| `paymentId` | `string` | Yes* | Payment ID (`pay_...`) |
-| `checkoutUrl` | `string` | Yes* | Full hosted checkout URL. Alternative to `paymentId` |
-| `baseUrl` | `string` | No | Payoes host. Default: `https://payoes.com` |
-| `onComplete` | `(result) => void` | No | Called when checkout reports `completed` or `refunded` |
-| `onClose` | `() => void` | No | Called when the modal closes |
-| `onError` | `(error: Error) => void` | No | Called when options are invalid or message handling fails |
+| Option        | Type                     | Required | Description                                               |
+| ------------- | ------------------------ | -------- | --------------------------------------------------------- |
+| `paymentId`   | `string`                 | Yes*     | Payment ID (`pay_...`)                                    |
+| `checkoutUrl` | `string`                 | Yes*     | Full hosted checkout URL. Alternative to `paymentId`      |
+| `baseUrl`     | `string`                 | No       | Payoes host. Default: `https://payoes.com`                |
+| `onComplete`  | `(result) => void`       | No       | Called when checkout reports `completed` or `refunded`    |
+| `onClose`     | `() => void`             | No       | Called when the modal closes                              |
+| `onError`     | `(error: Error) => void` | No       | Called when options are invalid or message handling fails |
 
 \* Provide `paymentId` or `checkoutUrl`.
 
@@ -143,19 +143,19 @@ import { openCheckout, closeCheckout, SDK_VERSION } from "@payoes/sdk";
 
 ## Modal behavior
 
-| Viewport | Layout |
-|----------|--------|
-| Mobile (`< 768px`) | Fullscreen modal (`100dvh`) |
-| Desktop | Centered modal, max width `1024px`, max height `90dvh` |
+| Viewport           | Layout                                                 |
+| ------------------ | ------------------------------------------------------ |
+| Mobile (`< 768px`) | Fullscreen modal (`100dvh`)                            |
+| Desktop            | Centered modal, max width `1024px`, max height `90dvh` |
 
 Customers can close the modal with the close button, backdrop click, or `Escape`.
 
 ## Embed vs redirect
 
-| Approach | Best for |
-|----------|----------|
-| **Redirect** to `checkout_url` | Simplest integration, email links, mobile apps |
-| **Embed** with `@payoes/sdk` | On-site checkout, SaaS billing pages, marketplaces |
+| Approach                       | Best for                                           |
+| ------------------------------ | -------------------------------------------------- |
+| **Redirect** to `checkout_url` | Simplest integration, email links, mobile apps     |
+| **Embed** with `@payoes/sdk`   | On-site checkout, SaaS billing pages, marketplaces |
 
 ## Security
 
@@ -172,12 +172,12 @@ The SDK validates `postMessage` origin against `baseUrl` before handling events.
 
 The iframe loads `/c/{payment_id}?embed=1` and communicates with the parent page:
 
-| Event | Direction | Payload |
-|-------|-----------|---------|
-| `payoes:checkout:ready` | iframe to parent | `{ paymentId }` |
+| Event                       | Direction        | Payload                          |
+| --------------------------- | ---------------- | -------------------------------- |
+| `payoes:checkout:ready`     | iframe to parent | `{ paymentId }`                  |
 | `payoes:checkout:completed` | iframe to parent | `{ paymentId, status, txHash? }` |
-| `payoes:checkout:closed` | iframe to parent | `{ paymentId }` |
-| `payoes:checkout:close` | parent to iframe | `{}` |
+| `payoes:checkout:closed`    | iframe to parent | `{ paymentId }`                  |
+| `payoes:checkout:close`     | parent to iframe | `{}`                             |
 
 ## Local development
 
@@ -212,11 +212,11 @@ The SDK is browser-only. Call it from client-side code after user interaction.
 
 ## Package exports
 
-| Import | Format | Use case |
-|--------|--------|----------|
-| `@payoes/sdk` | ESM + types | Bundlers (Vite, Webpack, Next.js client components) |
-| `@payoes/sdk/checkout` | ESM | Programmatic checkout module without the global |
-| `https://payoes.com/sdk/checkout.js` | IIFE | Plain HTML, legacy apps, no bundler |
+| Import                               | Format      | Use case                                            |
+| ------------------------------------ | ----------- | --------------------------------------------------- |
+| `@payoes/sdk`                        | ESM + types | Bundlers (Vite, Webpack, Next.js client components) |
+| `@payoes/sdk/checkout`               | ESM         | Programmatic checkout module without the global     |
+| `https://payoes.com/sdk/checkout.js` | IIFE        | Plain HTML, legacy apps, no bundler                 |
 
 ## Requirements
 
@@ -233,7 +233,7 @@ The SDK is browser-only. Call it from client-side code after user interaction.
 
 ## Development
 
-This package lives in the [Payoes monorepo](https://github.com/payoesteam/payoes).
+This package lives in the [Payoes monorepo](https://github.com/yazidalg/payoes).
 
 ```bash
 # From the repository root

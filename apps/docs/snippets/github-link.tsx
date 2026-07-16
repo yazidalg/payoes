@@ -1,4 +1,4 @@
-const DEFAULT_GITHUB_REPO_URL = "https://github.com/payoesteam/payoes";
+const DEFAULT_GITHUB_REPO_URL = "https://github.com/yazidalg/payoes";
 
 function getGithubUrl() {
   return process.env.NEXT_PUBLIC_GITHUB_URL?.trim() || DEFAULT_GITHUB_REPO_URL;
@@ -13,12 +13,6 @@ function getGithubRepoPath(path = "") {
   return `${base}/${path.replace(/^\//, "")}`;
 }
 
-export function GithubRepoLink({
-  path,
-  children,
-}: {
-  path?: string;
-  children: React.ReactNode;
-}) {
+export function GithubRepoLink({ path, children }: { path?: string; children: React.ReactNode }) {
   return <a href={getGithubRepoPath(path)}>{children}</a>;
 }

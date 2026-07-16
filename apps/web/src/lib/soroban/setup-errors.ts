@@ -32,8 +32,8 @@ export function sorobanSetupSteps(
 
   return [
     `Fund a Stellar ${environment === "production" ? "Mainnet" : "Testnet"} account for the Payoes operator.`,
-    `Set STELLAR_${prefix}_OPERATOR_SECRET in apps/web/.env.local.`,
-    `Set SOROBAN_${prefix}_RPC_URL in apps/web/.env.local.`,
+    `Set STELLAR_${prefix}_OPERATOR_SECRET in .env.local at the repository root.`,
+    `Set SOROBAN_${prefix}_RPC_URL in .env.local at the repository root.`,
     `Deploy and initialize the Payoes Soroban contract, then set SOROBAN_${prefix}_CONTRACT_ID.`,
     "Ensure the contract authorization_signer matches the operator public key.",
     "Restart npm run dev after changing environment variables.",

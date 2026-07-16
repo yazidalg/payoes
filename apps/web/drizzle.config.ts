@@ -1,14 +1,13 @@
-import { config } from "dotenv";
+import { loadRootEnv } from "../../scripts/load-root-env.mjs";
 import { defineConfig } from "drizzle-kit";
 
-config({ path: ".env.local" });
-config({ path: ".env" });
+loadRootEnv();
 
 const databaseUrl = process.env.DATABASE_URL;
 
 if (!databaseUrl) {
   throw new Error(
-    "DATABASE_URL is not set. Add it to apps/web/.env.local (see .env.example)."
+    "DATABASE_URL is not set. Add it to .env.local at the repository root (see .env.example)."
   );
 }
 

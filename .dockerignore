@@ -1,0 +1,30 @@
+# Dependencies
+node_modules
+**/node_modules
+**/.next
+**/dist
+.git
+.gitignore
+.cursor
+.agents
+**/*.md
+!README.md
+
+# Local env (use docker-compose environment instead)
+**/.env
+**/.env.*
+!**/.env.example
+
+# Docker
+Dockerfile
+.dockerignore
+
+# Large / unrelated trees
+stellartools
+apps/docs/.mintlify
+
+# OS / editor
+.DS_Store
+*.log
+coverage
+.turbo

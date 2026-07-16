@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: postgres:16-alpine
+    image: postgres:17-alpine
     container_name: payoes-postgres
     restart: unless-stopped
     environment:
@@ -42,7 +42,7 @@ services:
     container_name: payoes-minio-init
     depends_on:
       minio:
-        condition: service_started
+        condition: service_healthy
     entrypoint: >
       /bin/sh -c "
       until mc alias set local http://minio:9000 payoes payoessecret; do sleep 1; done;
@@ -50,6 +50,59 @@ services:
       mc anonymous set download local/payoes-uploads;
       echo 'MinIO bucket payoes-uploads is ready';
       "
+
+  web-migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: migrate
+    container_name: payoes-web-migrate
+    restart: "no"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://payoes:payoes@postgres:5432/payoes
+      DATABASE_HOST: postgres
+      DATABASE_PORT: "5432"
+      DATABASE_USER: payoes
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runner
+      args:
+        NEXT_PUBLIC_DOCS_URL: ${NEXT_PUBLIC_DOCS_URL:-http://localhost:3001}
+        NEXT_PUBLIC_GITHUB_URL: ${NEXT_PUBLIC_GITHUB_URL:-https://github.com/yazidalg/payoes}
+    container_name: payoes-web
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+      web-migrate:
+        condition: service_completed_successfully
+    environment:
+      AUTH_SECRET: ${AUTH_SECRET:-payoes-docker-dev-secret}
+      AUTH_URL: ${AUTH_URL:-http://localhost:3000}
+      DATABASE_URL: postgresql://payoes:payoes@postgres:5432/payoes
+      S3_ENDPOINT: http://minio:9000
+      S3_PUBLIC_URL: ${S3_PUBLIC_URL:-http://localhost:9000/payoes-uploads}
+      NODE_ENV: production
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
 
 volumes:
   postgres_data:

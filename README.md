@@ -220,7 +220,7 @@ git clone git@github.com:yazidalg/payoes.git
 cd payoes
 npm install
 npm run docker:up
-cp apps/web/.env.example apps/web/.env.local
+cp .env.example .env.local
 npm run db:migrate
 npm run dev              # http://localhost:3000
 ```

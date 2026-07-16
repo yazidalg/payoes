@@ -1,9 +1,9 @@
 ---
 title: Environment variables
-description: Reference for apps/web/.env.local when running Payoes locally.
+description: Reference for `.env.local` at the repository root when running Payoes locally.
 ---
 
-All configuration for the web app lives in `apps/web/.env.local`. Copy from `apps/web/.env.example` and adjust values for your machine.
+All configuration lives in `.env.local` at the **repository root** (`payoes/.env.local`). Copy from `.env.example` in the same directory.
 
 <Note>Restart `npm run dev` after changing environment variables.</Note>
 
@@ -108,10 +108,10 @@ See [Soroban escrow setup](/local-setup/soroban-escrow-setup) for the full walkt
 
 ## Docs
 
-| Variable               | Required    | Description                                                                 |
-| ---------------------- | ----------- | --------------------------------------------------------------------------- |
-| `NEXT_PUBLIC_DOCS_URL` | Recommended | URL opened by dashboard documentation links. Local: `http://localhost:3001` |
-| `NEXT_PUBLIC_GITHUB_URL` | Recommended | Public GitHub repository URL for marketing and docs links. Default: `https://github.com/payoesteam/payoes` |
+| Variable                 | Required    | Description                                                                                              |
+| ------------------------ | ----------- | -------------------------------------------------------------------------------------------------------- |
+| `NEXT_PUBLIC_DOCS_URL`   | Recommended | URL opened by dashboard documentation links. Local: `http://localhost:3001`                              |
+| `NEXT_PUBLIC_GITHUB_URL` | Recommended | Public GitHub repository URL for marketing and docs links. Default: `https://github.com/yazidalg/payoes` |
 
 ## Example: minimal local file
 
@@ -131,7 +131,7 @@ S3_BUCKET=payoes-uploads
 S3_REGION=us-east-1
 
 NEXT_PUBLIC_DOCS_URL=http://localhost:3001
-NEXT_PUBLIC_GITHUB_URL=https://github.com/payoesteam/payoes
+NEXT_PUBLIC_GITHUB_URL=https://github.com/yazidalg/payoes
 ```
 
 ## Example: with Google OAuth

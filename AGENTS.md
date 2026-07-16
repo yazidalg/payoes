@@ -25,7 +25,7 @@ Cross-tool rules for Claude Code, OpenAI Codex, Antigravity, and other AGENTS.md
 - `packages/sdk`: `@payoes/sdk`, currently a placeholder.
 - `apps/docs/`: Mintlify API documentation. `apps/docs/CONTEXT.md` describes the product vision and object model.
 
-Run all npm scripts from the repo root. Local infrastructure comes from `docker compose up -d` (or `npm run docker:up`): PostgreSQL on 5432 and MinIO (S3-compatible storage) on 9000/9001. Copy `apps/web/.env.example` to `apps/web/.env` for configuration. There is no test suite.
+Run all npm scripts from the repo root. Local infrastructure comes from `docker compose up -d` (or `npm run docker:up`): PostgreSQL on 5432 and MinIO (S3-compatible storage) on 9000/9001. Copy `.env.example` to `.env.local` at the repository root for configuration. There is no test suite.
 
 Database: Drizzle ORM + PostgreSQL. The entire schema is one file, `apps/web/src/lib/db/schema.ts`. After changing it, run `npm run db:generate` (creates SQL in `apps/web/drizzle/`) then `npm run db:migrate`. `npm run db:studio` opens Drizzle Studio.
 

@@ -17,7 +17,7 @@ On a quiet deployment, a failed delivery might sit until the next payment event 
 
 ## `CRON_SECRET`
 
-Set a bearer token in `apps/web/.env.local` or your production environment:
+Set a bearer token in `.env.local` at the repository root or your production environment:
 
 ```bash
 CRON_SECRET=<openssl rand -base64 32>

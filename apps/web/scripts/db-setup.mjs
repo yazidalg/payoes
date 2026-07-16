@@ -1,14 +1,15 @@
 import { execSync } from "node:child_process";
-import { config } from "dotenv";
 import postgres from "postgres";
+import { loadRootEnv } from "../../scripts/load-root-env.mjs";
 
-config({ path: ".env.local" });
-config({ path: ".env" });
+loadRootEnv();
 
 const databaseUrl = process.env.DATABASE_URL;
 
 if (!databaseUrl) {
-  console.error("DATABASE_URL is not set. Copy apps/web/.env.example to .env.local.");
+  console.error(
+    "DATABASE_URL is not set. Copy .env.example to .env.local at the repository root."
+  );
   process.exit(1);
 }
 

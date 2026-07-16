@@ -6,12 +6,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/payoesteam/payoes.git",
+    "url": "git+https://github.com/yazidalg/payoes.git",
     "directory": "packages/sdk"
   },
   "homepage": "https://payoes.com/docs/guides/checkout-embed",
   "bugs": {
-    "url": "https://github.com/payoesteam/payoes/issues"
+    "url": "https://github.com/yazidalg/payoes/issues"
   },
   "keywords": [
     "payoes",

@@ -12,7 +12,7 @@ Both endpoints require the same `CRON_SECRET` configured on the Payoes web app.
 ## Prerequisites
 
 - Payoes web app deployed and reachable over HTTPS
-- `CRON_SECRET` set in the Payoes app environment (`apps/web/.env` or hosting provider env vars)
+- `CRON_SECRET` set in `.env.local` at the repository root (or hosting provider env vars)
 - VPS with `cron`, `curl`, and `bash`
 
 Generate a secret (run on your machine or VPS):

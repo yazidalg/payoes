@@ -38,10 +38,10 @@ You should see `payoes-postgres` and `payoes-minio` running. The `minio-init` jo
 ## 3. Create your environment file
 
 ```bash
-cp apps/web/.env.example apps/web/.env.local
+cp .env.example .env.local
 ```
 
-Open `apps/web/.env.local` and set the **minimum required** values below.
+Open `.env.local` at the repository root and set the **minimum required** values below.
 
 ### Minimum config for first run
 
@@ -125,7 +125,7 @@ curl "https://friendbot.stellar.org?addr=$(stellar keys address payoes-operator)
   --source-account payoes-operator
 ```
 
-Copy `CONTRACT_ID` and `OPERATOR_SECRET` from the output into `apps/web/.env.local`, then restart `npm run dev`.
+Copy `CONTRACT_ID` and `OPERATOR_SECRET` from the output into `.env.local` at the repository root, then restart `npm run dev`.
 
 See [Soroban escrow setup](/local-setup/soroban-escrow-setup) for separate funder accounts, other networks, and troubleshooting.
 

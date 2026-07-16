@@ -1,4 +1,11 @@
+import { config as loadEnv } from "dotenv";
+import path from "node:path";
 import type { NextConfig } from "next";
+
+const repoRoot = path.resolve(__dirname, "../..");
+
+loadEnv({ path: path.join(repoRoot, ".env.local") });
+loadEnv({ path: path.join(repoRoot, ".env") });
 
 const allowedDevOrigins =
   process.env.NEXT_ALLOWED_DEV_ORIGINS?.split(",")
@@ -6,6 +13,7 @@ const allowedDevOrigins =
     .filter(Boolean) ?? [];
 
 const nextConfig: NextConfig = {
+  output: "standalone",
   reactCompiler: true,
   ...(allowedDevOrigins.length > 0 ? { allowedDevOrigins } : {}),
   transpilePackages: ["@dub/ui", "@dub/utils", "@payoes/email"],
