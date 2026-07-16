@@ -9,6 +9,7 @@ import { getAssetIconUrl } from "@/lib/assets/icons";
 import { getOfficialAsset } from "@/lib/payment-methods/official-assets";
 import { ConnectedWallet } from "@/ui/wallet/connected-wallet";
 import { CheckoutSandboxBanner } from "@/components/checkout/checkout-sandbox-banner";
+import { CheckoutErrorBanner } from "@/components/checkout/checkout-error-banner";
 import { BusinessMark } from "@/components/business/business-mark";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { formatInvoiceAmount } from "@/lib/invoices/amount";
@@ -202,6 +203,33 @@ export type CheckoutViewProps = {
   onCustomerInputChange?: (value: PaymentLinkCustomerInput) => void;
 };
 
+function getCheckoutErrorMessage(input: {
+  isSessionExpired: boolean;
+  sessionError?: string | null;
+  error: string | null;
+  quoteError: string | null;
+  walletAssetError?: string | null;
+  networkError: string | null;
+  connectError: string | null;
+  isRefreshingRate: boolean;
+}) {
+  if (input.isSessionExpired) {
+    return (
+      input.sessionError ??
+      "This payment has expired. Ask the merchant to send a new payment link."
+    );
+  }
+
+  return (
+    input.error ??
+    (!input.isRefreshingRate ? input.quoteError : null) ??
+    input.walletAssetError ??
+    input.networkError ??
+    input.connectError ??
+    null
+  );
+}
+
 export function CheckoutView({
   data,
   isCompleted,
@@ -302,6 +330,24 @@ export function CheckoutView({
   const showCustomerPanelTabs = showCustomerInfoFields;
   const isDetailsPanel = showCustomerPanelTabs && customerPanel === "details";
   const isPaymentPanel = !showCustomerPanelTabs || customerPanel === "payment";
+  const checkoutErrorMessage = getCheckoutErrorMessage({
+    isSessionExpired,
+    sessionError: data.payment.session_error,
+    error,
+    quoteError,
+    walletAssetError,
+    networkError,
+    connectError,
+    isRefreshingRate,
+  });
+  const showCheckoutErrorBanner = Boolean(checkoutErrorMessage) && !disabled;
+  const hideSandboxSimulate =
+    disabled ||
+    isCompleted ||
+    isRefreshingRate ||
+    isSessionExpired ||
+    data.payment.status === "failed" ||
+    data.payment.status === "refunded";
 
   function formatLineAmount(amount: string) {
     if (hasPricing) {
@@ -311,14 +357,14 @@ export function CheckoutView({
   }
 
   return (
-    <div className={cn("relative bg-white text-left flex flex-col flex-1 @container", disabled || embedded ? "min-h-full h-full" : "min-h-svh")}>
+    <div className={cn("relative bg-white text-left flex flex-col flex-1 @container", disabled || embedded ? "min-h-full h-full" : "min-h-svh", showCheckoutErrorBanner && "pb-16")}>
       <div className={cn("relative z-10 flex flex-col flex-1", disabled || embedded ? "h-full" : "min-h-svh")}>
         {/* Hide sandbox banner when in preview (disabled) */}
         {isSandbox && !disabled ? (
           <CheckoutSandboxBanner
             onSimulate={disabled ? undefined : onSimulatePayment}
             isSimulating={isSimulating}
-            simulateDisabled={disabled || isCompleted || isRefreshingRate}
+            simulateDisabled={hideSandboxSimulate}
           />
         ) : null}
 
@@ -694,10 +740,9 @@ export function CheckoutView({
                     </div>
                   </div>
                 ) : isSessionExpired ? (
-                  <AlertBlock type="error">
-                    {data.payment.session_error ??
-                      "This payment has expired. Ask the merchant to send a new invoice link."}
-                  </AlertBlock>
+                  <p className="text-sm text-neutral-500">
+                    This payment can no longer be completed.
+                  </p>
                 ) : (
                   <div className={cn(disabled ? "space-y-4" : "space-y-5")}>
                     {lastAttemptError ? (
@@ -822,13 +867,6 @@ export function CheckoutView({
                           new rate is ready.
                         </AlertBlock>
                       ) : null}
-                      {quoteError && !isRefreshingRate ? (
-                        <AlertBlock type="error">{quoteError}</AlertBlock>
-                      ) : null}
-                      {walletAssetError ? <AlertBlock type="error">{walletAssetError}</AlertBlock> : null}
-                      {error ? <AlertBlock type="error">{error}</AlertBlock> : null}
-                      {networkError ? <AlertBlock type="error">{networkError}</AlertBlock> : null}
-                      {connectError ? <AlertBlock type="error">{connectError}</AlertBlock> : null}
                     </div>
 
                     {/* Payment Method Selector Tabs */}
@@ -1082,6 +1120,9 @@ export function CheckoutView({
           </div>
         </div>
       </div>
+      {showCheckoutErrorBanner && checkoutErrorMessage ? (
+        <CheckoutErrorBanner message={checkoutErrorMessage} />
+      ) : null}
     </div>
   );
 }

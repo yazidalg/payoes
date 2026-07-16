@@ -21,6 +21,7 @@
           "pages": [
             "guides/checkout",
             "guides/checkout-embed",
+            "guides/integrations",
             "guides/settlement-wallet",
             "guides/webhooks",
             "guides/analytics",

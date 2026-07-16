@@ -5,75 +5,71 @@ description: Reference for apps/web/.env.local when running Payoes locally.
 
 All configuration for the web app lives in `apps/web/.env.local`. Copy from `apps/web/.env.example` and adjust values for your machine.
 
-<Note>
-  Restart `npm run dev` after changing environment variables.
-</Note>
+<Note>Restart `npm run dev` after changing environment variables.</Note>
 
 ## Auth
 
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `AUTH_SECRET` | Yes | Session encryption secret. Generate with `openssl rand -base64 32` |
-| `AUTH_URL` | Yes | Public app URL. Local: `http://localhost:3000` |
-| `AUTH_GOOGLE_ID` | For Google sign-in | Google OAuth client ID |
-| `AUTH_GOOGLE_SECRET` | For Google sign-in | Google OAuth client secret |
+| Variable             | Required           | Description                                                        |
+| -------------------- | ------------------ | ------------------------------------------------------------------ |
+| `AUTH_SECRET`        | Yes                | Session encryption secret. Generate with `openssl rand -base64 32` |
+| `AUTH_URL`           | Yes                | Public app URL. Local: `http://localhost:3000`                     |
+| `AUTH_GOOGLE_ID`     | For Google sign-in | Google OAuth client ID                                             |
+| `AUTH_GOOGLE_SECRET` | For Google sign-in | Google OAuth client secret                                         |
 
-<Tip>
-  Users can register with email and password, or sign in with Google when OAuth is configured.
-</Tip>
+<Tip>Users can register with email and password, or sign in with Google when OAuth is configured.</Tip>
 
 ## Database
 
-| Variable | Required | Default (local) |
-|----------|----------|-----------------|
-| `DATABASE_URL` | Yes | `postgresql://payoes:payoes@localhost:5432/payoes` |
+| Variable       | Required | Default (local)                                    |
+| -------------- | -------- | -------------------------------------------------- |
+| `DATABASE_URL` | Yes      | `postgresql://payoes:payoes@localhost:5432/payoes` |
 
 Must match the credentials in `docker-compose.yml`.
 
 ## Object storage (MinIO)
 
-| Variable | Required | Default (local) |
-|----------|----------|-----------------|
-| `S3_ENDPOINT` | Yes | `http://localhost:9000` |
-| `S3_PUBLIC_URL` | Yes | `http://localhost:9000/payoes-uploads` |
-| `S3_ACCESS_KEY` | Yes | `payoes` |
-| `S3_SECRET_KEY` | Yes | `payoessecret` |
-| `S3_BUCKET` | Yes | `payoes-uploads` |
-| `S3_REGION` | Yes | `us-east-1` |
+| Variable        | Required | Default (local)                        |
+| --------------- | -------- | -------------------------------------- |
+| `S3_ENDPOINT`   | Yes      | `http://localhost:9000`                |
+| `S3_PUBLIC_URL` | Yes      | `http://localhost:9000/payoes-uploads` |
+| `S3_ACCESS_KEY` | Yes      | `payoes`                               |
+| `S3_SECRET_KEY` | Yes      | `payoessecret`                         |
+| `S3_BUCKET`     | Yes      | `payoes-uploads`                       |
+| `S3_REGION`     | Yes      | `us-east-1`                            |
 
 Used for organization logo uploads.
 
 ## Stellar
 
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `STELLAR_TESTNET_USDC_ISSUER` | For USDC sandbox | Testnet USDC issuer public key |
-| `STELLAR_MAINNET_USDC_ISSUER` | For USDC production | Mainnet USDC issuer public key |
-| `NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID` | No | Enables WalletConnect in Stellar Wallet Kit |
+| Variable                                | Required            | Description                                 |
+| --------------------------------------- | ------------------- | ------------------------------------------- |
+| `STELLAR_TESTNET_USDC_ISSUER`           | For USDC sandbox    | Testnet USDC issuer public key              |
+| `STELLAR_MAINNET_USDC_ISSUER`           | For USDC production | Mainnet USDC issuer public key              |
+| `NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID` | No                  | Enables WalletConnect in Stellar Wallet Kit |
 
 XLM payments work without USDC issuer variables. Set the issuer for the network you test when accepting USDC.
 
 ## Email (SMTP)
 
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `SMTP_HOST` | For invites | SMTP server hostname |
-| `SMTP_PORT` | For invites | Usually `587` |
-| `SMTP_USER` | For invites | SMTP username |
-| `SMTP_PASSWORD` | For invites | SMTP password |
-| `SMTP_FROM` | For invites | From header, e.g. `Payoes <noreply@yourdomain.com>` |
+| Variable        | Required    | Description                                         |
+| --------------- | ----------- | --------------------------------------------------- |
+| `SMTP_HOST`     | For invites | SMTP server hostname                                |
+| `SMTP_PORT`     | For invites | Usually `587`                                       |
+| `SMTP_USER`     | For invites | SMTP username                                       |
+| `SMTP_PASSWORD` | For invites | SMTP password                                       |
+| `SMTP_FROM`     | For invites | From header, e.g. `Payoes <noreply@yourdomain.com>` |
 
 Team invitation emails are sent only when SMTP is configured. Without SMTP, you can still test invites by copying the invite URL from the database or API response.
 
 ## KYC (Persona)
 
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `PERSONA_API_KEY` | For production gate | Server-side Persona API key (`persona_sandbox_...`) |
-| `PERSONA_WEBHOOK_SECRET` | For webhooks | Webhook signing secret from Persona dashboard |
-| `PERSONA_INQUIRY_TEMPLATE_ID` | For production gate | KYC inquiry template ID (`itmpl_...`) |
-| `NEXT_PUBLIC_PERSONA_ENVIRONMENT_ID` | For production gate | Persona environment ID (`env_...`) |
-| `NEXT_PUBLIC_PERSONA_INQUIRY_TEMPLATE_ID` | SDK only | Client-side template ID for the Persona SDK |
+| Variable                                  | Required            | Description                                         |
+| ----------------------------------------- | ------------------- | --------------------------------------------------- |
+| `PERSONA_API_KEY`                         | For production gate | Server-side Persona API key (`persona_sandbox_...`) |
+| `PERSONA_WEBHOOK_SECRET`                  | For webhooks        | Webhook signing secret from Persona dashboard       |
+| `PERSONA_INQUIRY_TEMPLATE_ID`             | For production gate | KYC inquiry template ID (`itmpl_...`)               |
+| `NEXT_PUBLIC_PERSONA_ENVIRONMENT_ID`      | For production gate | Persona environment ID (`env_...`)                  |
+| `NEXT_PUBLIC_PERSONA_INQUIRY_TEMPLATE_ID` | SDK only            | Client-side template ID for the Persona SDK         |
 
 See [KYC verification](/local-setup/kyc-verification) for Persona sandbox setup.
 
@@ -81,8 +77,8 @@ See [KYC verification](/local-setup/kyc-verification) for Persona sandbox setup.
 
 Self-hosted deployments only.
 
-| Variable | When to set | Description |
-|----------|-------------|-------------|
+| Variable      | When to set          | Description                               |
+| ------------- | -------------------- | ----------------------------------------- |
 | `CRON_SECRET` | Running cron workers | Bearer token for protected cron endpoints |
 
 See [Webhook retry worker](/local-setup/webhook-retry-worker) for scheduling setup.
@@ -91,14 +87,14 @@ See [Webhook retry worker](/local-setup/webhook-retry-worker) for scheduling set
 
 Payments and checkout require a deployed and initialized Payoes Soroban contract.
 
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `STELLAR_TESTNET_OPERATOR_SECRET` | Yes (sandbox) | Operator secret (`S...`). Printed by the deploy script |
-| `SOROBAN_TESTNET_RPC_URL` | Yes (sandbox) | Soroban RPC URL. Default: `https://soroban-testnet.stellar.org` |
-| `SOROBAN_TESTNET_CONTRACT_ID` | Yes (sandbox) | Contract ID (`C...`). Printed by the deploy script |
-| `STELLAR_MAINNET_OPERATOR_SECRET` | Production only | Mainnet operator account |
-| `SOROBAN_MAINNET_RPC_URL` | Production only | Mainnet Soroban RPC URL |
-| `SOROBAN_MAINNET_CONTRACT_ID` | Production only | Mainnet Payoes contract ID |
+| Variable                          | Required        | Description                                                     |
+| --------------------------------- | --------------- | --------------------------------------------------------------- |
+| `STELLAR_TESTNET_OPERATOR_SECRET` | Yes (sandbox)   | Operator secret (`S...`). Printed by the deploy script          |
+| `SOROBAN_TESTNET_RPC_URL`         | Yes (sandbox)   | Soroban RPC URL. Default: `https://soroban-testnet.stellar.org` |
+| `SOROBAN_TESTNET_CONTRACT_ID`     | Yes (sandbox)   | Contract ID (`C...`). Printed by the deploy script              |
+| `STELLAR_MAINNET_OPERATOR_SECRET` | Production only | Mainnet operator account                                        |
+| `SOROBAN_MAINNET_RPC_URL`         | Production only | Mainnet Soroban RPC URL                                         |
+| `SOROBAN_MAINNET_CONTRACT_ID`     | Production only | Mainnet Payoes contract ID                                      |
 
 Deploy and initialize with one command:
 
@@ -112,8 +108,8 @@ See [Soroban escrow setup](/local-setup/soroban-escrow-setup) for the full walkt
 
 ## Docs
 
-| Variable | Required | Description |
-|----------|----------|-------------|
+| Variable               | Required    | Description                                                                 |
+| ---------------------- | ----------- | --------------------------------------------------------------------------- |
 | `NEXT_PUBLIC_DOCS_URL` | Recommended | URL opened by dashboard documentation links. Local: `http://localhost:3001` |
 
 ## Example: minimal local file

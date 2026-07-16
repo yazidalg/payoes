@@ -197,6 +197,13 @@
       "when": 1784100000000,
       "tag": "0028_escrow_payment_flow",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1784186400000,
+      "tag": "0029_organization_integrations",
+      "breakpoints": true
     }
   ]
 }

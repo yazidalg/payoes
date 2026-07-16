@@ -1,0 +1,67 @@
+---
+title: WooCommerce integration
+description: Connect WooCommerce to Payoes and create payments from new orders.
+---
+
+Connect WooCommerce from **Dashboard → Integrations → WooCommerce**.
+
+## Prerequisites
+
+- WooCommerce 3.5+ with REST API enabled
+- HTTPS on your store (required for webhooks)
+- Payoes settlement wallet configured
+
+## Generate REST API keys
+
+In WooCommerce Admin:
+
+1. Go to **Settings → Advanced → REST API**
+2. Click **Add key**
+3. Description: `Payoes`
+4. Permissions: **Read/Write**
+5. Copy the **Consumer key** and **Consumer secret**
+
+## Connect from the dashboard
+
+<Steps>
+  <Step title="Open Integrations">
+    Go to **Integrations** in the Payoes dashboard and select **WooCommerce**.
+  </Step>
+  <Step title="Enter store details">
+    Provide your store URL and REST API keys.
+  </Step>
+  <Step title="Connect">
+    Click **Connect WooCommerce**. Payoes validates the keys and registers an `order.created` webhook.
+  </Step>
+</Steps>
+
+## What happens on new orders
+
+When WooCommerce creates a pending order:
+
+1. Payoes receives the webhook
+2. A payment is created with the order total
+3. The hosted checkout URL is added to the order customer note
+4. Your customer pays through Payoes checkout
+
+## Webhook URL
+
+Payoes registers this delivery URL automatically:
+
+```
+{AUTH_URL}/api/webhooks/woocommerce
+```
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Invalid API keys">
+    Confirm the REST key has read/write permissions and the store URL includes `https://`.
+  </Accordion>
+  <Accordion title="No payment created">
+    Only pending orders trigger payment creation. Completed or processing orders are ignored.
+  </Accordion>
+  <Accordion title="Webhook signature errors">
+    Disconnect and reconnect from the dashboard to rotate the webhook secret.
+  </Accordion>
+</AccordionGroup>

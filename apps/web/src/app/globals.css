@@ -52,6 +52,9 @@ body {
     --sandbox-banner: #0f3359;
     --sandbox-banner-border: #0a2644;
     --sandbox-banner-foreground: #ffffff;
+    --checkout-error-banner: #b42318;
+    --checkout-error-banner-border: #912018;
+    --checkout-error-banner-foreground: #ffffff;
   }
 
   .dark {
@@ -104,6 +107,18 @@ body {
 
   .border-sandbox-banner-border {
     border-color: var(--sandbox-banner-border);
+  }
+
+  .bg-checkout-error-banner {
+    background-color: var(--checkout-error-banner);
+  }
+
+  .text-checkout-error-banner-foreground {
+    color: var(--checkout-error-banner-foreground);
+  }
+
+  .border-checkout-error-banner-border {
+    border-color: var(--checkout-error-banner-border);
   }
 
   .bg-primary {

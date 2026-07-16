@@ -1,0 +1,34 @@
+---
+title: Integrations
+description: Connect Shopify or WooCommerce to create Payoes payments from store orders.
+---
+
+Payoes can connect to your e-commerce store and create hosted checkout payments when new orders are placed.
+
+## Supported platforms
+
+| Platform | Connection method | Trigger |
+|----------|-------------------|---------|
+| Shopify | OAuth app authorization | `orders/create` with pending payment |
+| WooCommerce | REST API keys | `order.created` with pending status |
+
+## How it works
+
+1. Connect your store from the Payoes dashboard under **Integrations**
+2. Payoes registers a webhook on your store
+3. When a pending order is created, Payoes creates a `pay_...` payment
+4. The checkout URL is added to the order note (Shopify) or customer note (WooCommerce)
+5. Your customer pays through the hosted Payoes checkout page
+
+Verify completed payments with [webhooks](/guides/webhooks) or `GET /api/v1/payments/{id}`.
+
+## Guides
+
+<CardGroup cols={2}>
+  <Card title="Shopify" icon="link" href="/guides/integrations/shopify">
+    Connect a Shopify store with OAuth.
+  </Card>
+  <Card title="WooCommerce" icon="link" href="/guides/integrations/woocommerce">
+    Connect WooCommerce with REST API keys.
+  </Card>
+</CardGroup>

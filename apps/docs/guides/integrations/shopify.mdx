@@ -1,0 +1,64 @@
+---
+title: Shopify integration
+description: Connect Shopify to Payoes and create payments from new orders.
+---
+
+Connect Shopify from **Dashboard → Integrations → Shopify**.
+
+## Prerequisites
+
+- A Shopify store with admin access
+- Payoes settlement wallet configured
+- A Payoes Shopify app configured on your Payoes host (`SHOPIFY_CLIENT_ID`, `SHOPIFY_CLIENT_SECRET`)
+
+## Connect from the dashboard
+
+<Steps>
+  <Step title="Open Integrations">
+    Go to **Integrations** in the Payoes dashboard and select **Shopify**.
+  </Step>
+  <Step title="Enter your shop domain">
+    Enter your store slug, for example `your-store` for `your-store.myshopify.com`.
+  </Step>
+  <Step title="Authorize Payoes">
+    Click **Connect Shopify** and approve access in Shopify Admin.
+  </Step>
+</Steps>
+
+After authorization, Payoes registers an `orders/create` webhook on your store.
+
+## What happens on new orders
+
+When Shopify creates a pending order:
+
+1. Payoes receives the webhook
+2. A payment is created with the order total
+3. The hosted `checkout_url` is added to the Shopify order note
+4. Share the checkout link with your customer or use the Payoes embed SDK
+
+## Environment variables
+
+Configure these on your Payoes deployment:
+
+```bash
+SHOPIFY_CLIENT_ID=
+SHOPIFY_CLIENT_SECRET=
+SHOPIFY_SCOPES=read_orders,write_orders
+INTEGRATIONS_STATE_SECRET=
+```
+
+`INTEGRATIONS_STATE_SECRET` signs OAuth state during the connect flow. Generate it like `AUTH_SECRET`.
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="OAuth redirect fails">
+    Confirm `AUTH_URL` matches your public Payoes host and the redirect URL is allowed in your Shopify app settings: `{AUTH_URL}/api/integrations/shopify/callback`.
+  </Accordion>
+  <Accordion title="No payment created">
+    Check the order financial status is `pending`. Paid orders are ignored.
+  </Accordion>
+  <Accordion title="Webhook signature errors">
+    Ensure `SHOPIFY_CLIENT_SECRET` matches the app that authorized the store.
+  </Accordion>
+</AccordionGroup>

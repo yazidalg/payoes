@@ -4,8 +4,8 @@ import { StellarWalletsKit } from "@creit.tech/stellar-wallets-kit/sdk";
 import { Horizon } from "@stellar/stellar-sdk";
 import { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import { CheckoutSandboxBanner } from "@/components/checkout/checkout-sandbox-banner";
+import { CheckoutErrorBanner } from "@/components/checkout/checkout-error-banner";
 import { BusinessMark } from "@/components/business/business-mark";
-import { AlertBlock } from "@/components/shared/alert-block";
 import { useStellarWallet } from "@/hooks/use-stellar-wallet";
 import { usePaymentQuoteCountdown } from "@/hooks/use-payment-quote-countdown";
 import { useCheckoutEmbed } from "@/hooks/use-checkout-embed";
@@ -740,11 +740,14 @@ export function CheckoutClient({
   }
 
   if (!data) {
+    const notFoundMessage = error ?? "Payment not found";
+
     return (
-      <div className="relative flex min-h-svh items-center justify-center bg-neutral-50 p-6">
+      <div className="relative flex min-h-svh items-center justify-center bg-neutral-50 p-6 pb-20">
         <div className="w-full max-w-md rounded-xl border border-neutral-200 bg-white p-4 shadow-sm">
-          <AlertBlock type="error">{error ?? "Payment not found"}</AlertBlock>
+          <p className="text-sm text-neutral-600">{notFoundMessage}</p>
         </div>
+        <CheckoutErrorBanner message={notFoundMessage} />
       </div>
     );
   }

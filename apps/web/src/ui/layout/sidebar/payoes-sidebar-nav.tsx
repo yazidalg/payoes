@@ -8,6 +8,7 @@ import {
   ArrowsOppositeDirectionX,
   BookOpen,
   Code,
+  Cube,
   Gauge6,
   Gear2,
   Globe2,
@@ -126,6 +127,12 @@ function getMainNavItems(): NavItemType[] {
       icon: User,
       href: "/dashboard/customers",
       isActive: (p, h) => isNavItemActive(p, h),
+    },
+    {
+      name: "Integrations",
+      icon: Cube,
+      href: "/dashboard/integrations",
+      isActive: (p) => p.startsWith("/dashboard/integrations"),
     },
     {
       name: "Developers",

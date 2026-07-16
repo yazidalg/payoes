@@ -96,11 +96,13 @@ Put `CRON_SECRET` in repository secrets and `PAYOES_URL` in repository variables
 
 cron-job.org, Railway cron, Render cron, or a plain `crontab` on a VPS all work — any service that can `POST` with the bearer token.
 
+For VPS setup, use the scripts in [`scripts/cron`](https://github.com/payoes/payoes/tree/main/scripts/cron) at the repository root (`run-settlement.sh`, `run-webhook-retries.sh`, and `README.md`).
+
 ## Troubleshooting
 
-| Problem | What to check |
-|---------|---------------|
-| `503 CRON_SECRET is not configured` | Env var missing in the deployment |
-| `401 Unauthorized` | Token mismatch or wrong header |
-| Retries stall in production | No scheduler and no payment events to trigger inline processing |
-| `processed: 0` | Nothing was due at that moment |
+| Problem                             | What to check                                                   |
+| ----------------------------------- | --------------------------------------------------------------- |
+| `503 CRON_SECRET is not configured` | Env var missing in the deployment                               |
+| `401 Unauthorized`                  | Token mismatch or wrong header                                  |
+| Retries stall in production         | No scheduler and no payment events to trigger inline processing |
+| `processed: 0`                      | Nothing was due at that moment                                  |

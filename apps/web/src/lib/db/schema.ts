@@ -113,6 +113,18 @@ export const webhookDeliveryStatusEnum = pgEnum("webhook_delivery_status", [
   "failed",
 ]);
 
+export const integrationProviderEnum = pgEnum("integration_provider", [
+  "shopify",
+  "woocommerce",
+]);
+
+export const integrationStatusEnum = pgEnum("integration_status", [
+  "pending",
+  "connected",
+  "disconnected",
+  "error",
+]);
+
 export const verificationStatusEnum = pgEnum("verification_status", [
   "unverified",
   "pending",
@@ -735,6 +747,57 @@ export const webhookDeliveries = pgTable("webhook_deliveries", {
   deliveredAt: timestamp("delivered_at", { withTimezone: true }),
 });
 
+export const organizationIntegrations = pgTable(
+  "organization_integrations",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    environment: environmentModeEnum("environment").notNull().default("sandbox"),
+    provider: integrationProviderEnum("provider").notNull(),
+    status: integrationStatusEnum("status").notNull().default("pending"),
+    storeIdentifier: text("store_identifier").notNull(),
+    credentials: jsonb("credentials").$type<Record<string, string>>(),
+    webhookSecret: text("webhook_secret"),
+    externalWebhookId: text("external_webhook_id"),
+    settings: jsonb("settings").$type<Record<string, string>>().default({}),
+    lastError: text("last_error"),
+    connectedAt: timestamp("connected_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("organization_integrations_org_env_provider_idx").on(
+      table.organizationId,
+      table.environment,
+      table.provider,
+    ),
+  ],
+);
+
+export const integrationOrderLinks = pgTable(
+  "integration_order_links",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    integrationId: uuid("integration_id")
+      .notNull()
+      .references(() => organizationIntegrations.id, { onDelete: "cascade" }),
+    externalOrderId: text("external_order_id").notNull(),
+    paymentId: uuid("payment_id")
+      .notNull()
+      .references(() => payments.id, { onDelete: "cascade" }),
+    checkoutUrl: text("checkout_url").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("integration_order_links_integration_order_idx").on(
+      table.integrationId,
+      table.externalOrderId,
+    ),
+  ],
+);
+
 export const apiLogs = pgTable("api_logs", {
   id: uuid("id").defaultRandom().primaryKey(),
   organizationId: uuid("organization_id")
@@ -860,6 +923,31 @@ export const webhookDeliveriesRelations = relations(
   })
 );
 
+export const organizationIntegrationsRelations = relations(
+  organizationIntegrations,
+  ({ one, many }) => ({
+    organization: one(organizations, {
+      fields: [organizationIntegrations.organizationId],
+      references: [organizations.id],
+    }),
+    orderLinks: many(integrationOrderLinks),
+  }),
+);
+
+export const integrationOrderLinksRelations = relations(
+  integrationOrderLinks,
+  ({ one }) => ({
+    integration: one(organizationIntegrations, {
+      fields: [integrationOrderLinks.integrationId],
+      references: [organizationIntegrations.id],
+    }),
+    payment: one(payments, {
+      fields: [integrationOrderLinks.paymentId],
+      references: [payments.id],
+    }),
+  }),
+);
+
 export const apiLogsRelations = relations(apiLogs, ({ one }) => ({
   organization: one(organizations, {
     fields: [apiLogs.organizationId],
@@ -880,4 +968,6 @@ export type CheckoutSession = typeof checkoutSessions.$inferSelect;
 export type Invoice = typeof invoices.$inferSelect;
 export type WebhookEndpoint = typeof webhookEndpoints.$inferSelect;
 export type WebhookDelivery = typeof webhookDeliveries.$inferSelect;
+export type OrganizationIntegration = typeof organizationIntegrations.$inferSelect;
+export type IntegrationOrderLink = typeof integrationOrderLinks.$inferSelect;
 export type ApiLog = typeof apiLogs.$inferSelect;

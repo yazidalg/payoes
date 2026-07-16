@@ -6,6 +6,9 @@ const config: Pick<Config, "presets" | "safelist"> = {
     "bg-sandbox-banner",
     "text-sandbox-banner-foreground",
     "border-sandbox-banner-border",
+    "bg-checkout-error-banner",
+    "text-checkout-error-banner-foreground",
+    "border-checkout-error-banner-border",
     "bg-primary",
     "text-primary",
     "text-primary-foreground",
@@ -67,6 +70,11 @@ const config: Pick<Config, "presets" | "safelist"> = {
               banner: "var(--sandbox-banner)",
               "banner-foreground": "var(--sandbox-banner-foreground)",
               "banner-border": "var(--sandbox-banner-border)",
+            },
+            checkout: {
+              "error-banner": "var(--checkout-error-banner)",
+              "error-banner-foreground": "var(--checkout-error-banner-foreground)",
+              "error-banner-border": "var(--checkout-error-banner-border)",
             },
             sidebar: {
               DEFAULT: "var(--sidebar)",
