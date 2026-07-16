@@ -8,7 +8,7 @@ services:
       POSTGRES_PASSWORD: payoes
       POSTGRES_DB: payoes
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -26,8 +26,8 @@ services:
       MINIO_ROOT_USER: payoes
       MINIO_ROOT_PASSWORD: payoessecret
     ports:
-      - "9000:9000"
-      - "9001:9001"
+      - "${MINIO_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
     volumes:
       - minio_data:/data
     healthcheck:
@@ -78,7 +78,7 @@ services:
     container_name: payoes-web
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "${WEB_PORT:-3000}:3000"
     env_file:
       - .env
     depends_on:
