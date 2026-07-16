@@ -4,7 +4,8 @@ import { useCallback, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAsyncData } from "@/hooks/use-async-data";
 import { formatAmountWithUnit } from "@/lib/format/amount";
-import { formatAssetAmount, type PaymentRow } from "@/lib/payments/types";
+import type { PaymentRow } from "@/lib/payments/types";
+import { PaidAmountCell } from "@/ui/payments/paid-amount-cell";
 import { PaymentsFilters } from "@/ui/payments/use-payment-filters";
 import { PaymentsTableSkeleton } from "@/ui/payments/payments-table-skeleton";
 import { TableEmptyState } from "@/ui/shared/table-empty-state";
@@ -39,7 +40,7 @@ const PAYMENTS_PAGE_SIZE = 20;
 const paymentsColumns = {
   all: [
     "payment",
-    "amount",
+    "paid",
     "pricing",
     "status",
     "customer",
@@ -50,7 +51,7 @@ const paymentsColumns = {
   ],
   defaultVisible: [
     "payment",
-    "amount",
+    "paid",
     "pricing",
     "status",
     "customer",
@@ -182,11 +183,12 @@ export function PaymentsTable({
         ),
       },
       {
-        id: "amount",
-        header: "Amount",
-        minSize: 120,
-        cell: ({ row }: { row: Row<PaymentRow> }) =>
-          formatAssetAmount(row.original.amount, row.original.settlement_asset),
+        id: "paid",
+        header: "Paid",
+        minSize: 140,
+        cell: ({ row }: { row: Row<PaymentRow> }) => (
+          <PaidAmountCell payment={row.original} />
+        ),
       },
       {
         id: "pricing",

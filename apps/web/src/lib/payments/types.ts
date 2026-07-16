@@ -12,6 +12,7 @@ export type PaymentRow = {
   pricing_currency?: string | null;
   pricing_amount?: string | null;
   quoted_paid_amount?: string | null;
+  received_amount?: string | null;
   quoted_settlement_amount?: string | null;
   quote_rate?: string | null;
   settlement_quote_rate?: string | null;

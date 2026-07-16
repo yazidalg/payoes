@@ -38,10 +38,33 @@ export function formatSourceType(sourceType?: string) {
   }
 }
 
+const PAYMENT_RECEIVED_STATUSES = new Set([
+  "completed",
+  "deposit_received",
+  "settling",
+  "settlement_failed",
+  "refunding",
+  "refunded",
+]);
+
+export function paymentHasReceivedFunds(payment: PaymentRow) {
+  return PAYMENT_RECEIVED_STATUSES.has(payment.status);
+}
+
+export function getPaidAmountValue(payment: PaymentRow) {
+  return (
+    payment.received_amount ??
+    payment.quoted_paid_amount ??
+    payment.amount
+  );
+}
+
+export function getPaidAsset(payment: PaymentRow) {
+  return payment.paid_asset ?? payment.settlement_asset;
+}
+
 export function formatPaidAmount(payment: PaymentRow) {
-  const amount = payment.quoted_paid_amount ?? payment.amount;
-  const asset = payment.paid_asset ?? payment.settlement_asset;
-  return formatAssetAmount(amount, asset);
+  return formatAssetAmount(getPaidAmountValue(payment), getPaidAsset(payment));
 }
 
 export function formatSettlementTarget(payment: PaymentRow) {

@@ -28,7 +28,7 @@ export function PaymentsTableSkeleton({
             <tr>
               {[
                 "Payment",
-                "Amount",
+                "Paid",
                 "Pricing",
                 "Status",
                 "Customer",
