@@ -80,7 +80,6 @@ export function getCheckoutPaymentWaitingVariant(input: {
   isProcessing: boolean;
   isPaying: boolean;
   isConfirming: boolean;
-  isCheckingDeposit: boolean;
 }): CheckoutPaymentWaitingVariant | null {
   if (input.isProcessing) {
     return "processing";
@@ -92,10 +91,6 @@ export function getCheckoutPaymentWaitingVariant(input: {
 
   if (input.isConfirming) {
     return "confirming";
-  }
-
-  if (input.isCheckingDeposit) {
-    return "checking";
   }
 
   return null;

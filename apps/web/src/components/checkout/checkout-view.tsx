@@ -329,7 +329,6 @@ export function CheckoutView({ data, isCompleted, isProcessing = false, isSessio
     isProcessing,
     isPaying,
     isConfirming,
-    isCheckingDeposit,
   });
   const paymentSubtitle = getCheckoutPaymentSubtitle({
     isDetailsPanel,
@@ -668,7 +667,17 @@ export function CheckoutView({ data, isCompleted, isProcessing = false, isSessio
                                   </div>
                                   <CopyButton value={displayAmount} className={cn("shrink-0", (disabled || isRefreshingRate) && "pointer-events-none opacity-50")} />
                                 </div>
-                                {!disabled && onCheckDeposit ? <Button type="button" variant="secondary" className={cn("w-full", disabled ? "h-8 text-xs rounded-lg" : "h-10")} text="I have paid" disabled={disabled || isCheckingDeposit || isRefreshingRate || showQrLoading} onClick={onCheckDeposit} /> : null}
+                                {!disabled && onCheckDeposit ? (
+                                  <Button
+                                    type="button"
+                                    variant="primary"
+                                    className={cn("w-full", disabled ? "h-8 text-xs rounded-lg" : "h-10")}
+                                    text={isCheckingDeposit ? "Checking payment" : "I have paid"}
+                                    loading={isCheckingDeposit}
+                                    disabled={disabled || isCheckingDeposit || isRefreshingRate || showQrLoading}
+                                    onClick={onCheckDeposit}
+                                  />
+                                ) : null}
                               </div>
                             </>
                           </motion.div>
