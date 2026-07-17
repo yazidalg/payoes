@@ -1,6 +1,8 @@
 import type { ReactNode } from "react";
+import type { Organization } from "@/lib/db/schema";
 import type { PaymentRow } from "@/lib/payments/types";
 import { formatAssetRef } from "@/lib/payments/types";
+import { getStellarExpertTxUrlIfValid } from "@/lib/stellar/explorer";
 import { CopyText } from "@dub/ui";
 import {
   formatAllowedAssets,
@@ -29,7 +31,15 @@ function DetailField({
   );
 }
 
-export function PaymentAmountsSection({ payment }: { payment: PaymentRow }) {
+export function PaymentAmountsSection({
+  payment,
+  environment,
+}: {
+  payment: PaymentRow;
+  environment: Organization["environment"];
+}) {
+  const txExplorerUrl = getStellarExpertTxUrlIfValid(payment.tx_hash, environment);
+
   return (
     <div className="border-border-subtle overflow-hidden rounded-xl border bg-neutral-100">
       <div className="border-border-subtle border-b px-4 py-3">
@@ -64,7 +74,7 @@ export function PaymentAmountsSection({ payment }: { payment: PaymentRow }) {
             <DetailField label="Payer wallet">
               <CopyText
                 value={payment.payer_address}
-                className="font-mono text-xs"
+                className="break-all text-left font-mono text-xs"
               >
                 {payment.payer_address}
               </CopyText>
@@ -72,9 +82,23 @@ export function PaymentAmountsSection({ payment }: { payment: PaymentRow }) {
           ) : null}
           {payment.tx_hash ? (
             <DetailField label="Transaction hash">
-              <CopyText value={payment.tx_hash} className="font-mono text-xs">
-                {payment.tx_hash}
-              </CopyText>
+              {txExplorerUrl ? (
+                <a
+                  href={txExplorerUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="break-all font-mono text-xs underline decoration-dotted underline-offset-2 hover:underline"
+                >
+                  {payment.tx_hash}
+                </a>
+              ) : (
+                <CopyText
+                  value={payment.tx_hash}
+                  className="break-all text-left font-mono text-xs"
+                >
+                  {payment.tx_hash}
+                </CopyText>
+              )}
             </DetailField>
           ) : null}
         </div>

@@ -1,5 +1,7 @@
 import Link from "next/link";
+import type { Organization } from "@/lib/db/schema";
 import type { PaymentRow } from "@/lib/payments/types";
+import { getStellarExpertTxUrlIfValid } from "@/lib/stellar/explorer";
 import {
   CalendarIcon,
   CopyText,
@@ -19,11 +21,17 @@ import {
 
 export function PaymentDetailsColumn({
   payment,
+  environment,
   isLoading = false,
 }: {
   payment?: PaymentRow;
+  environment: Organization["environment"];
   isLoading?: boolean;
 }) {
+  const txExplorerUrl = payment?.tx_hash
+    ? getStellarExpertTxUrlIfValid(payment.tx_hash, environment)
+    : null;
+
   const basicFields = [
     payment?.customer_id
       ? {
@@ -32,7 +40,7 @@ export function PaymentDetailsColumn({
           text: (
             <Link
               href={`/dashboard/customers/${payment.customer_id}`}
-              className="min-w-0 truncate text-xs font-medium underline decoration-dotted underline-offset-2"
+              className="min-w-0 break-all text-xs font-medium underline decoration-dotted underline-offset-2"
             >
               {payment.customer_id}
             </Link>
@@ -46,7 +54,7 @@ export function PaymentDetailsColumn({
           text: (
             <CopyText
               value={payment.payer_address}
-              className="min-w-0 truncate font-mono text-xs font-medium"
+              className="min-w-0 break-all text-left font-mono text-xs font-medium"
             >
               {payment.payer_address}
             </CopyText>
@@ -57,10 +65,19 @@ export function PaymentDetailsColumn({
       ? {
           id: "tx",
           icon: <CreditCard className="size-3.5 shrink-0" />,
-          text: (
+          text: txExplorerUrl ? (
+            <a
+              href={txExplorerUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="min-w-0 break-all font-mono text-xs font-medium underline decoration-dotted underline-offset-2 hover:underline"
+            >
+              {payment.tx_hash}
+            </a>
+          ) : (
             <CopyText
               value={payment.tx_hash}
-              className="min-w-0 truncate font-mono text-xs font-medium"
+              className="min-w-0 break-all text-left font-mono text-xs font-medium"
             >
               {payment.tx_hash}
             </CopyText>
@@ -142,7 +159,7 @@ export function PaymentDetailsColumn({
   ].filter((field): field is NonNullable<typeof field> => field !== null);
 
   return (
-    <div className="grid grid-cols-1 gap-6 overflow-hidden whitespace-nowrap text-sm text-neutral-900">
+    <div className="grid grid-cols-1 gap-6 overflow-hidden text-sm text-neutral-900">
       <div className="border-border-subtle flex flex-col divide-y divide-neutral-200 rounded-xl border bg-white">
         <div className="p-4">
           <div className="bg-bg-subtle flex size-10 items-center justify-center rounded-full border border-neutral-100">
@@ -160,7 +177,7 @@ export function PaymentDetailsColumn({
                 </span>
                 <CopyText
                   value={payment.id}
-                  className="block w-fit text-left font-mono text-xs text-neutral-500"
+                  className="block w-full break-all text-left font-mono text-xs text-neutral-500"
                 >
                   {payment.id}
                 </CopyText>
@@ -189,9 +206,9 @@ export function PaymentDetailsColumn({
                 <SmoothSkeleton key={width} className={cn("h-4", width)} />
               ))
             : basicFields.map(({ id, icon, text }) => (
-                <div key={id} className="text-content-default flex items-center gap-1.5">
-                  {icon}
-                  <span className="min-w-0 truncate text-xs font-medium">{text}</span>
+                <div key={id} className="text-content-default flex items-start gap-1.5">
+                  <span className="mt-0.5">{icon}</span>
+                  <span className="min-w-0 flex-1 text-xs font-medium">{text}</span>
                 </div>
               ))}
         </div>

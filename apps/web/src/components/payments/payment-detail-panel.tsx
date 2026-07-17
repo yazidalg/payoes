@@ -15,6 +15,7 @@ import {
   getPaymentStatusVariant,
 } from "@/ui/payments/payment-formatters";
 import { ShareLinkSection } from "@/ui/payments/share-link-section";
+import { useDashboardShell } from "@/ui/layout/dashboard-shell-context";
 import { useSetDashboardPageHeader } from "@/ui/layout/dashboard-page-header-context";
 import {
   Button,
@@ -34,6 +35,7 @@ export function PaymentDetailPanel({
   organizationId: string;
   paymentId: string;
 }) {
+  const { activeOrganization } = useDashboardShell();
   const fetchPayment = useCallback(async () => {
     const response = await fetch(
       `/api/organizations/${organizationId}/payments/${paymentId}`,
@@ -110,11 +112,17 @@ export function PaymentDetailPanel({
 
       <div className="@3xl/page:grid-cols-[minmax(440px,1fr)_minmax(0,360px)] grid grid-cols-1 gap-6">
         <div className="@3xl/page:order-2">
-          <PaymentDetailsColumn payment={payment} />
+          <PaymentDetailsColumn
+            payment={payment}
+            environment={activeOrganization.environment}
+          />
         </div>
 
         <div className="@3xl/page:order-1 space-y-6">
-          <PaymentAmountsSection payment={payment} />
+          <PaymentAmountsSection
+            payment={payment}
+            environment={activeOrganization.environment}
+          />
 
           {payment.checkout_url && payment.status === "pending" ? (
             <ShareLinkSection
