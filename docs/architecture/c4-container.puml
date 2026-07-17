@@ -1,0 +1,37 @@
+@startuml c4-container
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+LAYOUT_WITH_LEGEND()
+
+title Container Diagram: Payoes
+
+Person(merchant, "Merchant", "API consumer or dashboard user")
+Person(customer, "Customer", "Pays on hosted checkout")
+
+System_Boundary(payoes, "Payoes Platform") {
+    Container(web, "Web Application", "Next.js 16, React 19", "Dashboard, hosted checkout, REST API, cron jobs")
+    Container(docs, "API Documentation", "Mintlify", "Public developer docs and API reference")
+    Container(sdk, "Payoes SDK", "TypeScript / npm", "Client library for merchant integrations")
+    ContainerDb(postgres, "PostgreSQL", "Drizzle ORM", "Organizations, payments, invoices, API keys, webhooks")
+    ContainerDb(storage, "Object Storage", "MinIO / S3", "Uploaded assets and files")
+    Container(contract, "Escrow Contract", "Soroban (Rust)", "On-chain payment registration, deposits, settlement")
+}
+
+System_Ext(horizon, "Horizon API", "Stellar ledger queries and transaction submission")
+System_Ext(persona, "Persona", "KYC provider")
+System_Ext(integrations, "Commerce Platforms", "Shopify, WooCommerce")
+System_Ext(merchant_hooks, "Merchant Webhooks", "Event endpoints")
+
+Rel(merchant, web, "Uses dashboard and /api/v1", "HTTPS")
+Rel(merchant, sdk, "Integrates payments", "npm package")
+Rel(merchant, docs, "Reads API reference", "HTTPS")
+Rel(customer, web, "Opens /c and /i hosted pages", "HTTPS")
+Rel(web, postgres, "Reads and writes", "SQL")
+Rel(web, storage, "Stores files", "S3 API")
+Rel(web, contract, "Registers payments, settles deposits", "Soroban RPC")
+Rel(web, horizon, "Verifies transactions, path payments", "HTTPS")
+Rel(web, persona, "KYC webhooks and sessions", "HTTPS")
+Rel(web, integrations, "OAuth and order webhooks", "HTTPS")
+Rel(web, merchant_hooks, "Delivers events", "HTTPS")
+
+@enduml

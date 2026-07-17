@@ -1,0 +1,28 @@
+@startuml c4-escrow-flow
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Dynamic.puml
+
+title Dynamic Diagram: Escrow Settlement Flow
+
+participant "Merchant\nBackend" as M
+participant "Payoes API\napps/web" as P
+participant "Customer\nWallet" as C
+participant "Escrow Contract\ncontracts/" as E
+participant "Stellar\nHorizon" as H
+
+M -> P: Create payment / checkout session
+P -> E: register_payment
+C -> P: Open hosted checkout (/c)
+C -> E: deposit (paid asset)
+
+alt Same settlement asset
+    P -> E: settle_same_asset_deposit
+    E -> C: Transfer to merchant + platform fee
+else Cross-asset settlement
+    P -> E: release_deposit_to_operator
+    P -> H: Path payment / swap
+    P -> E: record_settlement
+end
+
+P -> M: Webhook payment.succeeded
+
+@enduml

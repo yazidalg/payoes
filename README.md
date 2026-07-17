@@ -161,6 +161,70 @@ For the full local setup (environment variables, docs server), see the [Getting 
 
 ---
 
+## Architecture
+
+Payoes is a monorepo that combines a Next.js application, a Soroban escrow contract, and shared packages. Merchants integrate through REST APIs or platform plugins; customers pay on hosted checkout pages without creating a Payoes account.
+
+Diagrams use the [C4 model](https://c4model.com/). Source files and full write-up live in [`docs/architecture/`](docs/architecture/).
+
+### System context (C4 Level 1)
+
+<div align="center">
+  <img src="assets/architecture/c4-context.png" alt="C4 System Context diagram for Payoes" width="900" />
+</div>
+
+### Containers (C4 Level 2)
+
+<div align="center">
+  <img src="assets/architecture/c4-container.png" alt="C4 Container diagram for Payoes" width="900" />
+</div>
+
+### API surfaces
+
+Payoes exposes two authenticated API surfaces that share the same domain services (`src/lib/<domain>/service.ts`):
+
+| Surface | Path | Auth | Used by |
+| ------- | ---- | ---- | ------- |
+| Public REST API | `/api/v1/**` | Bearer API key (`sandbox` or `production`) | Merchant backends, SDK, integrations |
+| Internal API | `/api/**` (non-v1) | Auth.js session | Dashboard UI |
+| Inbound webhooks | `/api/webhooks/**` | Provider signatures | Persona, Shopify, WooCommerce |
+
+Every organization-scoped resource is filtered by `organizationId` and `environment`. Sandbox maps to Stellar Testnet; production maps to Mainnet.
+
+### Payment object model
+
+<div align="center">
+  <img src="assets/architecture/c4-payment-model.png" alt="C4 Payment object model for Payoes" width="900" />
+</div>
+
+- **Payments** (`pay_...`): core settlement record
+- **Checkout sessions** (`cs_...`): wrap a payment with a hosted checkout URL
+- **Payment links** (`plink_...`): reusable entry points that spawn new checkout sessions
+- **Invoices** (`inv_...`): draft, finalize, then paid via checkout
+- **Subscriptions** (`sub_...`): recurring billing through finalized invoices
+
+### Escrow settlement flow
+
+Customer funds are held in a Soroban escrow contract until settlement completes. The backend coordinates on-chain actions and records final status in PostgreSQL.
+
+<div align="center">
+  <img src="assets/architecture/c4-escrow-flow.png" alt="C4 dynamic diagram for escrow settlement flow" width="900" />
+</div>
+
+Contract source lives in `contracts/` and is organized into `domain/` (types, events, errors), `contract/` (admin, escrow, settlement), `storage/`, and `validation/`.
+
+### Repository layout
+
+| Path | Role |
+| ---- | ---- |
+| `apps/web` | Next.js app: marketing site, dashboard, hosted checkout, REST API, cron jobs |
+| `apps/docs` | Mintlify API documentation |
+| `packages/sdk` | `@payoes/sdk` npm package for merchant integrations |
+| `contracts` | Soroban smart contract for escrow deposits and settlement |
+| `docs/architecture` | C4 PlantUML diagram sources |
+
+---
+
 ## Contributing
 
 Contributions are welcome: bug reports, feature requests, and pull requests all help improve Payoes for developers and organizations alike.

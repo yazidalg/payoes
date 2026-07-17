@@ -1,0 +1,23 @@
+@startuml c4-payment-model
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+LAYOUT_WITH_LEGEND()
+
+title Payment Object Model: Payoes
+
+Container_Boundary(api, "Payoes API / Services") {
+    Component(payment_link, "Payment Link", "plink_...", "Reusable entry point; each visit spawns a checkout session")
+    Component(checkout_session, "Checkout Session", "cs_...", "Wraps a payment with a hosted checkout URL at /c/")
+    Component(payment, "Payment", "pay_...", "Core settlement record and on-chain escrow target")
+    Component(invoice, "Invoice", "inv_...", "Draft -> finalize -> paid workflow; hosted at /i/")
+    Component(subscription, "Subscription", "sub_...", "Recurring billing via finalized invoices per period")
+    Component(direct_api, "Direct API", "POST /v1/payments", "Creates payments without checkout session wrapper")
+}
+
+Rel(payment_link, checkout_session, "Visit creates", "")
+Rel(checkout_session, payment, "Wraps", "")
+Rel(direct_api, payment, "Creates", "")
+Rel(invoice, checkout_session, "Finalize spawns", "")
+Rel(subscription, invoice, "Billing period creates", "")
+
+@enduml

@@ -1,0 +1,27 @@
+@startuml c4-context
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+LAYOUT_WITH_LEGEND()
+
+title System Context: Payoes
+
+Person(merchant, "Merchant", "Business integrating Payoes via API, SDK, or dashboard")
+Person(customer, "Customer", "Pays with a Stellar wallet on hosted checkout pages")
+
+System(payoes, "Payoes", "Developer-first Stellar payment infrastructure for organizations")
+
+System_Ext(stellar, "Stellar Network", "Testnet (sandbox) and Mainnet (production)")
+System_Ext(persona, "Persona", "Business identity verification (KYC)")
+System_Ext(shopify, "Shopify", "E-commerce platform integration")
+System_Ext(woocommerce, "WooCommerce", "WordPress commerce integration")
+System_Ext(merchant_webhooks, "Merchant Webhooks", "HTTPS endpoints receiving Payoes events")
+
+Rel(merchant, payoes, "Creates payments, manages organization", "HTTPS / API key or session")
+Rel(customer, payoes, "Completes checkout and invoice payments", "HTTPS")
+Rel(payoes, stellar, "Escrow deposits, settlement, verification", "Soroban + Horizon")
+Rel(payoes, persona, "Submits and syncs KYC inquiries", "HTTPS")
+Rel(payoes, shopify, "OAuth, order sync, webhooks", "HTTPS")
+Rel(payoes, woocommerce, "Store connection, order sync", "HTTPS")
+Rel(payoes, merchant_webhooks, "Delivers payment and invoice events", "HTTPS")
+
+@enduml
