@@ -1,39 +1,17 @@
 "use client";
 
+import { useBusinessVerification } from "@/ui/layout/business-verification-context";
 import { useDashboardShell } from "@/ui/layout/dashboard-shell-context";
 import { useRouter } from "next/navigation";
-import { useCallback, useState } from "react";
-
-type VerificationSummary = {
-  organization: {
-    verificationStatus: string;
-    environment: string;
-  };
-  isExpired: boolean;
-  canSwitchToProduction: boolean;
-};
-
-export type ProductionSwitchPhase = "idle" | "checking" | "redirecting";
-
-async function fetchVerificationSummary(organizationId: string) {
-  const response = await fetch(`/api/organizations/${organizationId}/verification`);
-  const data = (await response.json()) as VerificationSummary & { error?: string };
-
-  if (!response.ok) {
-    throw new Error(data.error ?? "Unable to load verification status");
-  }
-
-  return data;
-}
+import { useCallback } from "react";
 
 export function useSwitchToProduction() {
   const router = useRouter();
   const { activeOrganization } = useDashboardShell();
-  const [phase, setPhase] = useState<ProductionSwitchPhase>("idle");
-  const [overlayMessage, setOverlayMessage] = useState<string | undefined>();
+  const { isVerified, isLoading } = useBusinessVerification();
 
-  const switchToProduction = useCallback(async () => {
-    if (phase !== "idle") {
+  const switchToProduction = useCallback(() => {
+    if (isLoading) {
       return;
     }
 
@@ -42,42 +20,14 @@ export function useSwitchToProduction() {
       return;
     }
 
-    setPhase("checking");
-    setOverlayMessage("Checking verification status...");
-
-    try {
-      const verification = await fetchVerificationSummary(activeOrganization.id);
-      const isVerified =
-        verification.organization.verificationStatus === "verified" &&
-        !verification.isExpired;
-
-      setPhase("redirecting");
-      setOverlayMessage(
-        isVerified
-          ? "Continue to production setup..."
-          : "Continue to identity verification...",
-      );
-
-      window.setTimeout(() => {
-        setPhase("idle");
-        setOverlayMessage(undefined);
-        router.push(
-          isVerified
-            ? "/verification/settlement-wallet"
-            : "/verification/identity",
-        );
-      }, 500);
-    } catch {
-      setPhase("idle");
-      setOverlayMessage(undefined);
-      router.push("/verification/identity");
-    }
-  }, [activeOrganization.environment, activeOrganization.id, phase, router]);
+    router.push(
+      isVerified ? "/verification/settlement-wallet" : "/verification/identity",
+    );
+  }, [activeOrganization.environment, isLoading, isVerified, router]);
 
   return {
     switchToProduction,
-    phase,
-    isOverlayVisible: phase !== "idle",
-    overlayMessage,
+    isVerified,
+    isLoading,
   };
 }

@@ -28,6 +28,7 @@ export function IdentityVerificationForm({
 }) {
   const router = useRouter();
   const personaClientRef = useRef<Client | null>(null);
+  const sessionRetryRef = useRef(false);
   const [summary, setSummary] = useState<VerificationSummary | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -120,7 +121,11 @@ export function IdentityVerificationForm({
     return data;
   }
 
-  async function openPersonaFlow(inquiryId: string, sessionToken?: string | null) {
+  async function openPersonaFlow(
+    inquiryId: string,
+    sessionToken?: string | null,
+    options?: { allowSessionRetry?: boolean },
+  ) {
     personaClientRef.current?.destroy();
 
     const environmentId = process.env.NEXT_PUBLIC_PERSONA_ENVIRONMENT_ID;
@@ -137,6 +142,7 @@ export function IdentityVerificationForm({
       environmentId,
       onReady: () => client.open(),
       onComplete: async () => {
+        sessionRetryRef.current = false;
         try {
           await syncVerificationStatus();
           router.refresh();
@@ -151,11 +157,37 @@ export function IdentityVerificationForm({
         }
       },
       onCancel: () => {
+        sessionRetryRef.current = false;
         setIsOpening(false);
       },
       onError: (personaError) => {
+        const message = personaError.message ?? "Persona verification failed";
+        const isSessionExpired = message.toLowerCase().includes("session expired");
+
+        if (options?.allowSessionRetry !== false && isSessionExpired && !sessionRetryRef.current) {
+          sessionRetryRef.current = true;
+          void (async () => {
+            try {
+              const sessionData = await ensureSession();
+              await openPersonaFlow(sessionData.inquiryId!, sessionData.sessionToken, {
+                allowSessionRetry: false,
+              });
+            } catch (retryError) {
+              sessionRetryRef.current = false;
+              setIsOpening(false);
+              setError(
+                retryError instanceof Error
+                  ? retryError.message
+                  : "Unable to restart verification after session expiry",
+              );
+            }
+          })();
+          return;
+        }
+
+        sessionRetryRef.current = false;
         setIsOpening(false);
-        setError(personaError.message ?? "Persona verification failed");
+        setError(message);
       },
     });
 
@@ -200,11 +232,13 @@ export function IdentityVerificationForm({
   async function handleOpenVerification() {
     setIsOpening(true);
     setError(null);
+    sessionRetryRef.current = false;
 
     try {
       const sessionData = await ensureSession();
       await openPersonaFlow(sessionData.inquiryId!, sessionData.sessionToken);
     } catch (openError) {
+      sessionRetryRef.current = false;
       setIsOpening(false);
       setError(
         openError instanceof Error
@@ -213,6 +247,10 @@ export function IdentityVerificationForm({
       );
     }
   }
+
+  const needsRestart =
+    summary?.organization.verificationStatus === "rejected" ||
+    summary?.application?.providerStatus === "declined";
 
   const showResume =
     summary?.application?.providerInquiryId &&
@@ -254,6 +292,13 @@ export function IdentityVerificationForm({
       ) : null}
 
       <div className="space-y-4">
+        {needsRestart ? (
+          <AlertBlock type="info">
+            Your previous verification attempt expired or was declined. Start a new
+            verification to continue.
+          </AlertBlock>
+        ) : null}
+
         {showResume ? (
           <p className="text-sm text-neutral-500">
             You already started verification. Resume where you left off.
@@ -262,7 +307,13 @@ export function IdentityVerificationForm({
 
         <Button
           type="button"
-          text={showResume ? "Resume identity verification" : "Start verification with Persona"}
+          text={
+            needsRestart
+              ? "Start new verification"
+              : showResume
+                ? "Resume identity verification"
+                : "Start verification with Persona"
+          }
           className="w-full"
           loading={isOpening}
           onClick={() => void handleOpenVerification()}

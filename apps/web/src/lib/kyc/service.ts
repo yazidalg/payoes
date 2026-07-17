@@ -9,7 +9,10 @@ import {
   getPersonaInquiry,
   mapPersonaStatusToProviderStatus,
   mapPersonaStatusToVerificationStatus,
+  personaInquiryMustBeReplaced,
+  personaInquiryNeedsSessionToken,
   resumePersonaInquiry,
+  type PersonaInquiryStatus,
 } from "@/lib/kyc/persona";
 import { normalizeCountryCode } from "@/lib/kyc/country";
 import { VERIFICATION_VALIDITY_DAYS } from "@/constants/kyc";
@@ -66,6 +69,110 @@ export async function getVerificationApplicationForOrganization(organizationId: 
   });
 }
 
+type VerificationApplication = NonNullable<
+  Awaited<ReturnType<typeof getVerificationApplicationForOrganization>>
+>;
+
+async function replacePersonaInquiry(input: {
+  organizationId: string;
+  application: VerificationApplication;
+  note?: string;
+}) {
+  const personaInquiry = await createPersonaInquiry({
+    referenceId: input.organizationId,
+    note:
+      input.note ??
+      `${input.application.accountType === "business" ? "Business" : "Personal"} account | New Persona inquiry`,
+  });
+
+  const now = new Date();
+  const [application] = await db
+    .update(organizationVerificationApplications)
+    .set({
+      providerInquiryId: personaInquiry.inquiryId,
+      providerStatus: mapPersonaStatusToProviderStatus(personaInquiry.status),
+      updatedAt: now,
+    })
+    .where(eq(organizationVerificationApplications.id, input.application.id))
+    .returning();
+
+  await db
+    .update(organizations)
+    .set({
+      verificationStatus: "pending",
+      verifiedAt: null,
+      verificationExpiresAt: null,
+      updatedAt: now,
+    })
+    .where(eq(organizations.id, input.organizationId));
+
+  return application;
+}
+
+async function syncPersonaInquiryState(
+  organizationId: string,
+  application: VerificationApplication,
+) {
+  const inquiry = await getPersonaInquiry(application.providerInquiryId!);
+  const profile = extractProfileFromPersonaFields(inquiry.fields);
+
+  if (profile.displayName || profile.country) {
+    await db
+      .update(organizationVerificationApplications)
+      .set({
+        ...(profile.displayName ? { displayName: profile.displayName } : {}),
+        ...(profile.country
+          ? { country: normalizeCountryCode(profile.country) }
+          : {}),
+        updatedAt: new Date(),
+      })
+      .where(eq(organizationVerificationApplications.id, application.id));
+  }
+
+  await applyPersonaInquiryStatus({
+    organizationId,
+    inquiryId: inquiry.inquiryId,
+    status: inquiry.status,
+  });
+
+  return inquiry;
+}
+
+async function resumePersonaInquiryWithFallback(input: {
+  organizationId: string;
+  application: VerificationApplication;
+  inquiryId: string;
+  inquiryStatus: PersonaInquiryStatus;
+}) {
+  try {
+    const sessionToken = await resumePersonaInquiry(input.inquiryId);
+    return {
+      inquiryId: input.inquiryId,
+      sessionToken,
+    };
+  } catch (error) {
+    if (
+      input.inquiryStatus === "created" ||
+      personaInquiryMustBeReplaced(input.inquiryStatus)
+    ) {
+      throw error;
+    }
+
+    const application = await replacePersonaInquiry({
+      organizationId: input.organizationId,
+      application: input.application,
+      note: "Replacement inquiry after Persona session resume failed",
+    });
+
+    const sessionToken = await resumePersonaInquiry(application.providerInquiryId!);
+
+    return {
+      inquiryId: application.providerInquiryId!,
+      sessionToken,
+    };
+  }
+}
+
 export async function startVerification(input: {
   organizationId: string;
   userId: string;
@@ -92,14 +199,17 @@ export async function startVerification(input: {
   }
 
   if (existing?.providerInquiryId) {
-    return existing;
+    const hasActiveInquiry =
+      existing.providerStatus === "created" ||
+      existing.providerStatus === "pending" ||
+      existing.providerStatus === "needs_review";
+
+    if (hasActiveInquiry) {
+      return existing;
+    }
   }
 
-  if (existing?.providerStatus === "pending" || existing?.providerStatus === "needs_review") {
-    throw new KycServiceError("Verification is already in progress", "conflict");
-  }
-
-  const accountType = input.accountType ?? "personal";
+  const accountType = input.accountType ?? existing?.accountType ?? "personal";
   const displayName = organization.name;
   const countryCode = "XX";
 
@@ -256,22 +366,45 @@ export async function getVerificationSession(organizationId: string, userId: str
     throw new KycServiceError("Forbidden", "forbidden");
   }
 
-  const application = await getVerificationApplicationForOrganization(organizationId);
+  let application = await getVerificationApplicationForOrganization(organizationId);
 
   if (!application?.providerInquiryId) {
     throw new KycServiceError("Start verification before opening the Persona flow", "invalid");
   }
 
-  const needsSessionToken =
-    application.providerStatus === "pending" ||
-    application.providerStatus === "needs_review";
+  let inquiry = await syncPersonaInquiryState(organizationId, application);
 
-  const sessionToken = needsSessionToken
-    ? await resumePersonaInquiry(application.providerInquiryId)
-    : null;
+  application = await getVerificationApplicationForOrganization(organizationId);
+
+  if (!application?.providerInquiryId) {
+    throw new KycServiceError("Verification has not been started yet", "not_found");
+  }
+
+  if (personaInquiryMustBeReplaced(inquiry.status)) {
+    application = await replacePersonaInquiry({
+      organizationId,
+      application,
+      note: "Replacement inquiry after Persona declined or failed",
+    });
+    inquiry = await getPersonaInquiry(application.providerInquiryId);
+  }
+
+  let inquiryId = application.providerInquiryId;
+  let sessionToken: string | null = null;
+
+  if (personaInquiryNeedsSessionToken(inquiry.status)) {
+    const resumed = await resumePersonaInquiryWithFallback({
+      organizationId,
+      application,
+      inquiryId,
+      inquiryStatus: inquiry.status,
+    });
+    inquiryId = resumed.inquiryId;
+    sessionToken = resumed.sessionToken;
+  }
 
   return {
-    inquiryId: application.providerInquiryId,
+    inquiryId,
     sessionToken,
   };
 }

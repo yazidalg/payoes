@@ -28,7 +28,6 @@ import {
   submitClassicEscrowDeposit,
 } from "@/lib/payments/settlement/escrow";
 import { setPaymentPaidAsset } from "@/lib/payments/service";
-import { simulateSandboxPayment } from "@/lib/payments/simulate-sandbox-payment";
 import {
   confirmEscrowContractDeposit,
   ensureEscrowPaymentRegisteredForCheckout,
@@ -263,34 +262,6 @@ export async function POST(
       });
     } catch (error) {
       return sorobanErrorResponse(error, 502);
-    }
-  }
-
-  if (body.action === "simulate_payment") {
-    const paidAsset = body.paid_asset
-      ? {
-          asset_code: String(body.paid_asset.asset_code),
-          issuer_address: body.paid_asset.issuer_address?.trim() || null,
-        }
-      : undefined;
-
-    try {
-      const result = await simulateSandboxPayment(
-        resolved.payment.publicId,
-        paidAsset,
-      );
-
-      if (!result.ok) {
-        return NextResponse.json({ error: result.error }, { status: 400 });
-      }
-
-      return NextResponse.json({
-        status: result.payment.status,
-        tx_hash: result.payment.txHash,
-        simulated: true,
-      });
-    } catch (error) {
-      return sorobanErrorResponse(error);
     }
   }
 

@@ -3,7 +3,6 @@
 import { StellarWalletsKit } from "@creit.tech/stellar-wallets-kit/sdk";
 import { Horizon } from "@stellar/stellar-sdk";
 import { useCallback, useEffect, useMemo, useState, useRef } from "react";
-import { CheckoutSandboxBanner } from "@/components/checkout/checkout-sandbox-banner";
 import { CheckoutErrorBanner } from "@/components/checkout/checkout-error-banner";
 import { BusinessMark } from "@/components/business/business-mark";
 import { useStellarWallet } from "@/hooks/use-stellar-wallet";
@@ -128,7 +127,6 @@ export function CheckoutClient({
   const [data, setData] = useState<CheckoutData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPaying, setIsPaying] = useState(false);
-  const [isSimulating, setIsSimulating] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [paymentMode, setPaymentMode] = useState<"wallet" | "qr">("wallet");
   const [selectedPaidAssetKey, setSelectedPaidAssetKey] = useState("");
@@ -764,52 +762,6 @@ export function CheckoutClient({
     }
   }
 
-  async function handleSimulatePayment() {
-    if (!data || !selectedPaidAsset || isRefreshingRate) {
-      return;
-    }
-
-    setIsSimulating(true);
-    setError(null);
-
-    try {
-      const response = await fetch(`/api/checkout/${paymentId}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "simulate_payment",
-          paid_asset: selectedPaidAsset,
-        }),
-      });
-
-      const payload = (await response.json()) as {
-        status?: string;
-        error?: string;
-      };
-
-      if (!response.ok) {
-        setError(payload.error ?? "Unable to simulate payment");
-        return;
-      }
-
-      setData((current) =>
-        current
-          ? {
-              ...current,
-              payment: {
-                ...current.payment,
-                status: payload.status ?? "completed",
-              },
-            }
-          : current,
-      );
-    } catch {
-      setError("Unable to simulate payment");
-    } finally {
-      setIsSimulating(false);
-    }
-  }
-
   useCheckoutEmbed({
     embedded,
     paymentId,
@@ -900,7 +852,6 @@ export function CheckoutClient({
       rateLockLabel={rateLockLabel}
       countdown={countdown}
       isRefreshingRate={isRefreshingRate}
-      isSimulating={isSimulating}
       allowedAssets={allowedAssets}
       selectedPaidAsset={selectedPaidAsset}
       selectedPaidAssetKey={selectedPaidAssetKey}
@@ -926,7 +877,6 @@ export function CheckoutClient({
       connectError={connectError}
       showQrLoading={showQrLoading}
       dropdownRef={dropdownRef}
-      onSimulatePayment={() => void handleSimulatePayment()}
       onConnectWallet={() => void connect()}
       onUpdateWallet={() => void handleUpdateWallet()}
       onPay={() => void handlePay()}

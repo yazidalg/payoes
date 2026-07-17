@@ -6,7 +6,6 @@ import { ArrowRight } from "lucide-react";
 import { useSwitchToProduction } from "@/hooks/use-switch-to-production";
 import { useDashboardShell } from "./dashboard-shell-context";
 import { useUpgradeBannerVisibility } from "./upgrade-banner";
-import { WhiteFadeOverlay } from "@/ui/transitions/white-fade-overlay";
 
 export const DASHBOARD_TOP_BANNER_HEIGHT = 48;
 
@@ -44,43 +43,37 @@ const actionButtonClassName =
 export function EnvironmentBanner() {
   const { isVisible: isEnvironmentBannerVisible } = useEnvironmentBannerVisibility();
   const { environmentBannerOffset } = useDashboardTopBannerHeight();
-  const { switchToProduction, isOverlayVisible, overlayMessage } =
-    useSwitchToProduction();
+  const { switchToProduction, isVerified, isLoading } = useSwitchToProduction();
 
   if (!isEnvironmentBannerVisible) {
     return null;
   }
 
-  function openVerification() {
-    void switchToProduction();
-  }
+  const actionLabel = isVerified ? "Change to production" : "Verify your business";
 
   return (
-    <>
-      <div
-        role="status"
-        style={{ top: environmentBannerOffset }}
-        className={cn(
-          "fixed left-0 right-0 z-30 flex h-12 items-center justify-center border-b border-sandbox-banner-border bg-sandbox-banner px-4 text-sandbox-banner-foreground sm:px-6",
-        )}
-      >
-        <div className="flex w-full max-w-screen-xl items-center justify-between gap-4">
-          <p className="min-w-0 text-sm leading-snug">
-            You&apos;re testing in a sandbox. Changes you make here don&apos;t
-            affect real customers or payments.
-          </p>
-          <Button
-            type="button"
-            variant="outline"
-            text="Verify Your Business"
-            right={<ArrowRight className="size-4 text-white" />}
-            className={actionButtonClassName}
-            onClick={openVerification}
-          />
-        </div>
+    <div
+      role="status"
+      style={{ top: environmentBannerOffset }}
+      className={cn(
+        "fixed left-0 right-0 z-30 flex h-12 items-center justify-center border-b border-sandbox-banner-border bg-sandbox-banner px-4 text-sandbox-banner-foreground sm:px-6",
+      )}
+    >
+      <div className="flex w-full max-w-screen-xl items-center justify-between gap-4">
+        <p className="min-w-0 text-sm leading-snug">
+          You&apos;re testing in a sandbox. Changes you make here don&apos;t
+          affect real customers or payments.
+        </p>
+        <Button
+          type="button"
+          variant="outline"
+          text={actionLabel}
+          right={<ArrowRight className="size-4 text-white" />}
+          className={actionButtonClassName}
+          disabled={isLoading}
+          onClick={switchToProduction}
+        />
       </div>
-
-      <WhiteFadeOverlay visible={isOverlayVisible} message={overlayMessage} zIndex={100} />
-    </>
+    </div>
   );
 }

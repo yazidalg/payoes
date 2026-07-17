@@ -1217,7 +1217,7 @@ export async function detectEscrowDepositForPayment(
     };
   }
 
-  if (fresh.status === "settling" || fresh.status === "refunding") {
+  if (fresh.status === "settling") {
     return { detected: true, payment: fresh };
   }
 

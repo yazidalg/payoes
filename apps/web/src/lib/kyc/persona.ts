@@ -160,6 +160,14 @@ export async function resumePersonaInquiry(inquiryId: string) {
   return sessionToken;
 }
 
+export function personaInquiryNeedsSessionToken(status: PersonaInquiryStatus) {
+  return status === "pending" || status === "needs_review" || status === "expired";
+}
+
+export function personaInquiryMustBeReplaced(status: PersonaInquiryStatus) {
+  return status === "declined" || status === "failed";
+}
+
 export function mapPersonaStatusToProviderStatus(
   status: PersonaInquiryStatus
 ): "created" | "pending" | "approved" | "declined" | "needs_review" {

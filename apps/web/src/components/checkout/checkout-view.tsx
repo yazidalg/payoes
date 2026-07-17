@@ -136,7 +136,6 @@ export type CheckoutViewProps = {
   quote: PaymentQuote | null;
   rateLockLabel: string | null | undefined;
   isRefreshingRate: boolean;
-  isSimulating: boolean;
   allowedAssets: AllowedAsset[];
   selectedPaidAsset: AllowedAsset | null;
   selectedPaidAssetKey: string;
@@ -163,7 +162,6 @@ export type CheckoutViewProps = {
   showQrLoading: boolean;
   dropdownRef?: React.RefObject<HTMLDivElement | null>;
   // Callbacks
-  onSimulatePayment?: () => void;
   onConnectWallet?: () => void;
   onUpdateWallet?: () => void;
   onPay?: () => void;
@@ -273,7 +271,7 @@ function getCheckoutAlert(input: { disabled?: boolean; isCompleted?: boolean; is
   return null;
 }
 
-export function CheckoutView({ data, isCompleted, isProcessing = false, isSessionExpired, lastAttemptError, qrDestination, settlementLabel, isSandbox, sourceLabel, currencyCode, hasPricing, showQuoteAmountLoading, displayAmount, displayAsset, quote, rateLockLabel, isRefreshingRate, isSimulating, allowedAssets, selectedPaidAsset, selectedPaidAssetKey, setSelectedPaidAssetKey, isAssetDropdownOpen, setIsAssetDropdownOpen, isMobileItemsOpen, setIsMobileItemsOpen, paymentMode, setPaymentMode, address, pendingTxHash, isPaying, isConfirming = false, confirmExhausted = false, isConnecting, isFetchingQuote = false, paymentBlocked, quoteError, depositTrustlineError = null, error, networkError, connectError, showQrLoading, dropdownRef, onSimulatePayment, onConnectWallet, onUpdateWallet, onPay, onRetryConfirm, onCheckDeposit, isCheckingDeposit = false, depositCheckInfo = null, disabled = false, embedded = false, countdown = "", customerInput, onCustomerInputChange }: CheckoutViewProps) {
+export function CheckoutView({ data, isCompleted, isProcessing = false, isSessionExpired, lastAttemptError, qrDestination, settlementLabel, isSandbox, sourceLabel, currencyCode, hasPricing, showQuoteAmountLoading, displayAmount, displayAsset, quote, rateLockLabel, isRefreshingRate, allowedAssets, selectedPaidAsset, selectedPaidAssetKey, setSelectedPaidAssetKey, isAssetDropdownOpen, setIsAssetDropdownOpen, isMobileItemsOpen, setIsMobileItemsOpen, paymentMode, setPaymentMode, address, pendingTxHash, isPaying, isConfirming = false, confirmExhausted = false, isConnecting, isFetchingQuote = false, paymentBlocked, quoteError, depositTrustlineError = null, error, networkError, connectError, showQrLoading, dropdownRef, onConnectWallet, onUpdateWallet, onPay, onRetryConfirm, onCheckDeposit, isCheckingDeposit = false, depositCheckInfo = null, disabled = false, embedded = false, countdown = "", customerInput, onCustomerInputChange }: CheckoutViewProps) {
   const lineItems = data.items ?? [];
   const isPaymentWaiting =
     isProcessing || isPaying || isConfirming || isCheckingDeposit;
@@ -333,15 +331,6 @@ export function CheckoutView({ data, isCompleted, isProcessing = false, isSessio
     isConfirming,
     isCheckingDeposit,
   });
-  const hideSandboxSimulate =
-    disabled ||
-    isCompleted ||
-    Boolean(paymentWaitingVariant) ||
-    isRefreshingRate ||
-    isSessionExpired ||
-    data.payment.status === "failed" ||
-    data.payment.status === "refunded" ||
-    data.payment.status === "settlement_failed";
   const paymentSubtitle = getCheckoutPaymentSubtitle({
     isDetailsPanel,
     isProcessing,
@@ -360,9 +349,9 @@ export function CheckoutView({ data, isCompleted, isProcessing = false, isSessio
 
   return (
     <div className={cn("relative bg-white text-left flex flex-col flex-1 @container", embedded ? "h-dvh min-h-0 max-h-dvh overflow-hidden" : "min-h-svh", showCheckoutAlertBanner && !embedded && "pb-16")}>
-      <div className={cn("relative z-10 flex flex-col flex-1 min-h-0", embedded ? "h-full overflow-hidden" : "min-h-svh")}>
+      <div className={cn("relative z-10 flex flex-col flex-1 min-h-0", embedded ? "h-full overflow-hidden" : "min-h-svh lg:min-h-0")}>
         {/* Hide sandbox banner when in preview (disabled) */}
-        {isSandbox && !disabled ? <CheckoutSandboxBanner onSimulate={disabled ? undefined : onSimulatePayment} isSimulating={isSimulating} simulateDisabled={hideSandboxSimulate} /> : null}
+        {isSandbox && !disabled ? <CheckoutSandboxBanner /> : null}
 
         <div className={cn("flex flex-1 min-h-0 flex-col", whenDesktop(embedded, "@lg:flex-row"))}>
           {/* Order Summary (Left) */}
@@ -513,8 +502,8 @@ export function CheckoutView({ data, isCompleted, isProcessing = false, isSessio
           </div>
 
           {/* Payment Section (Right) */}
-          <div className={cn("relative flex min-h-0 flex-1 flex-col bg-white", whenDesktop(embedded, "@lg:sticky @lg:top-0 @lg:max-h-svh @lg:self-start"))}>
-            <div className={cn("mx-auto flex w-full min-h-0 max-w-md flex-1 flex-col overflow-y-auto", disabled ? "px-4 py-4" : cn("px-6 py-8", whenDesktop(embedded, "@lg:px-12 @lg:py-8")))}>
+          <div className={cn("relative flex min-h-0 flex-1 flex-col bg-white", whenDesktop(embedded, "@lg:sticky @lg:top-0 @lg:max-h-svh @lg:overflow-hidden"))}>
+            <div className={cn("mx-auto flex h-full w-full min-h-0 max-w-md flex-1 flex-col", disabled ? "px-4 py-4" : cn("px-6 py-8", whenDesktop(embedded, "@lg:px-12 @lg:py-8")))}>
               <div className="shrink-0">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
@@ -546,7 +535,7 @@ export function CheckoutView({ data, isCompleted, isProcessing = false, isSessio
                 ) : null}
               </div>
 
-              <div className={cn("flex min-h-0 flex-1 flex-col pt-4", disabled ? "space-y-4" : "space-y-5")}>
+              <div className={cn("flex min-h-0 flex-1 flex-col overflow-y-auto pt-4", disabled ? "space-y-4" : "space-y-5")}>
                 {isDetailsPanel ? (
                   <div className={disabled ? "space-y-4" : "space-y-5"}>
                     <CheckoutAdditionalInfoFields

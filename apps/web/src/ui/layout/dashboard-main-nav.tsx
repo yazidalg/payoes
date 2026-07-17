@@ -2,6 +2,7 @@
 
 import type { Organization } from "@/lib/db/schema";
 import { useEffect, useState } from "react";
+import { BusinessVerificationProvider } from "./business-verification-context";
 import {
   DashboardShellProvider,
   type DashboardShellUser,
@@ -51,7 +52,7 @@ export function DashboardMainNav({
         setActiveOrganization,
       }}
     >
-      {children}
+      <BusinessVerificationProvider>{children}</BusinessVerificationProvider>
     </DashboardShellProvider>
   );
 }

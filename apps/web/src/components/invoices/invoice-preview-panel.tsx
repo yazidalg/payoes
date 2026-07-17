@@ -269,7 +269,6 @@ export function InvoicePreviewPanel({
               quote={null}
               rateLockLabel="Rate locked"
               isRefreshingRate={false}
-              isSimulating={false}
               allowedAssets={allowedAssets}
               selectedPaidAsset={selectedPaidAsset}
               selectedPaidAssetKey={selectedPaidAssetKey}
