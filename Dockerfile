@@ -15,12 +15,18 @@ COPY packages/utils/package.json packages/utils/
 COPY packages/tailwind-config/package.json packages/tailwind-config/
 COPY packages/tsconfig/package.json packages/tsconfig/
 
-RUN npm ci
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci
 
 FROM base AS builder
 
+COPY package.json package-lock.json ./
+COPY scripts/load-root-env.mjs scripts/load-root-env.mjs
+COPY scripts/docker/web-entrypoint.sh scripts/docker/web-entrypoint.sh
+COPY apps/web ./apps/web
+COPY apps/email ./apps/email
+COPY packages ./packages
 COPY --from=deps /app/node_modules ./node_modules
-COPY . .
 
 ARG NEXT_PUBLIC_DOCS_URL=http://localhost:3001
 ARG NEXT_PUBLIC_GITHUB_URL=https://github.com/yazidalg/payoes
@@ -29,17 +35,24 @@ ENV NEXT_TELEMETRY_DISABLED=1 \
     NEXT_PUBLIC_DOCS_URL=$NEXT_PUBLIC_DOCS_URL \
     NEXT_PUBLIC_GITHUB_URL=$NEXT_PUBLIC_GITHUB_URL
 
-RUN npm run build
+RUN --mount=type=cache,target=/app/apps/web/.next/cache \
+    npm run build
 
 FROM base AS migrate
 
 RUN apk add --no-cache postgresql-client
 
-COPY --from=builder /app ./
-
-ENV NODE_ENV=production
+COPY package.json package-lock.json ./
+COPY scripts/load-root-env.mjs scripts/load-root-env.mjs
+COPY apps/web/package.json apps/web/package.json
+COPY apps/web/drizzle.config.ts apps/web/drizzle.config.ts
+COPY apps/web/drizzle apps/web/drizzle
+COPY apps/web/src/lib/db/schema.ts apps/web/src/lib/db/schema.ts
+COPY --from=deps /app/node_modules ./node_modules
 
 WORKDIR /app/apps/web
+
+ENV NODE_ENV=production
 
 CMD ["sh", "-c", "until pg_isready -h \"${DATABASE_HOST:-postgres}\" -p \"${DATABASE_PORT:-5432}\" -U \"${DATABASE_USER:-payoes}\" >/dev/null 2>&1; do echo 'Waiting for PostgreSQL...'; sleep 1; done; npx drizzle-kit migrate"]
 

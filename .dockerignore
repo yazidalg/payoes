@@ -1,4 +1,4 @@
-# Dependencies
+# Dependencies and build output
 node_modules
 **/node_modules
 **/.next
@@ -16,10 +16,14 @@ node_modules
 # Docker
 Dockerfile
 .dockerignore
+docker-compose.yml
 
-# Large / unrelated trees
+# Unrelated apps and tooling
 stellartools
-apps/docs/.mintlify
+apps/docs
+.agents
+.cursor
+skills-lock.json
 
 # OS / editor
 .DS_Store
