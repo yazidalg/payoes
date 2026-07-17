@@ -95,19 +95,30 @@ Payoes bridges this gap by providing a developer first payment infrastructure th
 
 ---
 
+## Resources
+
+| Resource                   | Link                                        |
+| -------------------------- | ------------------------------------------- |
+| Website                    | https://payoes.com                          |
+| Documentation              | https://docs.payoes.com                     |
+| Payoes SDK                 | https://www.npmjs.com/package/@payoes/sdk   |
+| Demo Video                 | https://www.youtube.com/watch?v=QL7icAGV0t4 |
+| Pitch Deck                 | https://canva.link/r0khw89qvqiv4ft          |
+| Testnet Smart Contract     |                                             |
+| **Mainnet** Smart Contract |                                             |
+
 ## Tech Stack
 
-| Layer      | Technology                                                           |
-| ---------- | -------------------------------------------------------------------- |
-| Framework  | [Next.js 16](https://nextjs.org/) (App Router)                       |
-| UI         | [React 19](https://react.dev/) + [shadcn/ui](https://ui.shadcn.com/) |
-| Styling    | [Tailwind CSS 4](https://tailwindcss.com/)                           |
-| Language   | [TypeScript 5](https://www.typescriptlang.org/)                      |
-| Database   | [PostgreSQL](https://www.postgresql.org/)                            |
-| Blockchain | [Stellar SDK](https://stellar.github.io/js-stellar-sdk/)             |
-| Storage    | [MinIO](https://min.io/) (S3-compatible, local dev)                  |
-| Docs       | [Mintlify](https://mintlify.com/)                                    |
-| Tooling    | ESLint · React Compiler · npm workspaces                             |
+| Layer      | Technology                                               |
+| ---------- | -------------------------------------------------------- |
+| Framework  | [Next.js 16](https://nextjs.org/) (App Router)           |
+| UI         | [React 19](https://react.dev/)                           |
+| Styling    | [Tailwind CSS 4](https://tailwindcss.com/)               |
+| Language   | [TypeScript 5](https://www.typescriptlang.org/)          |
+| Database   | [PostgreSQL](https://www.postgresql.org/)                |
+| Blockchain | [Stellar SDK](https://stellar.github.io/js-stellar-sdk/) |
+| Docs       | [Mintlify](https://mintlify.com/)                        |
+| Tooling    | ESLint · React Compiler · npm workspaces                 |
 
 ---
 
