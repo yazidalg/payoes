@@ -97,15 +97,15 @@ Payoes bridges this gap by providing a developer first payment infrastructure th
 
 ## Resources
 
-| Resource                   | Link                                        |
-| -------------------------- | ------------------------------------------- |
-| Website                    | https://payoes.com                          |
-| Documentation              | https://docs.payoes.com                     |
-| Payoes SDK                 | https://www.npmjs.com/package/@payoes/sdk   |
-| Demo Video                 | https://www.youtube.com/watch?v=QL7icAGV0t4 |
-| Pitch Deck                 | https://canva.link/r0khw89qvqiv4ft          |
-| Testnet Smart Contract     |                                             |
-| **Mainnet** Smart Contract |                                             |
+| Resource                   | Link                                                     |
+| -------------------------- | -------------------------------------------------------- |
+| Website                    | https://payoes.com                                       |
+| Documentation              | https://docs.payoes.com                                  |
+| Payoes SDK                 | https://www.npmjs.com/package/@payoes/sdk                |
+| Demo Video                 | https://www.youtube.com/watch?v=QL7icAGV0t4              |
+| Pitch Deck                 | https://canva.link/r0khw89qvqiv4ft                       |
+| Testnet Smart Contract     | CDD7VS6OPAAEHUNHJ2RUTLG5FZZWSWR2GZL5XFQBTQOTIO3ZEY5M6JJS |
+| **Mainnet** Smart Contract | CANYTHWVKNUVAM2WZUAKIPP3AD6C5CBDPDDHZPJOPBRJRWRBOVGGZNUI |
 
 ## Tech Stack
 

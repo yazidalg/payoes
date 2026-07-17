@@ -212,20 +212,26 @@ if [[ ! -f "${WASM_PATH}" ]]; then
 fi
 
 echo ""
-echo "> stellar contract deploy --wasm ${WASM_PATH} --network ${NETWORK} --source-account ${SOURCE_ACCOUNT}"
+echo "> stellar contract deploy --wasm ${WASM_PATH} --network ${NETWORK} --source-account ${SOURCE_ACCOUNT} --inclusion-fee 100000"
 
-deploy_output="$(
+if ! deploy_output="$(
   stellar contract deploy \
     --wasm "${WASM_PATH}" \
     --network "${NETWORK}" \
     --source-account "${SOURCE_ACCOUNT}" 2>&1
-)" || die "Contract deploy failed"
+)"; then
+  echo ""
+  echo "${deploy_output}" >&2
+  die "Contract deploy failed"
+fi
 
 echo "${deploy_output}"
 
 CONTRACT_ID="$(echo "${deploy_output}" | grep -oE 'C[A-Z2-7]{55}' | tail -n 1 || true)"
 
 if [[ -z "${CONTRACT_ID}" ]]; then
+  echo ""
+  echo "${deploy_output}" >&2
   die "Deploy succeeded but contract ID could not be parsed from CLI output"
 fi
 
