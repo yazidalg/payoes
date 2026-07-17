@@ -386,7 +386,14 @@ export async function getVerificationSession(organizationId: string, userId: str
       application,
       note: "Replacement inquiry after Persona declined or failed",
     });
+    if (!application.providerInquiryId) {
+      throw new KycServiceError("Verification has not been started yet", "not_found");
+    }
     inquiry = await getPersonaInquiry(application.providerInquiryId);
+  }
+
+  if (!application.providerInquiryId) {
+    throw new KycServiceError("Verification has not been started yet", "not_found");
   }
 
   let inquiryId = application.providerInquiryId;
