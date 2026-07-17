@@ -3,11 +3,11 @@ import { redirect } from "next/navigation";
 import { CheckoutClient } from "@/components/checkout/checkout-client";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
-import { DEFAULT_AUTH_URL } from "@/constants/app";
+import { getAppUrl } from "@/constants/app";
 import { startCheckoutFromPaymentLink } from "@/lib/payment-links/service";
 
 function checkoutPathFromUrl(url: string) {
-  return new URL(url, process.env.AUTH_URL ?? DEFAULT_AUTH_URL).pathname;
+  return new URL(url, getAppUrl()).pathname;
 }
 
 export default async function CheckoutPage({

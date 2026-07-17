@@ -24,7 +24,7 @@ import {
 import { assertSorobanConfigured } from "@/lib/soroban/setup-errors";
 import { ensureEscrowPaymentRegistered } from "@/lib/soroban/escrow-contract";
 import { syncEscrowOperatorTrustlines } from "@/lib/stellar/escrow/operator-trustlines";
-import { DEFAULT_AUTH_URL } from "@/constants/app";
+import { getAppUrl } from "@/constants/app";
 import {
   calculateMerchantSettlementAmount,
   calculatePlatformFeeAmount,
@@ -39,7 +39,7 @@ function createPublicId() {
 }
 
 export function getCheckoutUrl(publicId: string) {
-  const baseUrl = process.env.AUTH_URL ?? DEFAULT_AUTH_URL;
+  const baseUrl = getAppUrl();
   return `${baseUrl}/c/${publicId}`;
 }
 

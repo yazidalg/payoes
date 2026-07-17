@@ -1,4 +1,4 @@
-import { DEFAULT_AUTH_URL } from "@/constants/app";
+import { getAppUrl } from "@/constants/app";
 import { formatInvoiceAmount } from "@/lib/invoices/amount";
 import { renderEmail } from "@payoes/email/render";
 import InvoiceEmail from "@payoes/email/templates/invoice";
@@ -48,7 +48,7 @@ function formatDate(date: Date | null) {
 }
 
 function getWordmarkUrl() {
-  const appUrl = process.env.AUTH_URL ?? DEFAULT_AUTH_URL;
+  const appUrl = getAppUrl();
   return `${appUrl.replace(/\/$/, "")}/logo-full.png`;
 }
 

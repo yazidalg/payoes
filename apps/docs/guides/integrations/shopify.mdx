@@ -31,10 +31,10 @@ Configure your app in the [Shopify Partners Dashboard](https://partners.shopify.
     Add your Payoes callback URL to allowed redirect URLs:
 
     ```
-    {AUTH_URL}/api/integrations/shopify/callback
+    {NEXT_PUBLIC_APP_URL}/api/integrations/shopify/callback
     ```
 
-    Replace `{AUTH_URL}` with your public Payoes host (same value as the `AUTH_URL` env var).
+    Replace `{NEXT_PUBLIC_APP_URL}` with your public Payoes host (same value as the `NEXT_PUBLIC_APP_URL` env var).
   </Step>
   <Step title="Choose a distribution method">
     Under **App setup → Distribution**, select a distribution method (for example, custom distribution for a single merchant or public distribution). Shopify requires this before you can request protected customer data access.
@@ -106,7 +106,7 @@ INTEGRATIONS_STATE_SECRET=
     The topic name `orders/create` and API version `2024-10` are correct. This error means the access token does not include order scopes or protected customer data approval.
   </Accordion>
   <Accordion title="OAuth redirect fails">
-    Confirm `AUTH_URL` matches your public Payoes host and the redirect URL is allowed in your Shopify app settings: `{AUTH_URL}/api/integrations/shopify/callback`.
+    Confirm `NEXT_PUBLIC_APP_URL` matches your public Payoes host and the redirect URL is allowed in your Shopify app settings: `{NEXT_PUBLIC_APP_URL}/api/integrations/shopify/callback`.
   </Accordion>
   <Accordion title="No payment created">
     Check the order financial status is `pending`. Paid orders are ignored.

@@ -1,9 +1,9 @@
-import { DEFAULT_AUTH_URL } from "@/constants/app";
+import { getAppUrl } from "@/constants/app";
 import type { OrganizationIntegration } from "@/lib/db/schema";
 import { getShopifyAccessToken } from "./webhooks";
 
 export function getShopifyWebhookUrl() {
-  const baseUrl = process.env.AUTH_URL ?? DEFAULT_AUTH_URL;
+  const baseUrl = getAppUrl();
   return `${baseUrl}/api/webhooks/shopify`;
 }
 

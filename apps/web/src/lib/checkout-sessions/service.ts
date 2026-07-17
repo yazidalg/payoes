@@ -9,7 +9,7 @@ import {
   type Organization,
   type Payment,
 } from "@/lib/db/schema";
-import { DEFAULT_AUTH_URL } from "@/constants/app";
+import { getAppUrl } from "@/constants/app";
 import type { AllowedAsset } from "@/lib/assets/types";
 import { createPayment, getPaymentById, getPaymentByPublicId } from "@/lib/payments/service";
 import { serializePaymentAssets } from "@/lib/assets/serialize";
@@ -19,7 +19,7 @@ function createSessionPublicId() {
 }
 
 export function getCheckoutSessionUrl(publicId: string) {
-  const baseUrl = process.env.AUTH_URL ?? DEFAULT_AUTH_URL;
+  const baseUrl = getAppUrl();
   return `${baseUrl}/c/${publicId}`;
 }
 

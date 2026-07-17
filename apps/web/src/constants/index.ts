@@ -67,11 +67,12 @@ export {
 } from "./stellar";
 
 export {
-  DEFAULT_AUTH_URL,
+  DEFAULT_APP_URL,
   DEFAULT_DOCS_URL,
   DEFAULT_GITHUB_REPO_URL,
   DEFAULT_SMTP_PORT,
   MOBILE_BREAKPOINT_PX,
+  getAppUrl,
 } from "./app";
 
 export {

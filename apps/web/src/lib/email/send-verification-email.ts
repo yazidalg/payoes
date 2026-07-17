@@ -1,11 +1,7 @@
-import { DEFAULT_AUTH_URL } from "@/constants/app";
+import { getAppUrl } from "@/constants/app";
 import { EMAIL_VERIFICATION_TOKEN_TTL_HOURS } from "@/constants/auth";
 import { sendEmail } from "@payoes/email";
 import VerifyEmail from "@payoes/email/templates/verify-email";
-
-function getAppUrl() {
-  return process.env.AUTH_URL ?? DEFAULT_AUTH_URL;
-}
 
 function getWordmarkUrl() {
   return `${getAppUrl().replace(/\/$/, "")}/logo-full.png`;

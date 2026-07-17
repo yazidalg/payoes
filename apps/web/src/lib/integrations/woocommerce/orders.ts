@@ -1,11 +1,11 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
-import { DEFAULT_AUTH_URL } from "@/constants/app";
+import { getAppUrl } from "@/constants/app";
 import type { OrganizationIntegration } from "@/lib/db/schema";
 import type { WooCommerceCredentials } from "../types";
 import { normalizeWooCommerceStoreUrl } from "../service";
 
 export function getWooCommerceWebhookUrl() {
-  const baseUrl = process.env.AUTH_URL ?? DEFAULT_AUTH_URL;
+  const baseUrl = getAppUrl();
   return `${baseUrl}/api/webhooks/woocommerce`;
 }
 

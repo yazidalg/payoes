@@ -10,5 +10,12 @@ const repoRoot = path.resolve(
 export function loadRootEnv() {
   config({ path: path.join(repoRoot, ".env.local") });
   config({ path: path.join(repoRoot, ".env") });
+
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim();
+
+  if (appUrl) {
+    process.env.AUTH_URL = appUrl;
+  }
+
   return repoRoot;
 }

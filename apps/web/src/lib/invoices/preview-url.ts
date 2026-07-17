@@ -1,4 +1,4 @@
-import { DEFAULT_AUTH_URL } from "@/constants/app";
+import { DEFAULT_APP_URL } from "@/constants/app";
 import type { InvoicePresentation } from "@/lib/invoices/presentation";
 
 function normalizeOrigin(origin: string) {
@@ -7,7 +7,7 @@ function normalizeOrigin(origin: string) {
 
 export function getInvoiceCheckoutPreviewUrl(
   presentation: InvoicePresentation,
-  origin = DEFAULT_AUTH_URL,
+  origin = DEFAULT_APP_URL,
 ) {
   if (presentation.checkoutUrl) {
     return presentation.checkoutUrl;

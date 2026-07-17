@@ -1,10 +1,6 @@
-import { DEFAULT_AUTH_URL } from "@/constants/app";
+import { getAppUrl } from "@/constants/app";
 import { sendEmail } from "@payoes/email";
 import OrganizationInvite from "@payoes/email/templates/organization-invite";
-
-function getAppUrl() {
-  return process.env.AUTH_URL ?? DEFAULT_AUTH_URL;
-}
 
 function getWordmarkUrl() {
   return `${getAppUrl().replace(/\/$/, "")}/logo-full.png`;

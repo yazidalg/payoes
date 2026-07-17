@@ -66,7 +66,7 @@ PAYOES_URL=https://your-payoes-host.com
 CRON_SECRET=your-shared-secret
 ```
 
-`PAYOES_URL` must match the public URL of your Payoes app (same as `AUTH_URL` in production).
+`PAYOES_URL` must match the public URL of your Payoes app (same as `NEXT_PUBLIC_APP_URL` in production).
 
 ## Step 3: Smoke test
 

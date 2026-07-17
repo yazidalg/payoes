@@ -78,7 +78,7 @@ services:
     container_name: payoes-web
     restart: unless-stopped
     ports:
-      - "${WEB_PORT:-3000}:3000"
+      - "${NEXTJS_PORT:-3000}:3000"
     env_file:
       - .env
     depends_on:
@@ -92,7 +92,6 @@ services:
         condition: service_completed_successfully
     environment:
       AUTH_SECRET: ${AUTH_SECRET:-payoes-docker-dev-secret}
-      AUTH_URL: ${AUTH_URL:-http://localhost:3000}
       DATABASE_URL: postgresql://payoes:payoes@postgres:5432/payoes
       S3_ENDPOINT: http://minio:9000
       S3_PUBLIC_URL: ${S3_PUBLIC_URL:-http://localhost:9000/payoes-uploads}

@@ -1,4 +1,4 @@
-import { DEFAULT_AUTH_URL } from "@/constants/app";
+import { getAppUrl } from "@/constants/app";
 import { createIntegrationOAuthState } from "../state";
 import { normalizeShopifyShop } from "../service";
 
@@ -23,7 +23,7 @@ export function getShopifyScopes() {
 }
 
 export function getShopifyRedirectUri() {
-  const baseUrl = process.env.AUTH_URL ?? DEFAULT_AUTH_URL;
+  const baseUrl = getAppUrl();
   return `${baseUrl}/api/integrations/shopify/callback`;
 }
 
