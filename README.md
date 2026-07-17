@@ -1,12 +1,10 @@
 <div align="center">
 
-<img src="apps/web/public/logo.svg" alt="Payoes" width="80" />
+<img src="assets/readme-header.png" alt="Payoes" width="720" />
 
-# Payoes
+### Payment Infrastructure for Stellar, Without the Blockchain Complexity.
 
-### Stellar payment infrastructure for modern businesses.
-
-Accept stablecoin payments, manage invoices and checkout flows, and integrate with a developer-first API and dashboard.
+Payoes is a developer first payment infrastructure for Stellar that makes blockchain payments as simple as traditional payment gateways.
 
 <br />
 
@@ -59,43 +57,57 @@ Accept stablecoin payments, manage invoices and checkout flows, and integrate wi
 
 ## About
 
-**Payoes** is a Stellar payments platform for organizations. Configure a settlement wallet, accept USDC and other Stellar assets, and operate payment links, checkout sessions, and invoices from a unified dashboard or REST API.
+**Payoes** is a developer first payment infrastructure that makes blockchain payments as easy to integrate as traditional payment gateways. By abstracting wallets, blockchain transactions, and payment settlement behind familiar APIs, Payoes enables developers and businesses to build modern payment experiences without blockchain complexity.
 
-> **Repository:** [`payoesteam/payoes`](https://github.com/payoesteam/payoes) (override with `NEXT_PUBLIC_GITHUB_URL` in `apps/web/.env.local`)
+## Why Payoes
 
----
+Blockchain payments are rapidly gaining adoption, but integration remains a major challenge for developers and businesses.
+
+According to Source: [Ripple's 2026 Digital Asset Survey](https://ripple.com/insights/first-look-at-ripples-2026-digital-asset-survey/):
+
+- **74%** of financial leaders believe stablecoins improve cash flow efficiency.
+- **57%** prefer an integrated payment infrastructure partner.
+- **71%** prefer a unified payment solution over fragmented payment tools.
+
+Despite this growing demand, developers are still expected to manage wallets, blockchain transactions, smart contracts, and payment settlement on their own.
+
+Payoes bridges this gap by providing a developer first payment infrastructure that abstracts blockchain complexity into familiar payment workflows. Instead of building payment infrastructure from scratch, developers can integrate Stellar payments using modern APIs while leveraging the speed, security, and transparency of the Stellar network.
 
 ## Features
 
-- **Marketing landing page**: public homepage with product overview and sign-up CTAs.
-- **Organization dashboard**: payments, transactions, settlements, customers, and analytics in one workspace.
-- **Payment links & checkout sessions**: shareable links and hosted checkout flows for one-time payments.
-- **Invoicing**: create, send, finalize, and track invoices with customer management.
-- **Settlement wallet**: configure the Stellar public key and trustlines that receive organization payments.
-- **Sandbox & production**: separate environments for testing and live operations.
-- **REST API (v1)**: programmatic access to customers, payments, invoices, and checkout sessions.
-- **Developer tools**: API keys, webhooks with delivery retries, and request logs.
-- **Payoes SDK**: JavaScript embed for hosted checkout (`@payoes/sdk`) plus npm and script tag distribution.
-- **Mintlify docs**: OpenAPI-backed developer documentation with local setup guides.
-- **Team & onboarding**: organization setup, member invites, and wallet onboarding flows.
-- **Responsive UI**: shadcn/ui dashboard with collapsible sidebar and mobile-friendly layouts.
+- **Crypto Payments**  
+  Accept Stellar asset payments through a modern payment gateway. Payoes abstracts wallets, blockchain transactions, and payment processing so developers can integrate crypto payments without blockchain expertise.
+
+- **Checkout, Payment Links & Invoicing**  
+  Create hosted checkout pages, reusable payment links, and professional invoices to deliver a seamless payment experience for customers while simplifying payment collection for businesses.
+
+- **On Chain Settlement & Verification**  
+  Every successful payment is securely settled on the Stellar network and permanently recorded on chain, providing transparent, immutable, and publicly verifiable payment records.
+
+- **Cross Asset Settlement**  
+  Let customers pay with their preferred Stellar asset while merchants automatically receive settlement in their preferred asset through Stellar Path Payments.
+
+- **Developer Integration**  
+  Integrate Payoes into any application using developer friendly REST APIs, official SDKs, and real time webhooks designed for fast and reliable payment integrations.
+
+- **Platform Integrations**  
+  Connect Payoes with popular commerce platforms, business applications, and developer tools through ready to use integrations, plugins, APIs, and webhooks.
 
 ---
 
 ## Tech Stack
 
-| Layer      | Technology                                                                 |
-| ---------- | -------------------------------------------------------------------------- |
-| Framework  | [Next.js 16](https://nextjs.org/) (App Router)                             |
-| UI         | [React 19](https://react.dev/) + [shadcn/ui](https://ui.shadcn.com/)       |
-| Styling    | [Tailwind CSS 4](https://tailwindcss.com/)                               |
-| Language   | [TypeScript 5](https://www.typescriptlang.org/)                            |
-| Database   | [PostgreSQL](https://www.postgresql.org/) + [Drizzle ORM](https://orm.drizzle.team/) |
-| Auth       | [NextAuth.js](https://next-auth.js.org/)                                   |
-| Blockchain | [Stellar SDK](https://stellar.github.io/js-stellar-sdk/)                   |
-| Storage    | [MinIO](https://min.io/) (S3-compatible, local dev)                        |
-| Docs       | [Mintlify](https://mintlify.com/)                                          |
-| Tooling    | ESLint · React Compiler · npm workspaces                                   |
+| Layer      | Technology                                                           |
+| ---------- | -------------------------------------------------------------------- |
+| Framework  | [Next.js 16](https://nextjs.org/) (App Router)                       |
+| UI         | [React 19](https://react.dev/) + [shadcn/ui](https://ui.shadcn.com/) |
+| Styling    | [Tailwind CSS 4](https://tailwindcss.com/)                           |
+| Language   | [TypeScript 5](https://www.typescriptlang.org/)                      |
+| Database   | [PostgreSQL](https://www.postgresql.org/)                            |
+| Blockchain | [Stellar SDK](https://stellar.github.io/js-stellar-sdk/)             |
+| Storage    | [MinIO](https://min.io/) (S3-compatible, local dev)                  |
+| Docs       | [Mintlify](https://mintlify.com/)                                    |
+| Tooling    | ESLint · React Compiler · npm workspaces                             |
 
 ---
 
@@ -110,7 +122,7 @@ Accept stablecoin payments, manage invoices and checkout flows, and integrate wi
 ## Quick Start
 
 ```bash
-git clone git@github.com:payoesteam/payoes.git
+git clone git@github.com:yazidalg/payoes.git
 cd payoes
 npm install
 npm run docker:up
@@ -123,67 +135,18 @@ For the full local setup (environment variables, docs server), see the [Getting 
 
 ### Scripts
 
-| Script               | Description                                           |
-| -------------------- | ----------------------------------------------------- |
-| `npm run dev`        | Start the Next.js dev server on port `3000`.          |
-| `npm run build`      | Produce an optimized production build.                |
-| `npm run start`      | Serve the production build locally.                   |
-| `npm run lint`       | Run ESLint across the web app.                        |
-| `npm run docker:up`  | Start PostgreSQL and MinIO via Docker Compose.        |
-| `npm run docker:down`| Stop Docker Compose services.                         |
-| `npm run db:migrate` | Apply Drizzle database migrations.                    |
-| `npm run db:setup`   | Initialize the database schema.                       |
-| `npm run db:studio`  | Open Drizzle Studio for database inspection.          |
-| `npm run docs:dev`   | Start Mintlify docs on port `3001`.                   |
-
----
-
-## Architecture
-
-```text
-payoes/
-├── apps/
-│   ├── web/                    # Next.js app (marketing, auth, dashboard, API)
-│   │   ├── drizzle/            # SQL migrations
-│   │   ├── public/             # Static assets (logo, favicon)
-│   │   └── src/
-│   │       ├── app/
-│   │       │   ├── (marketing)/   # Public landing page
-│   │       │   ├── (auth)/          # Login, register, email verification
-│   │       │   ├── dashboard/       # Organization workspace
-│   │       │   ├── onboarding/      # Org and wallet setup
-│   │       │   └── api/             # REST routes (v1 + internal)
-│   │       ├── components/          # UI, sidebar, payment flows
-│   │       └── lib/                 # DB schema, auth, Stellar helpers
-│   └── docs/                   # Mintlify developer documentation
-├── packages/
-│   ├── sdk/                    # @payoes/sdk checkout embed
-│   ├── ui/                     # Shared UI primitives
-│   └── utils/                  # Shared utilities
-├── docker-compose.yml          # PostgreSQL + MinIO for local dev
-├── package.json                # npm workspaces root
-└── README.md
-```
-
-### Routes
-
-| Route group    | Path            | Purpose                                              |
-| -------------- | --------------- | ---------------------------------------------------- |
-| `(marketing)`  | `/`             | Public landing page                                  |
-| `(auth)`       | `/login`, `/register` | Sign in and account creation                   |
-| `dashboard`    | `/dashboard/*`  | Payments, customers, developers, and settings        |
-| `onboarding`   | `/onboarding/*` | Organization and settlement wallet setup              |
-| Public checkout| `/c/[paymentId]`, `/i/[invoiceId]` | Hosted payment pages |
-
-### Workspaces
-
-| Package        | Description                                      |
-| -------------- | ------------------------------------------------ |
-| `apps/web`     | Main Next.js application and API                 |
-| `apps/docs`    | Mintlify developer documentation                 |
-| `@payoes/sdk`  | Checkout embed SDK (npm + script tag)            |
-| `@payoes/ui`   | Shared UI components                             |
-| `@payoes/utils`| Shared utility functions                         |
+| Script                | Description                                    |
+| --------------------- | ---------------------------------------------- |
+| `npm run dev`         | Start the Next.js dev server on port `3000`.   |
+| `npm run build`       | Produce an optimized production build.         |
+| `npm run start`       | Serve the production build locally.            |
+| `npm run lint`        | Run ESLint across the web app.                 |
+| `npm run docker:up`   | Start PostgreSQL and MinIO via Docker Compose. |
+| `npm run docker:down` | Stop Docker Compose services.                  |
+| `npm run db:migrate`  | Apply Drizzle database migrations.             |
+| `npm run db:setup`    | Initialize the database schema.                |
+| `npm run db:studio`   | Open Drizzle Studio for database inspection.   |
+| `npm run docs:dev`    | Start Mintlify docs on port `3001`.            |
 
 ---
 
@@ -213,5 +176,5 @@ Built for organizations that want modern payment infrastructure on Stellar, stan
 - [Mintlify](https://mintlify.com/): developer documentation
 
 <div align="center">
-<sub>Stellar payment infrastructure for modern businesses · <a href="https://github.com/payoesteam/payoes">payoesteam/payoes</a></sub>
+<sub>Payment Infrastructure for Stellar, Without the Blockchain Complexity. · <a href="https://github.com/yazidalg/payoes">yazidalg/payoes</a></sub>
 </div>
