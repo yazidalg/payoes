@@ -4,15 +4,15 @@ services:
     container_name: payoes-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_USER: payoes
-      POSTGRES_PASSWORD: payoes
-      POSTGRES_DB: payoes
+      POSTGRES_USER: ${POSTGRES_USER:-payoes}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-payoes}
+      POSTGRES_DB: ${POSTGRES_DB:-payoes}
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U payoes -d payoes"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-payoes} -d ${POSTGRES_DB:-payoes}"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -62,10 +62,10 @@ services:
       postgres:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgresql://payoes:payoes@postgres:5432/payoes
+      DATABASE_URL: postgresql://${POSTGRES_USER:-payoes}:${POSTGRES_PASSWORD:-payoes}@postgres:5432/${POSTGRES_DB:-payoes}
       DATABASE_HOST: postgres
       DATABASE_PORT: "5432"
-      DATABASE_USER: payoes
+      DATABASE_USER: ${POSTGRES_USER:-payoes}
 
   web:
     build:
@@ -92,7 +92,7 @@ services:
         condition: service_completed_successfully
     environment:
       AUTH_SECRET: ${AUTH_SECRET:-payoes-docker-dev-secret}
-      DATABASE_URL: postgresql://payoes:payoes@postgres:5432/payoes
+      DATABASE_URL: postgresql://${POSTGRES_USER:-payoes}:${POSTGRES_PASSWORD:-payoes}@postgres:5432/${POSTGRES_DB:-payoes}
       S3_ENDPOINT: http://minio:9000
       S3_PUBLIC_URL: ${S3_PUBLIC_URL:-http://localhost:9000/payoes-uploads}
       NODE_ENV: production
