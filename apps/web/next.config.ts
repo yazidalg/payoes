@@ -7,6 +7,12 @@ const repoRoot = path.resolve(__dirname, "../..");
 loadEnv({ path: path.join(repoRoot, ".env.local") });
 loadEnv({ path: path.join(repoRoot, ".env") });
 
+const nextjsPort = process.env.NEXTJS_PORT?.trim();
+
+if (nextjsPort) {
+  process.env.PORT = nextjsPort;
+}
+
 const allowedDevOrigins =
   process.env.NEXT_ALLOWED_DEV_ORIGINS?.split(",")
     .map((origin) => origin.trim())

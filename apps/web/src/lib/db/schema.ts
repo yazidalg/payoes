@@ -798,6 +798,13 @@ export const integrationOrderLinks = pgTable(
   ],
 );
 
+export const horizonStreamCursors = pgTable("horizon_stream_cursors", {
+  environment: environmentModeEnum("environment").primaryKey(),
+  pagingToken: text("paging_token").notNull(),
+  lastEventAt: timestamp("last_event_at", { withTimezone: true }),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
 export const apiLogs = pgTable("api_logs", {
   id: uuid("id").defaultRandom().primaryKey(),
   organizationId: uuid("organization_id")

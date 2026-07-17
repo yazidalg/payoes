@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNotNull, isNull, notInArray } from "drizzle-orm";
+import { and, eq, inArray, isNull, notInArray } from "drizzle-orm";
 import { Horizon } from "@stellar/stellar-sdk";
 import { findAllowedAsset, allowedAssetsEquivalent } from "@/lib/assets/types";
 import type { AllowedAsset } from "@/lib/assets/types";
@@ -1182,6 +1182,46 @@ async function relayManualEscrowDeposit(payment: Payment, txHash: string) {
   }
 }
 
+export async function processHorizonEscrowPaymentEvent(
+  environment: Payment["environment"],
+  record: {
+    type: string;
+    transaction_hash: string;
+    to?: string;
+    to_muxed?: string;
+  },
+) {
+  if (record.type !== "payment") {
+    return false;
+  }
+
+  const destination =
+    "to_muxed" in record && record.to_muxed ? record.to_muxed : record.to;
+
+  if (!destination) {
+    return false;
+  }
+
+  const [payment] = await db
+    .select()
+    .from(payments)
+    .where(
+      and(
+        eq(payments.environment, environment),
+        eq(payments.paymentFlow, "escrow"),
+        eq(payments.status, "pending"),
+        eq(payments.depositAddress, destination),
+      ),
+    )
+    .limit(1);
+
+  if (!payment) {
+    return false;
+  }
+
+  return relayManualEscrowDeposit(payment, record.transaction_hash);
+}
+
 export type EscrowDepositCheckResult = {
   detected: boolean;
   payment: Payment;
@@ -1270,77 +1310,4 @@ export async function detectEscrowDepositForPayment(
   }
 
   return { detected: false, payment: current };
-}
-
-export async function detectEscrowDepositsFromHorizon(
-  environment: Payment["environment"]
-) {
-  const pending = await db
-    .select()
-    .from(payments)
-    .where(
-      and(
-        eq(payments.environment, environment),
-        eq(payments.paymentFlow, "escrow"),
-        eq(payments.status, "pending"),
-        isNotNull(payments.depositAddress),
-      ),
-    );
-
-  if (pending.length === 0) {
-    return 0;
-  }
-
-  const escrow = getEscrowConfig(environment);
-  const server = new Horizon.Server(getHorizonUrl(environment));
-  const paymentsResponse = await server
-    .payments()
-    .forAccount(escrow.publicKey)
-    .order("desc")
-    .limit(200)
-    .call();
-
-  const byDestination = new Map(
-    pending.map((payment) => [payment.depositAddress!, payment] as const),
-  );
-  let processed = 0;
-
-  for (const record of paymentsResponse.records) {
-    if (record.type !== "payment") {
-      continue;
-    }
-
-    const destination = "to_muxed" in record && record.to_muxed
-      ? record.to_muxed
-      : record.to;
-    const payment = byDestination.get(destination);
-
-    if (!payment) {
-      continue;
-    }
-
-    if (await relayManualEscrowDeposit(payment, record.transaction_hash)) {
-      processed += 1;
-    }
-  }
-
-  return processed;
-}
-
-export async function runEscrowSettlementWorker() {
-  const environments: Payment["environment"][] = ["sandbox", "production"];
-  let detected = 0;
-  let processed = 0;
-
-  for (const environment of environments) {
-    try {
-      detected += await detectEscrowDepositsFromHorizon(environment);
-    } catch {
-      // Escrow may not be configured for this environment.
-    }
-  }
-
-  processed = await processPendingEscrowSettlements();
-
-  return { detected, processed };
 }

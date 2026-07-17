@@ -166,10 +166,10 @@ Horizon deposit detection matches both classic and muxed destination fields when
 | Build payment XDR        | Load account sequence, network passphrase                                 |
 | Path finding             | `strictReceivePaths` for cross-asset quotes and settlement                |
 | Payment verification     | Fetch transaction + operations; validate destination, asset, amount, memo |
-| QR / background deposits | Poll payments to muxed operator addresses                                 |
+| QR / background deposits | Horizon SSE stream on operator account payments                 |
 | Explorer links           | Tx hashes surfaced in the dashboard link to Stellar Expert                |
 
-A cron settlement worker scans Horizon for inbound deposits and drives on-chain settlement for both sandbox and production environments.
+A background Horizon stream in the web process detects escrow QR deposits and drives on-chain settlement for sandbox and production. Run a single web replica (`replicas: 1`).
 
 ### Network Duality
 
@@ -264,7 +264,7 @@ Every organization-scoped resource is filtered by `organizationId` and `environm
 
 | Path                | Role                                                                         |
 | ------------------- | ---------------------------------------------------------------------------- |
-| `apps/web`          | Next.js app: marketing site, dashboard, hosted checkout, REST API, cron jobs |
+| `apps/web`          | Next.js app: marketing site, dashboard, hosted checkout, REST API, background workers |
 | `apps/docs`         | Mintlify API documentation                                                   |
 | `packages/sdk`      | `@payoes/sdk` npm package for merchant integrations                          |
 | `contracts`         | Soroban smart contract for on-chain payment routing and settlement           |

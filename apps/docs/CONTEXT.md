@@ -295,7 +295,7 @@ Each delivery includes headers: `Payoes-Signature`, `Payoes-Event`, `Payoes-Time
 
 Signing: HMAC-SHA256 over `{timestamp}.{raw_body}` using the endpoint `whsec_...` secret.
 
-Retries: up to 5 attempts with exponential backoff (1m → 5m → 30m → 2h → 24h). Manual retry and delivery logs in the dashboard. Self-hosted operators schedule `POST /api/cron/webhook-retries` — see local-setup docs.
+Retries: up to 5 attempts with exponential backoff (1m → 5m → 30m → 2h → 24h). Manual retry and delivery logs in the dashboard. Self-hosted deployments run retries in-process every five minutes via `instrumentation.ts`.
 
 ---
 

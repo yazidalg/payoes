@@ -72,15 +72,15 @@ Team invitation emails are sent only when SMTP is configured. Without SMTP, you 
 
 See [KYC verification](/local-setup/kyc-verification) for Persona sandbox setup.
 
-## Background jobs
+## Background workers
 
-Self-hosted deployments only.
+Self-hosted deployments only. Workers start automatically when the Next.js server boots (`instrumentation.ts`).
 
-| Variable      | When to set          | Description                               |
-| ------------- | -------------------- | ----------------------------------------- |
-| `CRON_SECRET` | Running cron workers | Bearer token for protected cron endpoints |
+| Variable                    | When to set          | Description                                                                 |
+| --------------------------- | -------------------- | --------------------------------------------------------------------------- |
+| `ENABLE_SETTLEMENT_STREAM`  | Optional             | `true` / `false`. Default: on in production, off in development. Streams Horizon payments to detect escrow QR deposits. Requires a single web replica. |
 
-See [Webhook retry worker](/local-setup/webhook-retry-worker) for scheduling setup.
+See [Webhook retry worker](/local-setup/webhook-retry-worker) for retry behavior.
 
 ## Soroban escrow (required for payments)
 

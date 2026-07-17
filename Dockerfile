@@ -44,6 +44,7 @@ RUN apk add --no-cache postgresql-client
 
 COPY package.json package-lock.json ./
 COPY scripts/load-root-env.mjs scripts/load-root-env.mjs
+COPY scripts/docker/migrate.sh scripts/docker/migrate.sh
 COPY apps/web/package.json apps/web/package.json
 COPY apps/web/drizzle.config.ts apps/web/drizzle.config.ts
 COPY apps/web/drizzle apps/web/drizzle
@@ -54,7 +55,9 @@ WORKDIR /app/apps/web
 
 ENV NODE_ENV=production
 
-CMD ["sh", "-c", "until pg_isready -h \"${DATABASE_HOST:-postgres}\" -p \"${DATABASE_PORT:-5432}\" -U \"${DATABASE_USER:-payoes}\" >/dev/null 2>&1; do echo 'Waiting for PostgreSQL...'; sleep 1; done; npx drizzle-kit migrate"]
+RUN chmod +x /app/scripts/docker/migrate.sh
+
+CMD ["/app/scripts/docker/migrate.sh"]
 
 FROM base AS runner
 

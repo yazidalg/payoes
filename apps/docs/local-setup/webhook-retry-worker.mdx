@@ -1,11 +1,7 @@
 ---
 title: Webhook retry worker
-description: Schedule webhook retries when you self-host Payoes.
+description: How Payoes retries failed webhook deliveries when you self-host.
 ---
-
-import { GithubRepoLink } from "/snippets/github-link";
-
-This guide is for teams that deploy the `apps/web` stack themselves. Integrating merchants never touch `CRON_SECRET`: they only receive signed webhooks ([Webhooks](/guides/webhooks)).
 
 ## How retries work
 
@@ -13,98 +9,21 @@ Failed webhook deliveries retry up to five times (1 min → 5 min → 30 min →
 
 Most of the time, retries run inline: whenever Payoes dispatches a new payment event, it processes any due retries first. That covers busy deployments without extra infrastructure.
 
-On a quiet deployment, a failed delivery might sit until the next payment event triggers a retry pass. To avoid that gap, call `POST /api/cron/webhook-retries` on a schedule.
+On quiet deployments, the web app also runs a background retry pass every five minutes. It starts automatically with the Next.js server via `instrumentation.ts` — no cron jobs or external schedulers required.
 
-## `CRON_SECRET`
+## Self-hosted requirements
 
-Set a bearer token in `.env.local` at the repository root or your production environment:
+- Run exactly **one** web replica so background workers are not duplicated.
+- Restart the app after changing environment variables.
 
-```bash
-CRON_SECRET=<openssl rand -base64 32>
-```
+## Health check
 
-Restart the app after changing env vars. The token protects the retry endpoint — requests without it get `401`.
-
-You don't need a scheduler for local dev. To smoke-test the endpoint:
-
-```bash
-curl -X POST http://localhost:3000/api/cron/webhook-retries \
-  -H "Authorization: Bearer $CRON_SECRET"
-```
-
-Without `CRON_SECRET` set, the route returns `503`.
-
-## Production endpoint
-
-```bash
-curl -X POST https://your-payoes-host/api/cron/webhook-retries \
-  -H "Authorization: Bearer $CRON_SECRET"
-```
-
-`X-Cron-Secret` works as an alternative to the `Authorization` header.
-
-Response:
-
-```json
-{ "processed": 3 }
-```
-
-`processed` is how many due deliveries were attempted in that run (capped at 25).
-
-## Scheduling
-
-Next.js doesn't run background jobs. Pick a scheduler and hit the endpoint every 1–5 minutes.
-
-### Vercel Cron
-
-Add `vercel.json` at the repository root (or app root, depending on your Vercel project):
-
-```json
-{
-  "crons": [
-    {
-      "path": "/api/cron/webhook-retries",
-      "schedule": "*/5 * * * *"
-    }
-  ]
-}
-```
-
-Add `CRON_SECRET` to your Vercel environment variables. Some Vercel plans don't attach `Authorization` automatically — if auth fails, trigger the endpoint from GitHub Actions or another scheduler instead.
-
-### GitHub Actions
-
-```yaml
-# .github/workflows/webhook-retries.yml
-name: Webhook retries
-on:
-  schedule:
-    - cron: "*/5 * * * *"
-  workflow_dispatch:
-
-jobs:
-  retry:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Process due webhook retries
-        run: |
-          curl -fsS -X POST "${{ vars.PAYOES_URL }}/api/cron/webhook-retries" \
-            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
-```
-
-Put `CRON_SECRET` in repository secrets and `PAYOES_URL` in repository variables.
-
-### Other schedulers
-
-cron-job.org, Railway cron, Render cron, or a plain `crontab` on a VPS all work — any service that can `POST` with the bearer token.
-
-For VPS setup, use the scripts in <GithubRepoLink path="tree/main/scripts/cron">`scripts/cron`</GithubRepoLink> at the repository root (`run-settlement.sh`, `run-webhook-retries.sh`, and `README.md`).
+`GET /api/health` returns worker status, including the Horizon settlement stream when enabled.
 
 ## Troubleshooting
 
-| Problem                             | What to check                                                   |
-| ----------------------------------- | --------------------------------------------------------------- |
-| `503 CRON_SECRET is not configured` | Env var missing in the deployment                               |
-| `401 Unauthorized`                  | Token mismatch or wrong header                                  |
-| Retries stall in production         | No scheduler and no payment events to trigger inline processing |
-| `processed: 0`                      | Nothing was due at that moment                                  |
+| Problem              | What to check                                              |
+| -------------------- | ---------------------------------------------------------- |
+| Retries stall        | Confirm the web process is running and only one replica    |
+| QR deposit delayed   | Check `/api/health` settlement stream status and logs        |
+| Stream disconnected  | Restart the web container; cursor resumes from the database |

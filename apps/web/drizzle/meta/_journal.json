@@ -204,6 +204,13 @@
       "when": 1784186400000,
       "tag": "0029_organization_integrations",
       "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1784272800000,
+      "tag": "0030_horizon_stream_cursors",
+      "breakpoints": true
     }
   ]
 }
