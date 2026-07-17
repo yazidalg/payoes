@@ -167,14 +167,6 @@ Payoes is a monorepo that combines a Next.js application, a Soroban escrow contr
 
 Diagrams use the [C4 model](https://c4model.com/). Source files and full write-up live in [`docs/architecture/`](docs/architecture/).
 
-### System context (C4 Level 1)
-
-<div align="center">
-  <img src="assets/architecture/c4-context.png" alt="C4 System Context diagram for Payoes" width="900" />
-</div>
-
-### Containers (C4 Level 2)
-
 <div align="center">
   <img src="assets/architecture/c4-container.png" alt="C4 Container diagram for Payoes" width="900" />
 </div>
